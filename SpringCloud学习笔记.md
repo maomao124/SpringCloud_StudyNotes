@@ -2388,7 +2388,7 @@ server:
 
 spring:
   application:
-    name: eureka_server
+    name: eurekaserver
 
 # eureka相关配置
 eureka:
@@ -2540,14 +2540,14 @@ spring:
 
 
   application:
-    name: user_service
+    name: userservice
 
 eureka:
   client:
     service-url:
       defaultZone: http://127.0.0.1:10080/eureka/
-      
-      
+
+
 
 # 开启debug模式，输出调试信息，常用于检查系统运行状况
 #debug: true
@@ -2702,8 +2702,8 @@ spring:
 
 
   application:
-    name: order_service
-      
+    name: orderservice
+
 eureka:
   client:
     service-url:
@@ -2741,6 +2741,690 @@ mybatis:
   configuration:
     map-underscore-to-camel-case: true
 ```
+
+
+
+
+
+
+
+### 启动测试
+
+将使用实例都启动，查看是否能成功启动
+
+
+
+#### eureka_server
+
+```sh
+OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::        (v2.3.9.RELEASE)
+
+2022-07-11 14:43:27.578  INFO 10804 --- [           main] m.eureka_server.EurekaServerApplication  : No active profile set, falling back to default profiles: default
+2022-07-11 14:43:28.099  WARN 10804 --- [           main] o.s.boot.actuate.endpoint.EndpointId     : Endpoint ID 'service-registry' contains invalid characters, please migrate to a valid format.
+2022-07-11 14:43:28.180  INFO 10804 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=eab41717-91c5-31b2-ac05-97d9556dfb28
+2022-07-11 14:43:28.392  INFO 10804 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 10080 (http)
+2022-07-11 14:43:28.399  INFO 10804 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-07-11 14:43:28.399  INFO 10804 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.43]
+2022-07-11 14:43:28.509  INFO 10804 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-07-11 14:43:28.509  INFO 10804 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 918 ms
+2022-07-11 14:43:28.560  WARN 10804 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-11 14:43:28.561  INFO 10804 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-11 14:43:28.566  INFO 10804 --- [           main] c.netflix.config.DynamicPropertyFactory  : DynamicPropertyFactory is initialized with configuration sources: com.netflix.config.ConcurrentCompositeConfiguration@16a5c7e4
+2022-07-11 14:43:28.838  INFO 10804 --- [           main] c.s.j.s.i.a.WebApplicationImpl           : Initiating Jersey application, version 'Jersey: 1.19.4 05/24/2017 03:20 PM'
+2022-07-11 14:43:28.878  INFO 10804 --- [           main] c.n.d.provider.DiscoveryJerseyProvider   : Using JSON encoding codec LegacyJacksonJson
+2022-07-11 14:43:28.879  INFO 10804 --- [           main] c.n.d.provider.DiscoveryJerseyProvider   : Using JSON decoding codec LegacyJacksonJson
+2022-07-11 14:43:28.975  INFO 10804 --- [           main] c.n.d.provider.DiscoveryJerseyProvider   : Using XML encoding codec XStreamXml
+2022-07-11 14:43:28.975  INFO 10804 --- [           main] c.n.d.provider.DiscoveryJerseyProvider   : Using XML decoding codec XStreamXml
+2022-07-11 14:43:29.196  WARN 10804 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-11 14:43:29.197  INFO 10804 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-11 14:43:29.303  INFO 10804 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-11 14:43:29.828  INFO 10804 --- [           main] DiscoveryClientOptionalArgsConfiguration : Eureka HTTP Client uses Jersey
+2022-07-11 14:43:29.843  WARN 10804 --- [           main] ockingLoadBalancerClientRibbonWarnLogger : You already have RibbonLoadBalancerClient on your classpath. It will be used by default. As Spring Cloud Ribbon is in maintenance mode. We recommend switching to BlockingLoadBalancerClient instead. In order to use it, set the value of `spring.cloud.loadbalancer.ribbon.enabled` to `false` or remove spring-cloud-starter-netflix-ribbon from your project.
+2022-07-11 14:43:29.878  INFO 10804 --- [           main] o.s.c.n.eureka.InstanceInfoFactory       : Setting initial instance status as: STARTING
+2022-07-11 14:43:29.908  INFO 10804 --- [           main] com.netflix.discovery.DiscoveryClient    : Initializing Eureka in region us-east-1
+2022-07-11 14:43:30.033  INFO 10804 --- [           main] c.n.d.provider.DiscoveryJerseyProvider   : Using JSON encoding codec LegacyJacksonJson
+2022-07-11 14:43:30.034  INFO 10804 --- [           main] c.n.d.provider.DiscoveryJerseyProvider   : Using JSON decoding codec LegacyJacksonJson
+2022-07-11 14:43:30.034  INFO 10804 --- [           main] c.n.d.provider.DiscoveryJerseyProvider   : Using XML encoding codec XStreamXml
+2022-07-11 14:43:30.034  INFO 10804 --- [           main] c.n.d.provider.DiscoveryJerseyProvider   : Using XML decoding codec XStreamXml
+2022-07-11 14:43:30.228  INFO 10804 --- [           main] c.n.d.s.r.aws.ConfigClusterResolver      : Resolving eureka endpoints via configuration
+2022-07-11 14:43:30.253  INFO 10804 --- [           main] com.netflix.discovery.DiscoveryClient    : Disable delta property : false
+2022-07-11 14:43:30.253  INFO 10804 --- [           main] com.netflix.discovery.DiscoveryClient    : Single vip registry refresh property : null
+2022-07-11 14:43:30.253  INFO 10804 --- [           main] com.netflix.discovery.DiscoveryClient    : Force full registry fetch : false
+2022-07-11 14:43:30.253  INFO 10804 --- [           main] com.netflix.discovery.DiscoveryClient    : Application is null : false
+2022-07-11 14:43:30.253  INFO 10804 --- [           main] com.netflix.discovery.DiscoveryClient    : Registered Applications size is zero : true
+2022-07-11 14:43:30.253  INFO 10804 --- [           main] com.netflix.discovery.DiscoveryClient    : Application version is -1: true
+2022-07-11 14:43:30.253  INFO 10804 --- [           main] com.netflix.discovery.DiscoveryClient    : Getting all instance registry info from the eureka server
+2022-07-11 14:43:30.289  INFO 10804 --- [           main] c.n.d.s.t.d.RedirectingEurekaHttpClient  : Request execution error. endpoint=DefaultEndpoint{ serviceUrl='http://127.0.0.1:10080/eureka/}, exception=java.net.ConnectException: Connection refused: no further information stacktrace=com.sun.jersey.api.client.ClientHandlerException: java.net.ConnectException: Connection refused: no further information
+...
+...
+...
+
+2022-07-11 14:43:30.291  INFO 10804 --- [           main] com.netflix.discovery.DiscoveryClient    : Initial registry fetch from primary servers failed
+2022-07-11 14:43:30.291  WARN 10804 --- [           main] com.netflix.discovery.DiscoveryClient    : Using default backup registry implementation which does not do anything.
+2022-07-11 14:43:30.291  INFO 10804 --- [           main] com.netflix.discovery.DiscoveryClient    : Initial registry fetch from backup servers failed
+2022-07-11 14:43:30.295  INFO 10804 --- [           main] com.netflix.discovery.DiscoveryClient    : Starting heartbeat executor: renew interval is: 30
+2022-07-11 14:43:30.299  INFO 10804 --- [           main] c.n.discovery.InstanceInfoReplicator     : InstanceInfoReplicator onDemand update allowed rate per min is 4
+2022-07-11 14:43:30.309  INFO 10804 --- [           main] com.netflix.discovery.DiscoveryClient    : Discovery Client initialized at timestamp 1657521810308 with initial instances count: 0
+2022-07-11 14:43:30.328  INFO 10804 --- [           main] c.n.eureka.DefaultEurekaServerContext    : Initializing ...
+2022-07-11 14:43:30.329  INFO 10804 --- [           main] c.n.eureka.cluster.PeerEurekaNodes       : Adding new peer nodes [http://127.0.0.1:10080/eureka/]
+2022-07-11 14:43:30.347  INFO 10804 --- [           main] c.n.d.provider.DiscoveryJerseyProvider   : Using JSON encoding codec LegacyJacksonJson
+2022-07-11 14:43:30.347  INFO 10804 --- [           main] c.n.d.provider.DiscoveryJerseyProvider   : Using JSON decoding codec LegacyJacksonJson
+2022-07-11 14:43:30.347  INFO 10804 --- [           main] c.n.d.provider.DiscoveryJerseyProvider   : Using XML encoding codec XStreamXml
+2022-07-11 14:43:30.347  INFO 10804 --- [           main] c.n.d.provider.DiscoveryJerseyProvider   : Using XML decoding codec XStreamXml
+2022-07-11 14:43:30.461  INFO 10804 --- [           main] c.n.eureka.cluster.PeerEurekaNodes       : Replica node URL:  http://127.0.0.1:10080/eureka/
+2022-07-11 14:43:30.487  INFO 10804 --- [           main] c.n.e.registry.AbstractInstanceRegistry  : Finished initializing remote region registries. All known remote regions: []
+2022-07-11 14:43:30.494  INFO 10804 --- [           main] c.n.eureka.DefaultEurekaServerContext    : Initialized
+2022-07-11 14:43:30.503  INFO 10804 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoint(s) beneath base path '/actuator'
+2022-07-11 14:43:30.547  INFO 10804 --- [           main] o.s.c.n.e.s.EurekaServiceRegistry        : Registering application EUREKASERVER with eureka with status UP
+2022-07-11 14:43:30.548  INFO 10804 --- [           main] com.netflix.discovery.DiscoveryClient    : Saw local status change event StatusChangeEvent [timestamp=1657521810548, current=UP, previous=STARTING]
+2022-07-11 14:43:30.549  INFO 10804 --- [nfoReplicator-0] com.netflix.discovery.DiscoveryClient    : DiscoveryClient_EUREKASERVER/192.168.202.1:eurekaserver:10080: registering service...
+2022-07-11 14:43:30.550  INFO 10804 --- [      Thread-10] o.s.c.n.e.server.EurekaServerBootstrap   : Setting the eureka configuration..
+2022-07-11 14:43:30.550  INFO 10804 --- [      Thread-10] o.s.c.n.e.server.EurekaServerBootstrap   : Eureka data center value eureka.datacenter is not set, defaulting to default
+2022-07-11 14:43:30.550  INFO 10804 --- [      Thread-10] o.s.c.n.e.server.EurekaServerBootstrap   : Eureka environment value eureka.environment is not set, defaulting to test
+2022-07-11 14:43:30.556  INFO 10804 --- [      Thread-10] o.s.c.n.e.server.EurekaServerBootstrap   : isAws returned false
+2022-07-11 14:43:30.556  INFO 10804 --- [      Thread-10] o.s.c.n.e.server.EurekaServerBootstrap   : Initialized server context
+2022-07-11 14:43:30.573  INFO 10804 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 10080 (http) with context path ''
+2022-07-11 14:43:30.574  INFO 10804 --- [           main] .s.c.n.e.s.EurekaAutoServiceRegistration : Updating port to 10080
+2022-07-11 14:43:30.610  INFO 10804 --- [io-10080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2022-07-11 14:43:30.610  INFO 10804 --- [io-10080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2022-07-11 14:43:30.614  INFO 10804 --- [io-10080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 4 ms
+2022-07-11 14:43:30.655  INFO 10804 --- [io-10080-exec-1] c.n.e.registry.AbstractInstanceRegistry  : Registered instance EUREKASERVER/192.168.202.1:eurekaserver:10080 with status UP (replication=false)
+2022-07-11 14:43:30.666  INFO 10804 --- [nfoReplicator-0] com.netflix.discovery.DiscoveryClient    : DiscoveryClient_EUREKASERVER/192.168.202.1:eurekaserver:10080 - registration status: 204
+2022-07-11 14:43:30.689  INFO 10804 --- [           main] m.eureka_server.EurekaServerApplication  : Started EurekaServerApplication in 3.873 seconds (JVM running for 4.407)
+2022-07-11 14:43:31.174  INFO 10804 --- [io-10080-exec-2] c.n.e.registry.AbstractInstanceRegistry  : Registered instance EUREKASERVER/192.168.202.1:eurekaserver:10080 with status UP (replication=true)
+2022-07-11 14:43:39.292  INFO 10804 --- [io-10080-exec-4] c.n.e.registry.AbstractInstanceRegistry  : Registered instance ORDERSERVICE/192.168.202.1:orderservice:8081 with status UP (replication=false)
+2022-07-11 14:43:39.803  INFO 10804 --- [io-10080-exec-5] c.n.e.registry.AbstractInstanceRegistry  : Registered instance ORDERSERVICE/192.168.202.1:orderservice:8081 with status UP (replication=true)
+2022-07-11 14:43:43.794  INFO 10804 --- [io-10080-exec-7] c.n.e.registry.AbstractInstanceRegistry  : Registered instance USERSERVICE/192.168.202.1:userservice:8082 with status UP (replication=false)
+2022-07-11 14:43:44.305  INFO 10804 --- [io-10080-exec-8] c.n.e.registry.AbstractInstanceRegistry  : Registered instance USERSERVICE/192.168.202.1:userservice:8082 with status UP (replication=true)
+2022-07-11 14:43:47.597  INFO 10804 --- [io-10080-exec-9] c.n.e.registry.AbstractInstanceRegistry  : Registered instance USERSERVICE/192.168.202.1:userservice:8083 with status UP (replication=false)
+2022-07-11 14:43:48.107  INFO 10804 --- [io-10080-exec-1] c.n.e.registry.AbstractInstanceRegistry  : Registered instance USERSERVICE/192.168.202.1:userservice:8083 with status UP (replication=true)
+```
+
+
+
+
+
+#### user_service
+
+```sh
+OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::        (v2.3.9.RELEASE)
+
+2022-07-11 14:43:41.372  INFO 12908 --- [           main] mao.user_service.UserServiceApplication  : No active profile set, falling back to default profiles: default
+2022-07-11 14:43:41.873  INFO 12908 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=0baa3470-9fb2-3010-aecb-a38d71a1785b
+2022-07-11 14:43:42.105  INFO 12908 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8082 (http)
+2022-07-11 14:43:42.111  INFO 12908 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-07-11 14:43:42.111  INFO 12908 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.43]
+2022-07-11 14:43:42.224  INFO 12908 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-07-11 14:43:42.225  INFO 12908 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 841 ms
+2022-07-11 14:43:42.307  INFO 12908 --- [           main] c.a.d.s.b.a.DruidDataSourceAutoConfigure : Init DruidDataSource
+2022-07-11 14:43:42.392  INFO 12908 --- [           main] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+2022-07-11 14:43:42.445  WARN 12908 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-11 14:43:42.446  INFO 12908 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-11 14:43:42.448  WARN 12908 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-11 14:43:42.448  INFO 12908 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-11 14:43:42.551  INFO 12908 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-11 14:43:42.826  INFO 12908 --- [           main] DiscoveryClientOptionalArgsConfiguration : Eureka HTTP Client uses Jersey
+2022-07-11 14:43:42.975  WARN 12908 --- [           main] ockingLoadBalancerClientRibbonWarnLogger : You already have RibbonLoadBalancerClient on your classpath. It will be used by default. As Spring Cloud Ribbon is in maintenance mode. We recommend switching to BlockingLoadBalancerClient instead. In order to use it, set the value of `spring.cloud.loadbalancer.ribbon.enabled` to `false` or remove spring-cloud-starter-netflix-ribbon from your project.
+2022-07-11 14:43:43.070  INFO 12908 --- [           main] o.s.c.n.eureka.InstanceInfoFactory       : Setting initial instance status as: STARTING
+2022-07-11 14:43:43.113  INFO 12908 --- [           main] com.netflix.discovery.DiscoveryClient    : Initializing Eureka in region us-east-1
+2022-07-11 14:43:43.262  INFO 12908 --- [           main] c.n.d.provider.DiscoveryJerseyProvider   : Using JSON encoding codec LegacyJacksonJson
+2022-07-11 14:43:43.262  INFO 12908 --- [           main] c.n.d.provider.DiscoveryJerseyProvider   : Using JSON decoding codec LegacyJacksonJson
+2022-07-11 14:43:43.375  INFO 12908 --- [           main] c.n.d.provider.DiscoveryJerseyProvider   : Using XML encoding codec XStreamXml
+2022-07-11 14:43:43.375  INFO 12908 --- [           main] c.n.d.provider.DiscoveryJerseyProvider   : Using XML decoding codec XStreamXml
+2022-07-11 14:43:43.616  INFO 12908 --- [           main] c.n.d.s.r.aws.ConfigClusterResolver      : Resolving eureka endpoints via configuration
+2022-07-11 14:43:43.643  INFO 12908 --- [           main] com.netflix.discovery.DiscoveryClient    : Disable delta property : false
+2022-07-11 14:43:43.643  INFO 12908 --- [           main] com.netflix.discovery.DiscoveryClient    : Single vip registry refresh property : null
+2022-07-11 14:43:43.643  INFO 12908 --- [           main] com.netflix.discovery.DiscoveryClient    : Force full registry fetch : false
+2022-07-11 14:43:43.643  INFO 12908 --- [           main] com.netflix.discovery.DiscoveryClient    : Application is null : false
+2022-07-11 14:43:43.643  INFO 12908 --- [           main] com.netflix.discovery.DiscoveryClient    : Registered Applications size is zero : true
+2022-07-11 14:43:43.643  INFO 12908 --- [           main] com.netflix.discovery.DiscoveryClient    : Application version is -1: true
+2022-07-11 14:43:43.643  INFO 12908 --- [           main] com.netflix.discovery.DiscoveryClient    : Getting all instance registry info from the eureka server
+2022-07-11 14:43:43.741  INFO 12908 --- [           main] com.netflix.discovery.DiscoveryClient    : The response status is 200
+2022-07-11 14:43:43.747  INFO 12908 --- [           main] com.netflix.discovery.DiscoveryClient    : Starting heartbeat executor: renew interval is: 30
+2022-07-11 14:43:43.752  INFO 12908 --- [           main] c.n.discovery.InstanceInfoReplicator     : InstanceInfoReplicator onDemand update allowed rate per min is 4
+2022-07-11 14:43:43.763  INFO 12908 --- [           main] com.netflix.discovery.DiscoveryClient    : Discovery Client initialized at timestamp 1657521823762 with initial instances count: 1
+2022-07-11 14:43:43.764  INFO 12908 --- [           main] o.s.c.n.e.s.EurekaServiceRegistry        : Registering application USERSERVICE with eureka with status UP
+2022-07-11 14:43:43.765  INFO 12908 --- [           main] com.netflix.discovery.DiscoveryClient    : Saw local status change event StatusChangeEvent [timestamp=1657521823765, current=UP, previous=STARTING]
+2022-07-11 14:43:43.766  INFO 12908 --- [nfoReplicator-0] com.netflix.discovery.DiscoveryClient    : DiscoveryClient_USERSERVICE/192.168.202.1:userservice:8082: registering service...
+2022-07-11 14:43:43.796  INFO 12908 --- [nfoReplicator-0] com.netflix.discovery.DiscoveryClient    : DiscoveryClient_USERSERVICE/192.168.202.1:userservice:8082 - registration status: 204
+2022-07-11 14:43:43.799  INFO 12908 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8082 (http) with context path ''
+2022-07-11 14:43:43.800  INFO 12908 --- [           main] .s.c.n.e.s.EurekaAutoServiceRegistration : Updating port to 8082
+2022-07-11 14:43:43.910  INFO 12908 --- [           main] mao.user_service.UserServiceApplication  : Started UserServiceApplication in 3.253 seconds (JVM running for 3.846)
+```
+
+
+
+```sh
+mao.user_service.UserServiceApplication --server.port=8083
+OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::        (v2.3.9.RELEASE)
+
+2022-07-11 14:43:45.194  INFO 3548 --- [           main] mao.user_service.UserServiceApplication  : No active profile set, falling back to default profiles: default
+2022-07-11 14:43:45.713  INFO 3548 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=0baa3470-9fb2-3010-aecb-a38d71a1785b
+2022-07-11 14:43:45.944  INFO 3548 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8083 (http)
+2022-07-11 14:43:45.951  INFO 3548 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-07-11 14:43:45.951  INFO 3548 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.43]
+2022-07-11 14:43:46.067  INFO 3548 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-07-11 14:43:46.068  INFO 3548 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 861 ms
+2022-07-11 14:43:46.157  INFO 3548 --- [           main] c.a.d.s.b.a.DruidDataSourceAutoConfigure : Init DruidDataSource
+2022-07-11 14:43:46.249  INFO 3548 --- [           main] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+2022-07-11 14:43:46.301  WARN 3548 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-11 14:43:46.302  INFO 3548 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-11 14:43:46.304  WARN 3548 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-11 14:43:46.304  INFO 3548 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-11 14:43:46.406  INFO 3548 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-11 14:43:46.701  INFO 3548 --- [           main] DiscoveryClientOptionalArgsConfiguration : Eureka HTTP Client uses Jersey
+2022-07-11 14:43:46.847  WARN 3548 --- [           main] ockingLoadBalancerClientRibbonWarnLogger : You already have RibbonLoadBalancerClient on your classpath. It will be used by default. As Spring Cloud Ribbon is in maintenance mode. We recommend switching to BlockingLoadBalancerClient instead. In order to use it, set the value of `spring.cloud.loadbalancer.ribbon.enabled` to `false` or remove spring-cloud-starter-netflix-ribbon from your project.
+2022-07-11 14:43:46.923  INFO 3548 --- [           main] o.s.c.n.eureka.InstanceInfoFactory       : Setting initial instance status as: STARTING
+2022-07-11 14:43:46.956  INFO 3548 --- [           main] com.netflix.discovery.DiscoveryClient    : Initializing Eureka in region us-east-1
+2022-07-11 14:43:47.104  INFO 3548 --- [           main] c.n.d.provider.DiscoveryJerseyProvider   : Using JSON encoding codec LegacyJacksonJson
+2022-07-11 14:43:47.104  INFO 3548 --- [           main] c.n.d.provider.DiscoveryJerseyProvider   : Using JSON decoding codec LegacyJacksonJson
+2022-07-11 14:43:47.205  INFO 3548 --- [           main] c.n.d.provider.DiscoveryJerseyProvider   : Using XML encoding codec XStreamXml
+2022-07-11 14:43:47.205  INFO 3548 --- [           main] c.n.d.provider.DiscoveryJerseyProvider   : Using XML decoding codec XStreamXml
+2022-07-11 14:43:47.426  INFO 3548 --- [           main] c.n.d.s.r.aws.ConfigClusterResolver      : Resolving eureka endpoints via configuration
+2022-07-11 14:43:47.451  INFO 3548 --- [           main] com.netflix.discovery.DiscoveryClient    : Disable delta property : false
+2022-07-11 14:43:47.451  INFO 3548 --- [           main] com.netflix.discovery.DiscoveryClient    : Single vip registry refresh property : null
+2022-07-11 14:43:47.451  INFO 3548 --- [           main] com.netflix.discovery.DiscoveryClient    : Force full registry fetch : false
+2022-07-11 14:43:47.451  INFO 3548 --- [           main] com.netflix.discovery.DiscoveryClient    : Application is null : false
+2022-07-11 14:43:47.452  INFO 3548 --- [           main] com.netflix.discovery.DiscoveryClient    : Registered Applications size is zero : true
+2022-07-11 14:43:47.452  INFO 3548 --- [           main] com.netflix.discovery.DiscoveryClient    : Application version is -1: true
+2022-07-11 14:43:47.452  INFO 3548 --- [           main] com.netflix.discovery.DiscoveryClient    : Getting all instance registry info from the eureka server
+2022-07-11 14:43:47.544  INFO 3548 --- [           main] com.netflix.discovery.DiscoveryClient    : The response status is 200
+2022-07-11 14:43:47.549  INFO 3548 --- [           main] com.netflix.discovery.DiscoveryClient    : Starting heartbeat executor: renew interval is: 30
+2022-07-11 14:43:47.554  INFO 3548 --- [           main] c.n.discovery.InstanceInfoReplicator     : InstanceInfoReplicator onDemand update allowed rate per min is 4
+2022-07-11 14:43:47.564  INFO 3548 --- [           main] com.netflix.discovery.DiscoveryClient    : Discovery Client initialized at timestamp 1657521827563 with initial instances count: 1
+2022-07-11 14:43:47.566  INFO 3548 --- [           main] o.s.c.n.e.s.EurekaServiceRegistry        : Registering application USERSERVICE with eureka with status UP
+2022-07-11 14:43:47.566  INFO 3548 --- [           main] com.netflix.discovery.DiscoveryClient    : Saw local status change event StatusChangeEvent [timestamp=1657521827566, current=UP, previous=STARTING]
+2022-07-11 14:43:47.567  INFO 3548 --- [nfoReplicator-0] com.netflix.discovery.DiscoveryClient    : DiscoveryClient_USERSERVICE/192.168.202.1:userservice:8083: registering service...
+2022-07-11 14:43:47.596  INFO 3548 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8083 (http) with context path ''
+2022-07-11 14:43:47.597  INFO 3548 --- [           main] .s.c.n.e.s.EurekaAutoServiceRegistration : Updating port to 8083
+2022-07-11 14:43:47.598  INFO 3548 --- [nfoReplicator-0] com.netflix.discovery.DiscoveryClient    : DiscoveryClient_USERSERVICE/192.168.202.1:userservice:8083 - registration status: 204
+2022-07-11 14:43:47.701  INFO 3548 --- [           main] mao.user_service.UserServiceApplication  : Started UserServiceApplication in 3.266 seconds (JVM running for 3.806)
+```
+
+
+
+
+
+#### order_service
+
+```sh
+OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::        (v2.3.9.RELEASE)
+
+2022-07-11 14:43:36.915  INFO 608 --- [           main] m.order_service.OrderServiceApplication  : No active profile set, falling back to default profiles: default
+2022-07-11 14:43:37.402  INFO 608 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=78719a60-c314-3629-9a9c-8de76e6dfe1f
+2022-07-11 14:43:37.629  INFO 608 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8081 (http)
+2022-07-11 14:43:37.636  INFO 608 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-07-11 14:43:37.636  INFO 608 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.43]
+2022-07-11 14:43:37.751  INFO 608 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-07-11 14:43:37.751  INFO 608 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 823 ms
+2022-07-11 14:43:37.833  INFO 608 --- [           main] c.a.d.s.b.a.DruidDataSourceAutoConfigure : Init DruidDataSource
+2022-07-11 14:43:37.923  INFO 608 --- [           main] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+2022-07-11 14:43:37.987  WARN 608 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-11 14:43:37.988  INFO 608 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-11 14:43:37.990  WARN 608 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-11 14:43:37.990  INFO 608 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-11 14:43:38.091  INFO 608 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-11 14:43:38.366  INFO 608 --- [           main] DiscoveryClientOptionalArgsConfiguration : Eureka HTTP Client uses Jersey
+2022-07-11 14:43:38.513  WARN 608 --- [           main] ockingLoadBalancerClientRibbonWarnLogger : You already have RibbonLoadBalancerClient on your classpath. It will be used by default. As Spring Cloud Ribbon is in maintenance mode. We recommend switching to BlockingLoadBalancerClient instead. In order to use it, set the value of `spring.cloud.loadbalancer.ribbon.enabled` to `false` or remove spring-cloud-starter-netflix-ribbon from your project.
+2022-07-11 14:43:38.591  INFO 608 --- [           main] o.s.c.n.eureka.InstanceInfoFactory       : Setting initial instance status as: STARTING
+2022-07-11 14:43:38.624  INFO 608 --- [           main] com.netflix.discovery.DiscoveryClient    : Initializing Eureka in region us-east-1
+2022-07-11 14:43:38.765  INFO 608 --- [           main] c.n.d.provider.DiscoveryJerseyProvider   : Using JSON encoding codec LegacyJacksonJson
+2022-07-11 14:43:38.765  INFO 608 --- [           main] c.n.d.provider.DiscoveryJerseyProvider   : Using JSON decoding codec LegacyJacksonJson
+2022-07-11 14:43:38.867  INFO 608 --- [           main] c.n.d.provider.DiscoveryJerseyProvider   : Using XML encoding codec XStreamXml
+2022-07-11 14:43:38.867  INFO 608 --- [           main] c.n.d.provider.DiscoveryJerseyProvider   : Using XML decoding codec XStreamXml
+2022-07-11 14:43:39.103  INFO 608 --- [           main] c.n.d.s.r.aws.ConfigClusterResolver      : Resolving eureka endpoints via configuration
+2022-07-11 14:43:39.128  INFO 608 --- [           main] com.netflix.discovery.DiscoveryClient    : Disable delta property : false
+2022-07-11 14:43:39.128  INFO 608 --- [           main] com.netflix.discovery.DiscoveryClient    : Single vip registry refresh property : null
+2022-07-11 14:43:39.128  INFO 608 --- [           main] com.netflix.discovery.DiscoveryClient    : Force full registry fetch : false
+2022-07-11 14:43:39.128  INFO 608 --- [           main] com.netflix.discovery.DiscoveryClient    : Application is null : false
+2022-07-11 14:43:39.128  INFO 608 --- [           main] com.netflix.discovery.DiscoveryClient    : Registered Applications size is zero : true
+2022-07-11 14:43:39.128  INFO 608 --- [           main] com.netflix.discovery.DiscoveryClient    : Application version is -1: true
+2022-07-11 14:43:39.129  INFO 608 --- [           main] com.netflix.discovery.DiscoveryClient    : Getting all instance registry info from the eureka server
+2022-07-11 14:43:39.235  INFO 608 --- [           main] com.netflix.discovery.DiscoveryClient    : The response status is 200
+2022-07-11 14:43:39.240  INFO 608 --- [           main] com.netflix.discovery.DiscoveryClient    : Starting heartbeat executor: renew interval is: 30
+2022-07-11 14:43:39.245  INFO 608 --- [           main] c.n.discovery.InstanceInfoReplicator     : InstanceInfoReplicator onDemand update allowed rate per min is 4
+2022-07-11 14:43:39.255  INFO 608 --- [           main] com.netflix.discovery.DiscoveryClient    : Discovery Client initialized at timestamp 1657521819254 with initial instances count: 1
+2022-07-11 14:43:39.257  INFO 608 --- [           main] o.s.c.n.e.s.EurekaServiceRegistry        : Registering application ORDERSERVICE with eureka with status UP
+2022-07-11 14:43:39.258  INFO 608 --- [           main] com.netflix.discovery.DiscoveryClient    : Saw local status change event StatusChangeEvent [timestamp=1657521819258, current=UP, previous=STARTING]
+2022-07-11 14:43:39.259  INFO 608 --- [nfoReplicator-0] com.netflix.discovery.DiscoveryClient    : DiscoveryClient_ORDERSERVICE/192.168.202.1:orderservice:8081: registering service...
+2022-07-11 14:43:39.288  INFO 608 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8081 (http) with context path ''
+2022-07-11 14:43:39.289  INFO 608 --- [           main] .s.c.n.e.s.EurekaAutoServiceRegistration : Updating port to 8081
+2022-07-11 14:43:39.293  INFO 608 --- [nfoReplicator-0] com.netflix.discovery.DiscoveryClient    : DiscoveryClient_ORDERSERVICE/192.168.202.1:orderservice:8081 - registration status: 204
+2022-07-11 14:43:39.401  INFO 608 --- [           main] m.order_service.OrderServiceApplication  : Started OrderServiceApplication in 3.192 seconds (JVM running for 3.718)
+```
+
+
+
+都能运行
+
+
+
+
+
+### 在order_service完成服务拉取
+
+
+
+服务拉取是基于服务名称获取服务列表，然后在对服务列表做负载均衡
+
+
+
+修改order_ervice的代码，修改访问的url路径，用服务名代替ip、端口：
+
+```java
+package mao.order_service.service;
+
+import mao.order_service.entity.Order;
+import mao.order_service.entity.User;
+import mao.order_service.mapper.OrderMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+/**
+ * Project name(项目名称)：spring_cloud_demo
+ * Package(包名): mao.order_service.service
+ * Class(类名): OrderService
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/9
+ * Time(创建时间)： 13:57
+ * Version(版本): 1.0
+ * Description(描述)： OrderService
+ */
+
+@Service
+public class OrderService
+{
+    @Autowired
+    private OrderMapper orderMapper;
+
+    @Autowired
+    private RestTemplate restTemplate;
+
+    /**
+     * 获取订单数据
+     *
+     * @param orderId 订单的id
+     * @return Order
+     */
+    public Order queryOrderById(Long orderId)
+    {
+        // 根据orderId获取订单数据
+        Order order = orderMapper.findById(orderId);
+        //获得用户的id
+        Long userId = order.getUserId();
+        //发起远程调用
+        //url
+        String url = "http://userservice/user/" + userId;
+        User user = restTemplate.getForObject(url, User.class);
+        //放入order里
+        order.setUser(user);
+        //返回数据
+        return order;
+    }
+}
+```
+
+
+
+
+
+在RestTemplateConfig中的RestTemplate添加负载均衡注解@LoadBalanced：
+
+```java
+package mao.order_service.config;
+
+import org.springframework.cloud.client.loadbalancer.LoadBalanced;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.client.RestTemplate;
+
+/**
+ * Project name(项目名称)：spring_cloud_demo_implement_remote_invocation_of_microservices
+ * Package(包名): mao.order_service.config
+ * Class(类名): RestTemplateConfig
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/9
+ * Time(创建时间)： 20:08
+ * Version(版本): 1.0
+ * Description(描述)： RestTemplate的配置类，位于子项目order_service
+ */
+
+@Configuration
+public class RestTemplateConfig
+{
+
+    /**
+     * 注入RestTemplate到spring容器
+     *
+     * @return restTemplate
+     */
+    @Bean
+    @LoadBalanced
+    public RestTemplate restTemplate()
+    {
+        return new RestTemplate();
+    }
+}
+```
+
+
+
+
+
+### 重启order_service
+
+重启order_service
+
+
+
+### 访问服务
+
+http://localhost:8081/order/101
+
+
+
+结果：
+
+```json
+{"id":101,"price":699900,"name":"Apple 苹果 iPhone 12 ","num":1,"userId":1,"user":{"id":1,"username":"柳岩","address":"湖南省衡阳市"}}
+```
+
+
+
+
+
+打印的日志：
+
+```sh
+2022-07-11 14:43:36.915  INFO 608 --- [           main] m.order_service.OrderServiceApplication  : No active profile set, falling back to default profiles: default
+2022-07-11 14:43:37.402  INFO 608 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=78719a60-c314-3629-9a9c-8de76e6dfe1f
+2022-07-11 14:43:37.629  INFO 608 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8081 (http)
+2022-07-11 14:43:37.636  INFO 608 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-07-11 14:43:37.636  INFO 608 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.43]
+2022-07-11 14:43:37.751  INFO 608 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-07-11 14:43:37.751  INFO 608 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 823 ms
+2022-07-11 14:43:37.833  INFO 608 --- [           main] c.a.d.s.b.a.DruidDataSourceAutoConfigure : Init DruidDataSource
+2022-07-11 14:43:37.923  INFO 608 --- [           main] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+2022-07-11 14:43:37.987  WARN 608 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-11 14:43:37.988  INFO 608 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-11 14:43:37.990  WARN 608 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-11 14:43:37.990  INFO 608 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-11 14:43:38.091  INFO 608 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-11 14:43:38.366  INFO 608 --- [           main] DiscoveryClientOptionalArgsConfiguration : Eureka HTTP Client uses Jersey
+2022-07-11 14:43:38.513  WARN 608 --- [           main] ockingLoadBalancerClientRibbonWarnLogger : You already have RibbonLoadBalancerClient on your classpath. It will be used by default. As Spring Cloud Ribbon is in maintenance mode. We recommend switching to BlockingLoadBalancerClient instead. In order to use it, set the value of `spring.cloud.loadbalancer.ribbon.enabled` to `false` or remove spring-cloud-starter-netflix-ribbon from your project.
+2022-07-11 14:43:38.591  INFO 608 --- [           main] o.s.c.n.eureka.InstanceInfoFactory       : Setting initial instance status as: STARTING
+2022-07-11 14:43:38.624  INFO 608 --- [           main] com.netflix.discovery.DiscoveryClient    : Initializing Eureka in region us-east-1
+2022-07-11 14:43:38.765  INFO 608 --- [           main] c.n.d.provider.DiscoveryJerseyProvider   : Using JSON encoding codec LegacyJacksonJson
+2022-07-11 14:43:38.765  INFO 608 --- [           main] c.n.d.provider.DiscoveryJerseyProvider   : Using JSON decoding codec LegacyJacksonJson
+2022-07-11 14:43:38.867  INFO 608 --- [           main] c.n.d.provider.DiscoveryJerseyProvider   : Using XML encoding codec XStreamXml
+2022-07-11 14:43:38.867  INFO 608 --- [           main] c.n.d.provider.DiscoveryJerseyProvider   : Using XML decoding codec XStreamXml
+2022-07-11 14:43:39.103  INFO 608 --- [           main] c.n.d.s.r.aws.ConfigClusterResolver      : Resolving eureka endpoints via configuration
+2022-07-11 14:43:39.128  INFO 608 --- [           main] com.netflix.discovery.DiscoveryClient    : Disable delta property : false
+2022-07-11 14:43:39.128  INFO 608 --- [           main] com.netflix.discovery.DiscoveryClient    : Single vip registry refresh property : null
+2022-07-11 14:43:39.128  INFO 608 --- [           main] com.netflix.discovery.DiscoveryClient    : Force full registry fetch : false
+2022-07-11 14:43:39.128  INFO 608 --- [           main] com.netflix.discovery.DiscoveryClient    : Application is null : false
+2022-07-11 14:43:39.128  INFO 608 --- [           main] com.netflix.discovery.DiscoveryClient    : Registered Applications size is zero : true
+2022-07-11 14:43:39.128  INFO 608 --- [           main] com.netflix.discovery.DiscoveryClient    : Application version is -1: true
+2022-07-11 14:43:39.129  INFO 608 --- [           main] com.netflix.discovery.DiscoveryClient    : Getting all instance registry info from the eureka server
+2022-07-11 14:43:39.235  INFO 608 --- [           main] com.netflix.discovery.DiscoveryClient    : The response status is 200
+2022-07-11 14:43:39.240  INFO 608 --- [           main] com.netflix.discovery.DiscoveryClient    : Starting heartbeat executor: renew interval is: 30
+2022-07-11 14:43:39.245  INFO 608 --- [           main] c.n.discovery.InstanceInfoReplicator     : InstanceInfoReplicator onDemand update allowed rate per min is 4
+2022-07-11 14:43:39.255  INFO 608 --- [           main] com.netflix.discovery.DiscoveryClient    : Discovery Client initialized at timestamp 1657521819254 with initial instances count: 1
+2022-07-11 14:43:39.257  INFO 608 --- [           main] o.s.c.n.e.s.EurekaServiceRegistry        : Registering application ORDERSERVICE with eureka with status UP
+2022-07-11 14:43:39.258  INFO 608 --- [           main] com.netflix.discovery.DiscoveryClient    : Saw local status change event StatusChangeEvent [timestamp=1657521819258, current=UP, previous=STARTING]
+2022-07-11 14:43:39.259  INFO 608 --- [nfoReplicator-0] com.netflix.discovery.DiscoveryClient    : DiscoveryClient_ORDERSERVICE/192.168.202.1:orderservice:8081: registering service...
+2022-07-11 14:43:39.288  INFO 608 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8081 (http) with context path ''
+2022-07-11 14:43:39.289  INFO 608 --- [           main] .s.c.n.e.s.EurekaAutoServiceRegistration : Updating port to 8081
+2022-07-11 14:43:39.293  INFO 608 --- [nfoReplicator-0] com.netflix.discovery.DiscoveryClient    : DiscoveryClient_ORDERSERVICE/192.168.202.1:orderservice:8081 - registration status: 204
+2022-07-11 14:43:39.401  INFO 608 --- [           main] m.order_service.OrderServiceApplication  : Started OrderServiceApplication in 3.192 seconds (JVM running for 3.718)
+2022-07-11 14:46:42.133  INFO 608 --- [nio-8081-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2022-07-11 14:46:42.133  INFO 608 --- [nio-8081-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2022-07-11 14:46:42.137  INFO 608 --- [nio-8081-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 4 ms
+2022-07-11 14:46:42.323 DEBUG 608 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-11 14:46:42.338 DEBUG 608 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-11 14:46:42.355 DEBUG 608 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-11 14:46:42.459  INFO 608 --- [nio-8081-exec-1] c.netflix.config.ChainedDynamicProperty  : Flipping property: userservice.ribbon.ActiveConnectionsLimit to use NEXT property: niws.loadbalancer.availabilityFilteringRule.activeConnectionsLimit = 2147483647
+2022-07-11 14:46:42.482  INFO 608 --- [nio-8081-exec-1] c.n.u.concurrent.ShutdownEnabledTimer    : Shutdown hook installed for: NFLoadBalancer-PingTimer-userservice
+2022-07-11 14:46:42.482  INFO 608 --- [nio-8081-exec-1] c.netflix.loadbalancer.BaseLoadBalancer  : Client: userservice instantiated a LoadBalancer: DynamicServerListLoadBalancer:{NFLoadBalancer:name=userservice,current list of Servers=[],Load balancer stats=Zone stats: {},Server stats: []}ServerList:null
+2022-07-11 14:46:42.492  INFO 608 --- [nio-8081-exec-1] c.n.l.DynamicServerListLoadBalancer      : Using serverListUpdater PollingServerListUpdater
+2022-07-11 14:46:42.512  INFO 608 --- [nio-8081-exec-1] c.netflix.config.ChainedDynamicProperty  : Flipping property: userservice.ribbon.ActiveConnectionsLimit to use NEXT property: niws.loadbalancer.availabilityFilteringRule.activeConnectionsLimit = 2147483647
+2022-07-11 14:46:42.516  INFO 608 --- [nio-8081-exec-1] c.n.l.DynamicServerListLoadBalancer      : DynamicServerListLoadBalancer for client userservice initialized: DynamicServerListLoadBalancer:{NFLoadBalancer:name=userservice,current list of Servers=[192.168.202.1:8083, 192.168.202.1:8082],Load balancer stats=Zone stats: {defaultzone=[Zone:defaultzone;	Instance count:2;	Active connections count: 0;	Circuit breaker tripped count: 0;	Active connections per server: 0.0;]
+},Server stats: [[Server:192.168.202.1:8082;	Zone:defaultZone;	Total Requests:0;	Successive connection failure:0;	Total blackout seconds:0;	Last connection made:Thu Jan 01 08:00:00 CST 1970;	First connection made: Thu Jan 01 08:00:00 CST 1970;	Active Connections:0;	total failure count in last (1000) msecs:0;	average resp time:0.0;	90 percentile resp time:0.0;	95 percentile resp time:0.0;	min resp time:0.0;	max resp time:0.0;	stddev resp time:0.0]
+, [Server:192.168.202.1:8083;	Zone:defaultZone;	Total Requests:0;	Successive connection failure:0;	Total blackout seconds:0;	Last connection made:Thu Jan 01 08:00:00 CST 1970;	First connection made: Thu Jan 01 08:00:00 CST 1970;	Active Connections:0;	total failure count in last (1000) msecs:0;	average resp time:0.0;	90 percentile resp time:0.0;	95 percentile resp time:0.0;	min resp time:0.0;	max resp time:0.0;	stddev resp time:0.0]
+]}ServerList:org.springframework.cloud.netflix.ribbon.eureka.DomainExtractingServerList@7e521c27
+2022-07-11 14:46:43.495  INFO 608 --- [erListUpdater-0] c.netflix.config.ChainedDynamicProperty  : Flipping property: userservice.ribbon.ActiveConnectionsLimit to use NEXT property: niws.loadbalancer.availabilityFilteringRule.activeConnectionsLimit = 2147483647
+2022-07-11 14:47:10.370 DEBUG 608 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-11 14:47:10.371 DEBUG 608 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-11 14:47:10.373 DEBUG 608 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-11 14:47:10.572 DEBUG 608 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-11 14:47:10.572 DEBUG 608 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-11 14:47:10.574 DEBUG 608 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-11 14:47:11.102 DEBUG 608 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-11 14:47:11.102 DEBUG 608 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-11 14:47:11.103 DEBUG 608 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-11 14:47:11.700 DEBUG 608 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-11 14:47:11.701 DEBUG 608 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-11 14:47:11.702 DEBUG 608 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+```
+
+
+
+正常
+
+
+
+
+
+### 测试负载均衡
+
+将日志清空
+
+
+
+访问20次
+
+
+
+order_service打印的日志：
+
+```sh
+2022-07-11 14:50:13.056  WARN 608 --- [nio-8081-exec-9] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/cloud_order, version : 1.2.8, lastPacketReceivedIdleMillis : 122648
+2022-07-11 14:50:13.077 DEBUG 608 --- [nio-8081-exec-9] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-11 14:50:13.077 DEBUG 608 --- [nio-8081-exec-9] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-11 14:50:13.079 DEBUG 608 --- [nio-8081-exec-9] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-11 14:50:13.596 DEBUG 608 --- [io-8081-exec-10] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-11 14:50:13.596 DEBUG 608 --- [io-8081-exec-10] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-11 14:50:13.598 DEBUG 608 --- [io-8081-exec-10] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-11 14:50:14.050 DEBUG 608 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-11 14:50:14.051 DEBUG 608 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-11 14:50:14.053 DEBUG 608 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-11 14:50:14.499 DEBUG 608 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-11 14:50:14.499 DEBUG 608 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-11 14:50:14.500 DEBUG 608 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-11 14:50:14.959 DEBUG 608 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-11 14:50:14.959 DEBUG 608 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-11 14:50:14.961 DEBUG 608 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-11 14:50:15.419 DEBUG 608 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-11 14:50:15.419 DEBUG 608 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-11 14:50:15.420 DEBUG 608 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-11 14:50:15.819 DEBUG 608 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-11 14:50:15.819 DEBUG 608 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-11 14:50:15.820 DEBUG 608 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-11 14:50:16.269 DEBUG 608 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-11 14:50:16.269 DEBUG 608 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-11 14:50:16.271 DEBUG 608 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-11 14:50:16.666 DEBUG 608 --- [nio-8081-exec-7] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-11 14:50:16.667 DEBUG 608 --- [nio-8081-exec-7] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-11 14:50:16.668 DEBUG 608 --- [nio-8081-exec-7] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-11 14:50:17.078 DEBUG 608 --- [nio-8081-exec-8] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-11 14:50:17.078 DEBUG 608 --- [nio-8081-exec-8] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-11 14:50:17.081 DEBUG 608 --- [nio-8081-exec-8] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-11 14:50:17.587 DEBUG 608 --- [nio-8081-exec-9] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-11 14:50:17.588 DEBUG 608 --- [nio-8081-exec-9] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-11 14:50:17.589 DEBUG 608 --- [nio-8081-exec-9] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-11 14:50:18.016 DEBUG 608 --- [io-8081-exec-10] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-11 14:50:18.017 DEBUG 608 --- [io-8081-exec-10] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-11 14:50:18.018 DEBUG 608 --- [io-8081-exec-10] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-11 14:50:18.439 DEBUG 608 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-11 14:50:18.439 DEBUG 608 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-11 14:50:18.440 DEBUG 608 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-11 14:50:18.880 DEBUG 608 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-11 14:50:18.881 DEBUG 608 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-11 14:50:18.882 DEBUG 608 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-11 14:50:19.287 DEBUG 608 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-11 14:50:19.288 DEBUG 608 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-11 14:50:19.290 DEBUG 608 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-11 14:50:19.707 DEBUG 608 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-11 14:50:19.707 DEBUG 608 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-11 14:50:19.708 DEBUG 608 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-11 14:50:20.147 DEBUG 608 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-11 14:50:20.147 DEBUG 608 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-11 14:50:20.149 DEBUG 608 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-11 14:50:20.618 DEBUG 608 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-11 14:50:20.618 DEBUG 608 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-11 14:50:20.620 DEBUG 608 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-11 14:50:21.019 DEBUG 608 --- [nio-8081-exec-7] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-11 14:50:21.020 DEBUG 608 --- [nio-8081-exec-7] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-11 14:50:21.021 DEBUG 608 --- [nio-8081-exec-7] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-11 14:50:21.430 DEBUG 608 --- [nio-8081-exec-8] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-11 14:50:21.430 DEBUG 608 --- [nio-8081-exec-8] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-11 14:50:21.432 DEBUG 608 --- [nio-8081-exec-8] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+```
+
+
+
+user_service1打印的1日志：
+
+```sh
+2022-07-11 14:50:14.063  WARN 12908 --- [nio-8082-exec-4] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/cloud_user, version : 1.2.8, lastPacketReceivedIdleMillis : 182949
+2022-07-11 14:50:14.085 DEBUG 12908 --- [nio-8082-exec-4] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-11 14:50:14.085 DEBUG 12908 --- [nio-8082-exec-4] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-11 14:50:14.087 DEBUG 12908 --- [nio-8082-exec-4] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-11 14:50:14.965 DEBUG 12908 --- [nio-8082-exec-5] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-11 14:50:14.965 DEBUG 12908 --- [nio-8082-exec-5] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-11 14:50:14.967 DEBUG 12908 --- [nio-8082-exec-5] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-11 14:50:15.823 DEBUG 12908 --- [nio-8082-exec-6] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-11 14:50:15.823 DEBUG 12908 --- [nio-8082-exec-6] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-11 14:50:15.824 DEBUG 12908 --- [nio-8082-exec-6] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-11 14:50:16.670 DEBUG 12908 --- [nio-8082-exec-7] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-11 14:50:16.670 DEBUG 12908 --- [nio-8082-exec-7] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-11 14:50:16.672 DEBUG 12908 --- [nio-8082-exec-7] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-11 14:50:17.591 DEBUG 12908 --- [nio-8082-exec-8] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-11 14:50:17.592 DEBUG 12908 --- [nio-8082-exec-8] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-11 14:50:17.593 DEBUG 12908 --- [nio-8082-exec-8] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-11 14:50:18.442 DEBUG 12908 --- [nio-8082-exec-9] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-11 14:50:18.442 DEBUG 12908 --- [nio-8082-exec-9] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-11 14:50:18.444 DEBUG 12908 --- [nio-8082-exec-9] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-11 14:50:19.292 DEBUG 12908 --- [io-8082-exec-10] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-11 14:50:19.293 DEBUG 12908 --- [io-8082-exec-10] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-11 14:50:19.294 DEBUG 12908 --- [io-8082-exec-10] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-11 14:50:20.152 DEBUG 12908 --- [nio-8082-exec-1] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-11 14:50:20.153 DEBUG 12908 --- [nio-8082-exec-1] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-11 14:50:20.154 DEBUG 12908 --- [nio-8082-exec-1] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-11 14:50:21.022 DEBUG 12908 --- [nio-8082-exec-2] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-11 14:50:21.023 DEBUG 12908 --- [nio-8082-exec-2] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-11 14:50:21.024 DEBUG 12908 --- [nio-8082-exec-2] m.u.mapper.UserMapper.findById           : <==      Total: 1
+```
+
+
+
+user_service2打印的1日志：
+
+```sh
+2022-07-11 14:50:13.088  WARN 3548 --- [nio-8083-exec-6] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/cloud_user, version : 1.2.8, lastPacketReceivedIdleMillis : 122676
+2022-07-11 14:50:13.109 DEBUG 3548 --- [nio-8083-exec-6] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-11 14:50:13.109 DEBUG 3548 --- [nio-8083-exec-6] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-11 14:50:13.111 DEBUG 3548 --- [nio-8083-exec-6] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-11 14:50:13.600 DEBUG 3548 --- [nio-8083-exec-7] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-11 14:50:13.601 DEBUG 3548 --- [nio-8083-exec-7] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-11 14:50:13.602 DEBUG 3548 --- [nio-8083-exec-7] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-11 14:50:14.502 DEBUG 3548 --- [nio-8083-exec-8] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-11 14:50:14.503 DEBUG 3548 --- [nio-8083-exec-8] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-11 14:50:14.504 DEBUG 3548 --- [nio-8083-exec-8] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-11 14:50:15.422 DEBUG 3548 --- [nio-8083-exec-9] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-11 14:50:15.422 DEBUG 3548 --- [nio-8083-exec-9] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-11 14:50:15.424 DEBUG 3548 --- [nio-8083-exec-9] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-11 14:50:16.274 DEBUG 3548 --- [io-8083-exec-10] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-11 14:50:16.274 DEBUG 3548 --- [io-8083-exec-10] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-11 14:50:16.275 DEBUG 3548 --- [io-8083-exec-10] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-11 14:50:17.084 DEBUG 3548 --- [nio-8083-exec-1] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-11 14:50:17.084 DEBUG 3548 --- [nio-8083-exec-1] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-11 14:50:17.085 DEBUG 3548 --- [nio-8083-exec-1] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-11 14:50:18.021 DEBUG 3548 --- [nio-8083-exec-2] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-11 14:50:18.021 DEBUG 3548 --- [nio-8083-exec-2] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-11 14:50:18.022 DEBUG 3548 --- [nio-8083-exec-2] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-11 14:50:18.884 DEBUG 3548 --- [nio-8083-exec-3] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-11 14:50:18.884 DEBUG 3548 --- [nio-8083-exec-3] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-11 14:50:18.885 DEBUG 3548 --- [nio-8083-exec-3] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-11 14:50:19.711 DEBUG 3548 --- [nio-8083-exec-4] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-11 14:50:19.711 DEBUG 3548 --- [nio-8083-exec-4] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-11 14:50:19.713 DEBUG 3548 --- [nio-8083-exec-4] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-11 14:50:20.623 DEBUG 3548 --- [nio-8083-exec-5] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-11 14:50:20.623 DEBUG 3548 --- [nio-8083-exec-5] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-11 14:50:20.624 DEBUG 3548 --- [nio-8083-exec-5] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-11 14:50:21.434 DEBUG 3548 --- [nio-8083-exec-6] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-11 14:50:21.434 DEBUG 3548 --- [nio-8083-exec-6] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-11 14:50:21.435 DEBUG 3548 --- [nio-8083-exec-6] m.u.mapper.UserMapper.findById           : <==      Total: 1
+```
+
+
+
+user_service被访问了9次 ，user_service2被访问了11次
+
+
+
+
+
+
+
+## 项目地址
+
+https://github.com/maomao124/spring_cloud_demo_eureka.git
+
+
+
+
+
+
+
+# Ribbon负载均衡
 
 
 
