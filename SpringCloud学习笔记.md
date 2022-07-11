@@ -3426,7 +3426,239 @@ https://github.com/maomao124/spring_cloud_demo_eureka.git
 
 # Ribbon负载均衡
 
+## 负载均衡流程
+
+1. order_service发起请求到达Ribbon
+2. Ribbon向eureka-server拉取userservice的服务列表
+3. eureka-server返回服务列表到Ribbon
+4. 轮询调用
 
 
 
+
+
+## 负载均衡策略
+
+Ribbon的负载均衡规则是一个叫做IRule的接口来定义的，每一个子接口都是一种规则
+
+
+
+|  **内置负载均衡规则类**   |                         **规则描述**                         |
+| :-----------------------: | :----------------------------------------------------------: |
+|      RoundRobinRule       | 简单轮询服务列表来选择服务器。它是Ribbon默认的负载均衡规则。 |
+| AvailabilityFilteringRule | 对以下两种服务器进行忽略：   （1）在默认情况下，这台服务器如果3次连接失败，这台服务器就会被设置为“短路”状态。短路状态将持续30秒，如果再次连接失败，短路的持续时间就会几何级地增加。  （2）并发数过高的服务器。如果一个服务器的并发连接数过高，配置了AvailabilityFilteringRule规则的客户端也会将其忽略。并发连接数的上限，可以由客户端的<clientName>.<clientConfigNameSpace>.ActiveConnectionsLimit属性进行配置。 |
+| WeightedResponseTimeRule  | 为每一个服务器赋予一个权重值。服务器响应时间越长，这个服务器的权重就越小。这个规则会随机选择服务器，这个权重值会影响服务器的选择。 |
+|     ZoneAvoidanceRule     | 以区域可用的服务器为基础进行服务器的选择。使用Zone对服务器进行分类，这个Zone可以理解为一个机房、一个机架等。而后再对Zone内的多个服务做轮询。 |
+|     BestAvailableRule     |       忽略那些短路的服务器，并选择并发数较低的服务器。       |
+|        RandomRule         |                  随机选择一个可用的服务器。                  |
+|         RetryRule         |                      重试机制的选择逻辑                      |
+
+
+
+
+
+## 更改规则
+
+通过定义IRule实现可以修改负载均衡规则，有两种方式
+
+
+
+### 代码方式
+
+创建RibbonConfig类
+
+```java
+package mao.order_service.config;
+
+import com.netflix.loadbalancer.IRule;
+import com.netflix.loadbalancer.RandomRule;
+import org.springframework.context.annotation.Bean;
+
+/**
+ * Project name(项目名称)：spring_cloud_demo_eureka
+ * Package(包名): mao.order_service.config
+ * Class(类名): RibbonConfig
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/11
+ * Time(创建时间)： 20:59
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class RibbonConfig
+{
+    /**
+     * 配置Ribbon负载均衡规则
+     *
+     * @return RandomRule
+     */
+    @Bean
+    public IRule randomRule()
+    {
+        return new RandomRule();
+    }
+}
+```
+
+
+
+
+
+### 配置文件方式
+
+```yaml
+# order 业务 配置文件
+
+spring:
+
+
+  # 配置数据源
+  datasource:
+
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/cloud_order
+      username: root
+      password: 20010713
+
+
+
+
+  application:
+    name: orderservice
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://127.0.0.1:10080/eureka/
+
+
+# 开启debug模式，输出调试信息，常用于检查系统运行状况
+#debug: true
+
+# 设置日志级别，root表示根节点，即整体应用日志级别
+logging:
+ # 日志输出到文件的文件名
+  file:
+     name: orer_server.log
+  # 设置日志组
+  group:
+  # 自定义组名，设置当前组中所包含的包
+    mao_pro: mao
+  level:
+    root: info
+    # 为对应组设置日志级别
+    mao_pro: debug
+    # 日志输出格式
+# pattern:
+  # console: "%d %clr(%p) --- [%16t] %clr(%-40.40c){cyan} : %m %n"
+
+
+# 配置负载均衡规则
+userservice:
+  ribbon:
+    NFLoadBalancerRuleClassName: com.netflix.loadbalancer.RandomRule
+
+
+server:
+  port: 8081
+
+
+mybatis:
+  type-aliases-package: mao.order_service
+  configuration:
+    map-underscore-to-camel-case: true
+```
+
+
+
+
+
+## 饥饿加载
+
+Ribbon默认是采用懒加载，即第一次访问时才会去创建LoadBalanceClient，请求时间会很长。 而饥饿加载则会在项目启动时创建，降低第一次访问的耗时，通过下面配置开启饥饿加载：
+
+
+
+```yaml
+# order 业务 配置文件
+
+spring:
+
+
+  # 配置数据源
+  datasource:
+
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/cloud_order
+      username: root
+      password: 20010713
+
+
+
+
+  application:
+    name: orderservice
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://127.0.0.1:10080/eureka/
+
+
+# 开启debug模式，输出调试信息，常用于检查系统运行状况
+#debug: true
+
+# 设置日志级别，root表示根节点，即整体应用日志级别
+logging:
+ # 日志输出到文件的文件名
+  file:
+     name: order_server.log
+  # 设置日志组
+  group:
+  # 自定义组名，设置当前组中所包含的包
+    mao_pro: mao
+  level:
+    root: info
+    # 为对应组设置日志级别
+    mao_pro: debug
+    # 日志输出格式
+# pattern:
+  # console: "%d %clr(%p) --- [%16t] %clr(%-40.40c){cyan} : %m %n"
+
+
+# 配置负载均衡规则
+#userservice:
+#  ribbon:
+#    NFLoadBalancerRuleClassName: com.netflix.loadbalancer.RandomRule
+
+
+ribbon:
+  eager-load:
+    # 开启饥饿加载
+    enabled: true
+    # 指定对 userservice 这个服务饥饿加载
+    clients: userservice
+
+
+server:
+  port: 8081
+
+
+mybatis:
+  type-aliases-package: mao.order_service
+  configuration:
+    map-underscore-to-camel-case: true
+```
+
+
+
+
+
+
+
+# Nacos注册中心
 
