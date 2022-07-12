@@ -4293,5 +4293,755 @@ for i in 0 1 2; do echo nacos-$i; kubectl exec nacos-$i curl -X GET "http://loca
 
 ## 服务注册到Nacos
 
+### 准备
+
+创建新的项目或者使用原有的项目
+
+
+
+启动nacos服务
+
+```sh
+./startup.cmd -m standalone
+```
+
+
+
+```sh
+PS H:\opensoft\nacos\bin> ./startup.cmd -m standalone
+"nacos is starting with standalone"
+
+         ,--.
+       ,--.'|
+   ,--,:  : |                                           Nacos 1.4.3
+,`--.'`|  ' :                       ,---.               Running in stand alone mode, All function modules
+|   :  :  | |                      '   ,'\   .--.--.    Port: 8848
+:   |   \ | :  ,--.--.     ,---.  /   /   | /  /    '   Pid: 13628
+|   : '  '; | /       \   /     \.   ; ,. :|  :  /`./   Console: http://192.168.202.1:8848/nacos/index.html
+'   ' ;.    ;.--.  .-. | /    / ''   | |: :|  :  ;_
+|   | | \   | \__\/: . ..    ' / '   | .; : \  \    `.      https://nacos.io
+'   : |  ; .' ," .--.; |'   ; :__|   :    |  `----.   \
+|   | '`--'  /  /  ,.  |'   | '.'|\   \  /  /  /`--'  /
+'   : |     ;  :   .'   \   :    : `----'  '--'.     /
+;   |.'     |  ,     .-./\   \  /            `--'---'
+'---'        `--`---'     `----'
+
+2022-07-12 20:40:29,577 INFO Bean 'org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler@f74e835' of type [org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+
+2022-07-12 20:40:29,586 INFO Bean 'methodSecurityMetadataSource' of type [org.springframework.security.access.method.DelegatingMethodSecurityMetadataSource] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+
+2022-07-12 20:40:30,119 INFO Tomcat initialized with port(s): 8848 (http)
+
+2022-07-12 20:40:30,540 INFO Root WebApplicationContext: initialization completed in 3128 ms
+
+2022-07-12 20:40:35,718 INFO Initializing ExecutorService 'applicationTaskExecutor'
+
+2022-07-12 20:40:35,859 INFO Adding welcome page: class path resource [static/index.html]
+
+2022-07-12 20:40:36,259 INFO Creating filter chain: Ant [pattern='/**'], []
+
+2022-07-12 20:40:36,308 INFO Creating filter chain: any request, [org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@48e8c32a, org.springframework.security.web.context.SecurityContextPersistenceFilter@326e0b8e, org.springframework.security.web.header.HeaderWriterFilter@7fb53256, org.springframework.security.web.csrf.CsrfFilter@21a02556, org.springframework.security.web.authentication.logout.LogoutFilter@77bc2e16, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@41184371, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@167381c7, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@20a7953c, org.springframework.security.web.session.SessionManagementFilter@6993c8df, org.springframework.security.web.access.ExceptionTranslationFilter@3d90eeb3]
+
+2022-07-12 20:40:36,405 INFO Initializing ExecutorService 'taskScheduler'
+
+2022-07-12 20:40:36,427 INFO Exposing 2 endpoint(s) beneath base path '/actuator'
+
+2022-07-12 20:40:36,530 INFO Tomcat started on port(s): 8848 (http) with context path '/nacos'
+
+2022-07-12 20:40:36,536 INFO Nacos started successfully in stand alone mode. use embedded storage
+
+```
+
+
+
+
+
+### 更改pom文件
+
+#### spring_cloud_demo
+
+在父工程中添加spring-cloud-alilbaba的管理依赖：
+
+```xml
+ <!--spring-cloud-alilbaba管理依赖-->
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-alibaba-dependencies</artifactId>
+                <version>2.2.6.RELEASE</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+```
+
+
+
+完整依赖
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <!--
+      -maven项目核心配置文件-
+    Project name(项目名称)：spring_cloud_demo_nacos
+    Author(作者）: mao
+    Author QQ：1296193245
+    GitHub：https://github.com/maomao124/
+    Date(创建日期)： 2022/7/12
+    Time(创建时间)： 20:10
+    -->
+    <groupId>mao</groupId>
+    <artifactId>spring_cloud_demo</artifactId>
+    <packaging>pom</packaging>
+    <version>0.0.1</version>
+
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>2.3.9.RELEASE</version>
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <java.version>11</java.version>
+    </properties>
+
+    <modules>
+        <module>user_service</module>
+        <module>order_service</module>
+        <module>eureka_server</module>
+    </modules>
+
+
+    <dependencyManagement>
+        <dependencies>
+            <!--spring-cloud项目依赖-->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>Hoxton.SR10</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!--spring-boot druid连接池依赖-->
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>druid-spring-boot-starter</artifactId>
+                <version>1.2.8</version>
+            </dependency>
+
+            <!--mysql依赖 spring-boot-->
+            <dependency>
+                <groupId>mysql</groupId>
+                <artifactId>mysql-connector-java</artifactId>
+                <version>8.0.27</version>
+                <scope>runtime</scope>
+            </dependency>
+
+            <!--spring-boot mybatis依赖-->
+            <dependency>
+                <groupId>org.mybatis.spring.boot</groupId>
+                <artifactId>mybatis-spring-boot-starter</artifactId>
+                <version>2.2.2</version>
+            </dependency>
+
+            <!--spring-cloud-alilbaba管理依赖-->
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-alibaba-dependencies</artifactId>
+                <version>2.2.6.RELEASE</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+        </dependencies>
+    </dependencyManagement>
+
+
+    <dependencies>
+        <!--spring-boot lombok-->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.20</version>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
+
+
+</project>
+```
+
+
+
+
+
+#### user_service
+
+注释掉原有的eureka依赖
+
+
+
+添加nacos的客户端依赖：
+
+```xml
+<!-- nacos 客户端依赖 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+```
+
+
+
+完整依赖：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+
+    <parent>
+        <groupId>mao</groupId>
+        <artifactId>spring_cloud_demo</artifactId>
+        <version>0.0.1</version>
+        <relativePath>../pom.xml</relativePath> <!-- lookup parent from repository -->
+    </parent>
+
+
+    <artifactId>user_service</artifactId>
+    <version>0.0.1</version>
+    <name>user_service</name>
+    <description>user_service</description>
+
+    <properties>
+        <java.version>11</java.version>
+    </properties>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!--mysql依赖 spring-boot-->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+        </dependency>
+
+        <!--spring-boot druid连接池依赖-->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid-spring-boot-starter</artifactId>
+        </dependency>
+
+        <!--spring-boot mybatis依赖-->
+        <dependency>
+            <groupId>org.mybatis.spring.boot</groupId>
+            <artifactId>mybatis-spring-boot-starter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!--eureka-client 依赖-->
+        <!--<dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+        </dependency>-->
+
+        <!-- nacos 客户端依赖 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
+```
+
+
+
+
+
+#### order_service
+
+注释掉原有的eureka依赖
+
+
+
+添加nacos的客户端依赖：
+
+```xml
+<!-- nacos 客户端依赖 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+```
+
+
+
+完整依赖：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>mao</groupId>
+        <artifactId>spring_cloud_demo</artifactId>
+        <version>0.0.1</version>
+        <relativePath>../pom.xml</relativePath> <!-- lookup parent from repository -->
+    </parent>
+
+    <artifactId>order_service</artifactId>
+    <version>0.0.1</version>
+    <name>order_service</name>
+    <description>order_service</description>
+
+    <properties>
+        <java.version>11</java.version>
+    </properties>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!--mysql依赖 spring-boot-->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+        </dependency>
+
+        <!--spring-boot druid连接池依赖-->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid-spring-boot-starter</artifactId>
+        </dependency>
+
+        <!--spring-boot mybatis依赖-->
+        <dependency>
+            <groupId>org.mybatis.spring.boot</groupId>
+            <artifactId>mybatis-spring-boot-starter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!--eureka-client 依赖-->
+        <!--<dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+        </dependency>-->
+
+        <!-- nacos 客户端依赖 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
+```
+
+
+
+
+
+### 更改配置
+
+注释eureka地址，添加nacos地址：
+
+
+
+
+
+#### user_service
+
+```yaml
+# user 业务 配置文件
+
+
+spring:
+
+
+  # 配置数据源
+  datasource:
+
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/cloud_user
+      username: root
+      password: 20010713
+
+
+  application:
+    name: userservice
+
+#eureka:
+#  client:
+#    service-url:
+#      defaultZone: http://127.0.0.1:10080/eureka/
+
+
+  cloud:
+    nacos:
+      discovery:
+        # nacos 服务端地址
+        server-addr:  localhost:8848
+
+
+
+# 开启debug模式，输出调试信息，常用于检查系统运行状况
+#debug: true
+
+# 设置日志级别，root表示根节点，即整体应用日志级别
+logging:
+  # 日志输出到文件的文件名
+  file:
+    name: user_server.log
+  # 设置日志组
+  group:
+    # 自定义组名，设置当前组中所包含的包
+    mao_pro: mao
+  level:
+    root: info
+    # 为对应组设置日志级别
+    mao_pro: debug
+    # 日志输出格式
+  # pattern:
+  # console: "%d %clr(%p) --- [%16t] %clr(%-40.40c){cyan} : %m %n"
+
+
+
+server:
+  port: 8082
+
+
+
+mybatis:
+  type-aliases-package: mao.user_service
+  configuration:
+    map-underscore-to-camel-case: true
+
+
+```
+
+
+
+
+
+#### order_service
+
+```yaml
+# order 业务 配置文件
+
+spring:
+
+
+  # 配置数据源
+  datasource:
+
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/cloud_order
+      username: root
+      password: 20010713
+
+
+
+
+  application:
+    name: orderservice
+
+#eureka:
+#  client:
+#    service-url:
+#      defaultZone: http://127.0.0.1:10080/eureka/
+      
+      
+  cloud:
+    nacos:
+      discovery:
+        # nacos 服务端地址
+        server-addr: localhost:8848
+
+
+# 开启debug模式，输出调试信息，常用于检查系统运行状况
+#debug: true
+
+# 设置日志级别，root表示根节点，即整体应用日志级别
+logging:
+ # 日志输出到文件的文件名
+  file:
+     name: order_server.log
+  # 设置日志组
+  group:
+  # 自定义组名，设置当前组中所包含的包
+    mao_pro: mao
+  level:
+    root: info
+    # 为对应组设置日志级别
+    mao_pro: debug
+    # 日志输出格式
+# pattern:
+  # console: "%d %clr(%p) --- [%16t] %clr(%-40.40c){cyan} : %m %n"
+
+
+# 配置负载均衡规则
+#userservice:
+#  ribbon:
+#    NFLoadBalancerRuleClassName: com.netflix.loadbalancer.RandomRule
+
+
+ribbon:
+  eager-load:
+    # 开启饥饿加载
+    enabled: true
+    # 指定对 userservice 这个服务饥饿加载
+    clients: userservice
+
+
+server:
+  port: 8081
+
+
+mybatis:
+  type-aliases-package: mao.order_service
+  configuration:
+    map-underscore-to-camel-case: true
+```
+
+
+
+
+
+### 启动
+
+#### user_service1
+
+```sh
+
+OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::        (v2.3.9.RELEASE)
+
+2022-07-12 20:41:45.664  INFO 4088 --- [           main] mao.user_service.UserServiceApplication  : No active profile set, falling back to default profiles: default
+2022-07-12 20:41:46.107  INFO 4088 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=446433d6-76f3-3404-bc4a-db6d53ede6c8
+2022-07-12 20:41:46.310  INFO 4088 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8082 (http)
+2022-07-12 20:41:46.317  INFO 4088 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-07-12 20:41:46.317  INFO 4088 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.43]
+2022-07-12 20:41:46.427  INFO 4088 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-07-12 20:41:46.427  INFO 4088 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 749 ms
+2022-07-12 20:41:46.509  INFO 4088 --- [           main] c.a.d.s.b.a.DruidDataSourceAutoConfigure : Init DruidDataSource
+2022-07-12 20:41:46.596  INFO 4088 --- [           main] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+2022-07-12 20:41:46.644  WARN 4088 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-12 20:41:46.644  INFO 4088 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-12 20:41:46.647  WARN 4088 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-12 20:41:46.647  INFO 4088 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-12 20:41:46.743  INFO 4088 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-12 20:41:46.954  INFO 4088 --- [           main] o.s.s.c.ThreadPoolTaskScheduler          : Initializing ExecutorService 'Nacos-Watch-Task-Scheduler'
+2022-07-12 20:41:47.504  INFO 4088 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8082 (http) with context path ''
+2022-07-12 20:41:47.764  INFO 4088 --- [           main] c.a.c.n.registry.NacosServiceRegistry    : nacos registry, DEFAULT_GROUP userservice 192.168.202.1:8082 register finished
+2022-07-12 20:41:47.890  INFO 4088 --- [           main] mao.user_service.UserServiceApplication  : Started UserServiceApplication in 3.075 seconds (JVM running for 3.642)
+
+```
+
+
+
+
+
+#### user_service2
+
+```sh
+
+OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::        (v2.3.9.RELEASE)
+
+2022-07-12 20:42:11.550  INFO 18648 --- [           main] mao.user_service.UserServiceApplication  : No active profile set, falling back to default profiles: default
+2022-07-12 20:42:11.982  INFO 18648 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=446433d6-76f3-3404-bc4a-db6d53ede6c8
+2022-07-12 20:42:12.168  INFO 18648 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8083 (http)
+2022-07-12 20:42:12.174  INFO 18648 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-07-12 20:42:12.175  INFO 18648 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.43]
+2022-07-12 20:42:12.286  INFO 18648 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-07-12 20:42:12.287  INFO 18648 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 726 ms
+2022-07-12 20:42:12.368  INFO 18648 --- [           main] c.a.d.s.b.a.DruidDataSourceAutoConfigure : Init DruidDataSource
+2022-07-12 20:42:12.452  INFO 18648 --- [           main] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+2022-07-12 20:42:12.500  WARN 18648 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-12 20:42:12.500  INFO 18648 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-12 20:42:12.502  WARN 18648 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-12 20:42:12.503  INFO 18648 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-12 20:42:12.595  INFO 18648 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-12 20:42:12.789  INFO 18648 --- [           main] o.s.s.c.ThreadPoolTaskScheduler          : Initializing ExecutorService 'Nacos-Watch-Task-Scheduler'
+2022-07-12 20:42:13.197  INFO 18648 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8083 (http) with context path ''
+2022-07-12 20:42:13.206  INFO 18648 --- [           main] c.a.c.n.registry.NacosServiceRegistry    : nacos registry, DEFAULT_GROUP userservice 192.168.202.1:8083 register finished
+2022-07-12 20:42:13.338  INFO 18648 --- [           main] mao.user_service.UserServiceApplication  : Started UserServiceApplication in 2.608 seconds (JVM running for 3.141)
+
+```
+
+
+
+#### order_service
+
+```sh
+
+OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::        (v2.3.9.RELEASE)
+
+2022-07-12 20:42:19.847  INFO 12516 --- [           main] m.order_service.OrderServiceApplication  : No active profile set, falling back to default profiles: default
+2022-07-12 20:42:20.275  INFO 12516 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=dded3331-cedf-3595-87ef-faedbec03f47
+2022-07-12 20:42:20.459  INFO 12516 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8081 (http)
+2022-07-12 20:42:20.466  INFO 12516 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-07-12 20:42:20.467  INFO 12516 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.43]
+2022-07-12 20:42:20.575  INFO 12516 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-07-12 20:42:20.575  INFO 12516 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 716 ms
+2022-07-12 20:42:20.655  INFO 12516 --- [           main] c.a.d.s.b.a.DruidDataSourceAutoConfigure : Init DruidDataSource
+2022-07-12 20:42:20.739  INFO 12516 --- [           main] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+2022-07-12 20:42:20.805  WARN 12516 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-12 20:42:20.805  INFO 12516 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-12 20:42:20.807  WARN 12516 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-12 20:42:20.807  INFO 12516 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-12 20:42:20.897  INFO 12516 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-12 20:42:21.090  INFO 12516 --- [           main] o.s.s.c.ThreadPoolTaskScheduler          : Initializing ExecutorService 'Nacos-Watch-Task-Scheduler'
+2022-07-12 20:42:21.473  INFO 12516 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8081 (http) with context path ''
+2022-07-12 20:42:21.484  INFO 12516 --- [           main] c.a.c.n.registry.NacosServiceRegistry    : nacos registry, DEFAULT_GROUP orderservice 192.168.202.1:8081 register finished
+2022-07-12 20:42:21.606  INFO 12516 --- [           main] m.order_service.OrderServiceApplication  : Started OrderServiceApplication in 2.544 seconds (JVM running for 3.054)
+2022-07-12 20:42:21.790  INFO 12516 --- [           main] c.netflix.config.ChainedDynamicProperty  : Flipping property: userservice.ribbon.ActiveConnectionsLimit to use NEXT property: niws.loadbalancer.availabilityFilteringRule.activeConnectionsLimit = 2147483647
+2022-07-12 20:42:21.810  INFO 12516 --- [           main] c.netflix.loadbalancer.BaseLoadBalancer  : Client: userservice instantiated a LoadBalancer: DynamicServerListLoadBalancer:{NFLoadBalancer:name=userservice,current list of Servers=[],Load balancer stats=Zone stats: {},Server stats: []}ServerList:null
+2022-07-12 20:42:21.820  INFO 12516 --- [           main] c.n.l.DynamicServerListLoadBalancer      : Using serverListUpdater PollingServerListUpdater
+2022-07-12 20:42:21.853  INFO 12516 --- [           main] c.netflix.config.ChainedDynamicProperty  : Flipping property: userservice.ribbon.ActiveConnectionsLimit to use NEXT property: niws.loadbalancer.availabilityFilteringRule.activeConnectionsLimit = 2147483647
+2022-07-12 20:42:21.857  INFO 12516 --- [           main] c.n.l.DynamicServerListLoadBalancer      : DynamicServerListLoadBalancer for client userservice initialized: DynamicServerListLoadBalancer:{NFLoadBalancer:name=userservice,current list of Servers=[192.168.202.1:8082, 192.168.202.1:8083],Load balancer stats=Zone stats: {unknown=[Zone:unknown;	Instance count:2;	Active connections count: 0;	Circuit breaker tripped count: 0;	Active connections per server: 0.0;]
+},Server stats: [[Server:192.168.202.1:8082;	Zone:UNKNOWN;	Total Requests:0;	Successive connection failure:0;	Total blackout seconds:0;	Last connection made:Thu Jan 01 08:00:00 CST 1970;	First connection made: Thu Jan 01 08:00:00 CST 1970;	Active Connections:0;	total failure count in last (1000) msecs:0;	average resp time:0.0;	90 percentile resp time:0.0;	95 percentile resp time:0.0;	min resp time:0.0;	max resp time:0.0;	stddev resp time:0.0]
+, [Server:192.168.202.1:8083;	Zone:UNKNOWN;	Total Requests:0;	Successive connection failure:0;	Total blackout seconds:0;	Last connection made:Thu Jan 01 08:00:00 CST 1970;	First connection made: Thu Jan 01 08:00:00 CST 1970;	Active Connections:0;	total failure count in last (1000) msecs:0;	average resp time:0.0;	90 percentile resp time:0.0;	95 percentile resp time:0.0;	min resp time:0.0;	max resp time:0.0;	stddev resp time:0.0]
+]}ServerList:com.alibaba.cloud.nacos.ribbon.NacosServerList@5fa0141f
+2022-07-12 20:42:22.833  INFO 12516 --- [erListUpdater-0] c.netflix.config.ChainedDynamicProperty  : Flipping property: userservice.ribbon.ActiveConnectionsLimit to use NEXT property: niws.loadbalancer.availabilityFilteringRule.activeConnectionsLimit = 2147483647
+
+```
+
+
+
+
+
+### 访问
+
+### 访问服务
+
+http://localhost:8081/order/101
+
+
+
+结果：
+
+```json
+{"id":101,"price":699900,"name":"Apple 苹果 iPhone 12 ","num":1,"userId":1,"user":{"id":1,"username":"柳岩","address":"湖南省衡阳市"}}
+```
+
+
+
+
+
+![image-20220712205138593](C:\Users\mao\Desktop\img\image-20220712205138593.png)
+
+
+
+
+
+## 服务分级存储模型
+
+
+
+一个**服务**可以有多个**实例**，例如我们的user_service，可以有:
+
+- 127.0.0.1:8081
+- 127.0.0.1:8082
+- 127.0.0.1:8083
+
+假如这些实例分布于全国各地的不同机房，例如：
+
+- 127.0.0.1:8081，在上海机房
+- 127.0.0.1:8082，在上海机房
+- 127.0.0.1:8083，在杭州机房
+
+Nacos就将同一机房内的实例 划分为一个**集群**。
+
+也就是说，user_service是服务，一个服务可以包含多个集群，如杭州、上海，每个集群下可以有多个实例，形成分级模型
+
+
+
+微服务互相访问时，应该尽可能访问同集群实例，因为本地访问速度更快。当本集群内不可用时，才访问其它集群。
+
+杭州机房内的order_service应该优先访问同机房的user_service。
+
+
+
+
+
+## 服务集群属性
+
+
+
 
 
