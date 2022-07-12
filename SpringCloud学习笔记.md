@@ -3662,3 +3662,636 @@ mybatis:
 
 # Nacos注册中心
 
+## Nacos安装
+
+### Windows安装
+
+#### 下载
+
+在Nacos的GitHub页面，提供有下载链接，可以下载编译好的Nacos服务端或者源代码：
+
+GitHub主页：https://github.com/alibaba/nacos
+
+GitHub的Release下载页：https://github.com/alibaba/nacos/releases
+
+
+
+
+
+#### 解压
+
+将这个包解压到任意非中文目录下：
+
+
+
+```sh
+PS H:\opensoft\nacos> ls
+
+
+    目录: H:\opensoft\nacos
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----         2022/7/12     19:03                bin
+d-----         2022/7/12     19:03                conf
+d-----         2022/7/12     19:03                target
+-a----         2021/3/30     14:26          16583 LICENSE
+-a----         2021/3/30     14:26           1305 NOTICE
+
+
+PS H:\opensoft\nacos>
+```
+
+```sh
+PS H:\opensoft\nacos\conf> ls
+
+
+    目录: H:\opensoft\nacos\conf
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----         2021/3/30     14:26           1224 1.4.0-ipv6_support-update.sql
+-a----         2022/1/27     10:43           7142 application.properties
+-a----         2022/1/27     10:43           6515 application.properties.example
+-a----         2022/7/12     19:09            673 cluster.conf
+-a----         2022/1/27     10:43          25710 nacos-logback.xml
+-a----        2021/12/20     14:16          10660 nacos-mysql.sql
+-a----        2021/12/20     14:16           8795 schema.sql
+
+
+PS H:\opensoft\nacos\conf>
+```
+
+
+
+Nacos的默认端口是8848
+
+修改配置文件中的端口：
+
+更改application.properties的内容：
+
+```sh
+server.port=8848
+```
+
+
+
+
+
+#### 启动
+
+进入bin目录
+
+```sh
+PS H:\opensoft\nacos> cd bin
+PS H:\opensoft\nacos\bin> ls
+
+
+    目录: H:\opensoft\nacos\bin
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----         2021/3/30     14:26            954 shutdown.cmd
+-a----         2021/3/30     14:26            951 shutdown.sh
+-a----         2022/1/27     10:43           3340 startup.cmd
+-a----         2022/1/27     10:43           4923 startup.sh
+
+
+PS H:\opensoft\nacos\bin>
+```
+
+
+
+命令：
+
+```sh
+startup.cmd -m standalone
+```
+
+
+
+```sh
+PS H:\opensoft\nacos\bin> ./startup.cmd -m standalone
+"nacos is starting with standalone"
+
+         ,--.
+       ,--.'|
+   ,--,:  : |                                           Nacos 1.4.3
+,`--.'`|  ' :                       ,---.               Running in stand alone mode, All function modules
+|   :  :  | |                      '   ,'\   .--.--.    Port: 8848
+:   |   \ | :  ,--.--.     ,---.  /   /   | /  /    '   Pid: 15096
+|   : '  '; | /       \   /     \.   ; ,. :|  :  /`./   Console: http://192.168.202.1:8848/nacos/index.html
+'   ' ;.    ;.--.  .-. | /    / ''   | |: :|  :  ;_
+|   | | \   | \__\/: . ..    ' / '   | .; : \  \    `.      https://nacos.io
+'   : |  ; .' ," .--.; |'   ; :__|   :    |  `----.   \
+|   | '`--'  /  /  ,.  |'   | '.'|\   \  /  /  /`--'  /
+'   : |     ;  :   .'   \   :    : `----'  '--'.     /
+;   |.'     |  ,     .-./\   \  /            `--'---'
+'---'        `--`---'     `----'
+
+2022-07-12 19:12:55,740 INFO Bean 'org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler@162be91c' of type [org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+
+2022-07-12 19:12:55,751 INFO Bean 'methodSecurityMetadataSource' of type [org.springframework.security.access.method.DelegatingMethodSecurityMetadataSource] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+
+2022-07-12 19:12:56,230 INFO Tomcat initialized with port(s): 8848 (http)
+
+2022-07-12 19:12:56,666 INFO Root WebApplicationContext: initialization completed in 3288 ms
+
+2022-07-12 19:13:06,401 INFO Initializing ExecutorService 'applicationTaskExecutor'
+
+2022-07-12 19:13:06,567 INFO Adding welcome page: class path resource [static/index.html]
+
+2022-07-12 19:13:06,913 INFO Creating filter chain: Ant [pattern='/**'], []
+
+2022-07-12 19:13:06,950 INFO Creating filter chain: any request, [org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@360e9c06, org.springframework.security.web.context.SecurityContextPersistenceFilter@659feb22, org.springframework.security.web.header.HeaderWriterFilter@12ad1b2a, org.springframework.security.web.csrf.CsrfFilter@4694f434, org.springframework.security.web.authentication.logout.LogoutFilter@101a461c, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@2f4b98f6, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@58d6e55a, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@5ebffb44, org.springframework.security.web.session.SessionManagementFilter@6e3eb0cd, org.springframework.security.web.access.ExceptionTranslationFilter@5f631ca0]
+
+2022-07-12 19:13:07,041 INFO Initializing ExecutorService 'taskScheduler'
+
+2022-07-12 19:13:07,067 INFO Exposing 2 endpoint(s) beneath base path '/actuator'
+
+2022-07-12 19:13:07,169 INFO Tomcat started on port(s): 8848 (http) with context path '/nacos'
+
+2022-07-12 19:13:07,176 INFO Nacos started successfully in stand alone mode. use embedded storage
+
+```
+
+
+
+
+
+### 访问
+
+在浏览器输入地址：http://localhost:8848/nacos
+
+默认的账号和密码都是nacos
+
+
+
+
+
+### Linux安装
+
+#### 安装JDK
+
+Nacos依赖于JDK运行
+
+
+
+```sh
+yum search jdk
+```
+
+
+
+```sh
+[root@889e0484bdd2 yum.repos.d]# yum search jdk
+Failed to set locale, defaulting to C.UTF-8
+Last metadata expiration check: 0:06:30 ago on Mon Jul  4 06:25:24 2022.
+================================================================= Name & Summary Matched: jdk ==================================================================
+copy-jdk-configs.noarch : JDKs configuration files copier
+java-1.8.0-openjdk.x86_64 : OpenJDK 8 Runtime Environment
+java-1.8.0-openjdk-accessibility.x86_64 : OpenJDK 8 accessibility connector
+java-1.8.0-openjdk-demo.x86_64 : OpenJDK 8 Demos
+java-1.8.0-openjdk-devel.x86_64 : OpenJDK 8 Development Environment
+java-1.8.0-openjdk-headless.x86_64 : OpenJDK 8 Headless Runtime Environment
+java-1.8.0-openjdk-headless-slowdebug.x86_64 : OpenJDK 8 Runtime Environment unoptimised with full debugging on
+java-1.8.0-openjdk-javadoc.noarch : OpenJDK 8 API documentation
+java-1.8.0-openjdk-javadoc-zip.noarch : OpenJDK 8 API documentation compressed in a single archive
+java-1.8.0-openjdk-slowdebug.x86_64 : OpenJDK 8 Runtime Environment unoptimised with full debugging on
+java-1.8.0-openjdk-src.x86_64 : OpenJDK 8 Source Bundle
+java-11-openjdk.x86_64 : OpenJDK 11 Runtime Environment
+java-11-openjdk-demo.x86_64 : OpenJDK 11 Demos
+java-11-openjdk-devel.x86_64 : OpenJDK 11 Development Environment
+java-11-openjdk-headless.x86_64 : OpenJDK 11 Headless Runtime Environment
+java-11-openjdk-javadoc.x86_64 : OpenJDK 11 API documentation
+java-11-openjdk-javadoc-zip.x86_64 : OpenJDK 11 API documentation compressed in a single archive
+java-11-openjdk-jmods.x86_64 : JMods for OpenJDK 11
+java-11-openjdk-src.x86_64 : OpenJDK 11 Source Bundle
+java-11-openjdk-static-libs.x86_64 : OpenJDK 11 libraries for static linking
+java-17-openjdk.x86_64 : OpenJDK 17 Runtime Environment
+java-17-openjdk-demo.x86_64 : OpenJDK 17 Demos
+java-17-openjdk-devel.x86_64 : OpenJDK 17 Development Environment
+java-17-openjdk-headless.x86_64 : OpenJDK 17 Headless Runtime Environment
+java-17-openjdk-javadoc.x86_64 : OpenJDK 17 API documentation
+java-17-openjdk-javadoc-zip.x86_64 : OpenJDK 17 API documentation compressed in a single archive
+java-17-openjdk-jmods.x86_64 : JMods for OpenJDK 17
+java-17-openjdk-src.x86_64 : OpenJDK 17 Source Bundle
+java-17-openjdk-static-libs.x86_64 : OpenJDK 17 libraries for static linking
+===================================================================== Summary Matched: jdk =====================================================================
+icedtea-web.x86_64 : Additional Java components for OpenJDK - Java browser plug-in and Web Start implementation
+jmc.x86_64 : JDK Mission Control is a profiling and diagnostics tool
+jmc-core.noarch : Core API for JDK Mission Control
+[root@889e0484bdd2 yum.repos.d]#
+```
+
+
+
+安装jdk17：
+
+```sh
+yum -y install java-17-openjdk.x86_64
+```
+
+
+
+验证是否安装成功：
+
+```sh
+java -version
+```
+
+
+
+```sh
+[root@889e0484bdd2 /]# java -version
+openjdk version "17.0.1" 2021-10-19 LTS
+OpenJDK Runtime Environment 21.9 (build 17.0.1+12-LTS)
+OpenJDK 64-Bit Server VM 21.9 (build 17.0.1+12-LTS, mixed mode, sharing)
+[root@889e0484bdd2 /]#
+```
+
+
+
+安装成功
+
+
+
+#### 安装nacos
+
+将下载到的压缩包上传到linux上
+
+解压安装包：
+
+```sh
+tar -xvf nacos-server-1.4.3.tar.gz
+```
+
+删除安装包：
+
+```sh
+rm -rf nacos-server-1.4.3.tar.gz
+```
+
+
+
+#### 启动
+
+```sh
+sh startup.sh -m standalone
+```
+
+
+
+
+
+
+
+### Docker 安装
+
+#### 操作步骤
+
+- Clone 项目
+
+  ```powershell
+  git clone https://github.com/nacos-group/nacos-docker.git
+  cd nacos-docker
+  ```
+
+- 单机模式 Derby
+
+  ```powershell
+  docker-compose -f example/standalone-derby.yaml up
+  ```
+
+- 单机模式 MySQL
+
+如果希望使用MySQL5.7
+
+```powershell
+docker-compose -f example/standalone-mysql-5.7.yaml up
+```
+
+如果希望使用MySQL8
+
+```powershell
+docker-compose -f example/standalone-mysql-8.yaml up
+```
+
+- 集群模式
+
+  ```powershell
+  docker-compose -f example/cluster-hostname.yaml up 
+  ```
+
+- 服务注册
+
+  ```powershell
+  curl -X POST 'http://127.0.0.1:8848/nacos/v1/ns/instance?serviceName=nacos.naming.serviceName&ip=20.18.7.10&port=8080'
+  ```
+
+- 服务发现
+
+  ```powershell
+  curl -X GET 'http://127.0.0.1:8848/nacos/v1/ns/instance/list?serviceName=nacos.naming.serviceName'
+  ```
+
+- 发布配置
+
+  ```powershell
+  curl -X POST "http://127.0.0.1:8848/nacos/v1/cs/configs?dataId=nacos.cfg.dataId&group=test&content=helloWorld"
+  ```
+
+- 获取配置
+
+  ```powershell
+    curl -X GET "http://127.0.0.1:8848/nacos/v1/cs/configs?dataId=nacos.cfg.dataId&group=test"
+  ```
+
+- Nacos 控制台
+
+  link：http://127.0.0.1:8848/nacos/
+
+
+
+#### 公共属性配置
+
+|                属性名称                 |                        描述                        |                             选项                             |
+| :-------------------------------------: | :------------------------------------------------: | :----------------------------------------------------------: |
+|                  MODE                   |              系统启动方式: 集群/单机               |              cluster/standalone默认 **cluster**              |
+|              NACOS_SERVERS              |                      集群地址                      |             p1:port1空格ip2:port2 空格ip3:port3              |
+|            PREFER_HOST_MODE             |                 支持IP还是域名模式                 |                   hostname/ip 默认 **ip**                    |
+|            NACOS_SERVER_PORT            |                   Nacos 运行端口                   |                        默认 **8848**                         |
+|             NACOS_SERVER_IP             |               多网卡模式下可以指定IP               |                                                              |
+|       SPRING_DATASOURCE_PLATFORM        |             单机模式下支持MYSQL数据库              |                      mysql / 空 默认:空                      |
+|           MYSQL_SERVICE_HOST            |                  数据库 连接地址                   |                                                              |
+|           MYSQL_SERVICE_PORT            |                     数据库端口                     |                       默认 : **3306**                        |
+|          MYSQL_SERVICE_DB_NAME          |                     数据库库名                     |                                                              |
+|           MYSQL_SERVICE_USER            |                    数据库用户名                    |                                                              |
+|         MYSQL_SERVICE_PASSWORD          |                   数据库用户密码                   |                                                              |
+|         MYSQL_SERVICE_DB_PARAM          |                   数据库连接参数                   | default : **characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useSSL=false** |
+|           MYSQL_DATABASE_NUM            |                     数据库编号                     |                         默认 :**1**                          |
+|                 JVM_XMS                 |                        -Xms                        |                           默认 :1g                           |
+|                 JVM_XMX                 |                        -Xmx                        |                           默认 :1g                           |
+|                 JVM_XMN                 |                        -Xmn                        |                          默认 :512m                          |
+|                 JVM_MS                  |                 -XX:MetaspaceSize                  |                          默认 :128m                          |
+|                 JVM_MMS                 |                -XX:MaxMetaspaceSize                |                          默认 :320m                          |
+|               NACOS_DEBUG               |                 是否开启远程DEBUG                  |                         y/n 默认 :n                          |
+|        TOMCAT_ACCESSLOG_ENABLED         |          server.tomcat.accesslog.enabled           |                         默认 :false                          |
+|         NACOS_AUTH_SYSTEM_TYPE          |        权限系统类型选择,目前只支持nacos类型        |                         默认 :nacos                          |
+|            NACOS_AUTH_ENABLE            |                  是否开启权限系统                  |                         默认 :false                          |
+|     NACOS_AUTH_TOKEN_EXPIRE_SECONDS     |                   token 失效时间                   |                         默认 :18000                          |
+|            NACOS_AUTH_TOKEN             |                       token                        | 默认 :SecretKey012345678901234567890123456789012345678901234567890123456789 |
+|         NACOS_AUTH_CACHE_ENABLE         | 权限缓存开关 ,开启后权限缓存的更新默认有15秒的延迟 |                         默认 : false                         |
+|               MEMBER_LIST               |           通过环境变量的方式设置集群地址           | 例子:192.168.16.101:8847?raft_port=8807,192.168.16.101?raft_port=8808,192.168.16.101:8849?raft_port=8809 |
+|            EMBEDDED_STORAGE             |             是否开启集群嵌入式存储模式             |                    `embedded` 默认 : none                    |
+|         NACOS_AUTH_CACHE_ENABLE         |          nacos.core.auth.caching.enabled           |                       default : false                        |
+| NACOS_AUTH_USER_AGENT_AUTH_WHITE_ENABLE |     nacos.core.auth.enable.userAgentAuthWhite      |                       default : false                        |
+|         NACOS_AUTH_IDENTITY_KEY         |        nacos.core.auth.server.identity.key         |                   default : serverIdentity                   |
+|        NACOS_AUTH_IDENTITY_VALUE        |       nacos.core.auth.server.identity.value        |                      default : security                      |
+|       NACOS_SECURITY_IGNORE_URLS        |             nacos.security.ignore.urls             | default : `/,/error,/**/*.css,/**/*.js,/**/*.html,/**/*.map,/**/*.svg,/**/*.png,/**/*.ico,/console-fe/public/**,/v1/auth/**,/v1/console/health/**,/actuator/**,/v1/console/server/**` |
+
+
+
+
+
+
+
+### Kubernetes 安装
+
+- **Clone 项目**
+
+```shell
+git clone https://github.com/nacos-group/nacos-k8s.git
+```
+
+
+
+> 如果你使用简单方式快速启动,请注意这是没有使用持久化卷的,可能存在数据丢失风险:
+
+```shell
+cd nacos-k8s
+chmod +x quick-startup.sh
+./quick-startup.sh
+```
+
+- **测试**
+
+  - **服务注册**
+
+  ```bash
+  curl -X POST 'http://cluster-ip:8848/nacos/v1/ns/instance?serviceName=nacos.naming.serviceName&ip=20.18.7.10&port=8080'
+  ```
+
+  - **服务发现**
+
+  ```bash
+  curl -X GET 'http://cluster-ip:8848/nacos/v1/ns/instance/list?serviceName=nacos.naming.serviceName'
+  ```
+
+  - **发布配置**
+
+  ```bash
+  curl -X POST "http://cluster-ip:8848/nacos/v1/cs/configs?dataId=nacos.cfg.dataId&group=test&content=helloWorld"
+  ```
+
+  - **获取配置**
+
+  ```bash
+  curl -X GET "http://cluster-ip:8848/nacos/v1/cs/configs?dataId=nacos.cfg.dataId&group=test"
+  ```
+
+
+
+
+
+#### 部署 NFS
+
+- 创建角色
+
+```shell
+kubectl create -f deploy/nfs/rbac.yaml
+```
+
+> 如果的K8S命名空间不是**default**，请在部署RBAC之前执行以下脚本:
+
+```shell
+# Set the subject of the RBAC objects to the current namespace where the provisioner is being deployed
+$ NS=$(kubectl config get-contexts|grep -e "^\*" |awk '{print $5}')
+$ NAMESPACE=${NS:-default}
+$ sed -i'' "s/namespace:.*/namespace: $NAMESPACE/g" ./deploy/nfs/rbac.yaml
+```
+
+- 创建 `ServiceAccount` 和部署 `NFS-Client Provisioner`
+
+```shell
+kubectl create -f deploy/nfs/deployment.yaml
+```
+
+- 创建 NFS StorageClass
+
+```shell
+kubectl create -f deploy/nfs/class.yaml
+```
+
+- 验证NFS部署成功
+
+```shell
+kubectl get pod -l app=nfs-client-provisioner
+```
+
+
+
+
+
+#### 部署数据库
+
+- 部署主库
+
+```shell
+cd nacos-k8s
+
+kubectl create -f deploy/mysql/mysql-master-nfs.yaml
+```
+
+- 部署从库
+
+```shell
+cd nacos-k8s 
+
+kubectl create -f deploy/mysql/mysql-slave-nfs.yaml
+```
+
+- 验证数据库是否正常工作
+
+```shell
+# master
+kubectl get pod 
+NAME                         READY   STATUS    RESTARTS   AGE
+mysql-master-gf2vd                        1/1     Running   0          111m
+
+# slave
+kubectl get pod 
+mysql-slave-kf9cb                         1/1     Running   0          110m
+```
+
+
+
+
+
+#### 部署Nacos
+
+- 修改 **deploy/nacos/nacos-pvc-nfs.yaml**
+
+```yaml
+data:
+  mysql.master.db.name: "主库名称"
+  mysql.master.port: "主库端口"
+  mysql.slave.port: "从库端口"
+  mysql.master.user: "主库用户名"
+  mysql.master.password: "主库密码"
+```
+
+- 创建 Nacos
+
+```shell
+kubectl create -f nacos-k8s/deploy/nacos/nacos-pvc-nfs.yaml
+```
+
+- 验证Nacos节点启动成功
+
+```shell
+kubectl get pod -l app=nacos
+
+
+NAME      READY   STATUS    RESTARTS   AGE
+nacos-0   1/1     Running   0          19h
+nacos-1   1/1     Running   0          19h
+nacos-2   1/1     Running   0          19h
+```
+
+#### 扩容测试
+
+- 在扩容前，使用 [`kubectl exec`](https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands/#exec)获取在pod中的Nacos集群配置文件信息
+
+```powershell
+for i in 0 1; do echo nacos-$i; kubectl exec nacos-$i cat conf/cluster.conf; done
+```
+
+StatefulSet控制器根据其序数索引为每个Pod提供唯一的主机名。 主机名采用 - 的形式。 因为nacos StatefulSet的副本字段设置为2，所以当前集群文件中只有两个Nacos节点地址
+
+
+
+- 使用kubectl scale 对Nacos动态扩容
+
+```bash
+kubectl scale sts nacos --replicas=3
+```
+
+
+
+- 在扩容后，使用 [`kubectl exec`](https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands/#exec)获取在pod中的Nacos集群配置文件信息
+
+```bash
+for i in 0 1 2; do echo nacos-$i; kubectl exec nacos-$i cat conf/cluster.conf; done
+```
+
+
+
+- 使用 [`kubectl exec`](https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands/#exec)执行Nacos API 在每台节点上获取当前**Leader**是否一致
+
+```bash
+for i in 0 1 2; do echo nacos-$i; kubectl exec nacos-$i curl -X GET "http://localhost:8848/nacos/v1/ns/
+```
+
+
+
+
+
+- nacos-pvc-nfs.yaml or nacos-quick-start.yaml
+
+|          名称           | 必要 |                             描述                             |
+| :---------------------: | :--: | :----------------------------------------------------------: |
+| `mysql.master.db.name`  |  Y   |                           主库名称                           |
+|   `mysql.master.port`   |  N   |                           主库端口                           |
+|   `mysql.slave.port`    |  N   |                           从库端口                           |
+|   `mysql.master.user`   |  Y   |                          主库用户名                          |
+| `mysql.master.password` |  Y   |                           主库密码                           |
+|    `NACOS_REPLICAS`     |  N   | 确定执行Nacos启动节点数量,如果不适用动态扩容插件,就必须配置这个属性，否则使用扩容插件后不会生效 |
+|   `NACOS_SERVER_PORT`   |  N   |                          Nacos 端口                          |
+|   `PREFER_HOST_MODE`    |  Y   |                   启动Nacos集群按域名解析                    |
+
+- **nfs** deployment.yaml
+
+|     名称     | 必要 |      描述      |
+| :----------: | :--: | :------------: |
+| `NFS_SERVER` |  Y   | NFS 服务端地址 |
+|  `NFS_PATH`  |  Y   |  NFS 共享目录  |
+|   `server`   |  Y   | NFS 服务端地址 |
+|    `path`    |  Y   |  NFS 共享目录  |
+
+- mysql
+
+|             名称             | 必要 |                    描述                    |
+| :--------------------------: | :--: | :----------------------------------------: |
+|    `MYSQL_ROOT_PASSWORD`     |  N   |                 ROOT 密码                  |
+|       `MYSQL_DATABASE`       |  Y   |                 数据库名称                 |
+|         `MYSQL_USER`         |  Y   |                数据库用户名                |
+|       `MYSQL_PASSWORD`       |  Y   |                 数据库密码                 |
+|   `MYSQL_REPLICATION_USER`   |  Y   |               数据库复制用户               |
+| `MYSQL_REPLICATION_PASSWORD` |  Y   |             数据库复制用户密码             |
+|         `Nfs:server`         |  N   | NFS 服务端地址，如果使用本地部署不需要配置 |
+|          `Nfs:path`          |  N   |  NFS 共享目录，如果使用本地部署不需要配置  |
+
+
+
+
+
+
+
+## 服务注册到Nacos
+
+
+
