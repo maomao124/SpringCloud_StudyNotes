@@ -6124,3 +6124,212 @@ java.lang.IllegalStateException: No instances available for userservice
 
 ## Nacos注册中心原理
 
+### 细节分析
+
+
+
+![image-20220713211754992](.\img\image-20220713211754992.png)
+
+
+
+
+
+### 临时实例和非临时实例
+
+服务注册到Nacos时，可以选择注册为临时或非临时实例
+
+临时实例宕机时，会从nacos的服务列表中剔除，而非临时实例则不会
+
+
+
+将order_service服务注册为非临时实例
+
+
+
+```yaml
+# order 业务 配置文件
+
+spring:
+
+
+  # 配置数据源
+  datasource:
+
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/cloud_order
+      username: root
+      password: 20010713
+
+
+
+
+  application:
+    name: orderservice
+
+#eureka:
+#  client:
+#    service-url:
+#      defaultZone: http://127.0.0.1:10080/eureka/
+
+
+  cloud:
+    nacos:
+      discovery:
+        # nacos 服务端地址
+        server-addr: localhost:8848
+        # 配置集群名称，也就是机房位置
+        cluster-name: HZ
+        # namespace: 5544c4b1-2899-4915-94af-f9940c01c2b9
+        # 是否为临时实例，true为临时实例
+        ephemeral: false
+
+# 负载均衡
+#userservice:
+#  ribbon:
+#    # 负载均衡规则
+#    NFLoadBalancerRuleClassName: com.alibaba.cloud.nacos.ribbon.NacosRule
+
+
+
+# 开启debug模式，输出调试信息，常用于检查系统运行状况
+#debug: true
+
+# 设置日志级别，root表示根节点，即整体应用日志级别
+logging:
+ # 日志输出到文件的文件名
+  file:
+     name: order_server.log
+  # 设置日志组
+  group:
+  # 自定义组名，设置当前组中所包含的包
+    mao_pro: mao
+  level:
+    root: info
+    # 为对应组设置日志级别
+    mao_pro: debug
+    # 日志输出格式
+# pattern:
+  # console: "%d %clr(%p) --- [%16t] %clr(%-40.40c){cyan} : %m %n"
+
+
+# 配置负载均衡规则
+#userservice:
+#  ribbon:
+#    NFLoadBalancerRuleClassName: com.netflix.loadbalancer.RandomRule
+
+
+ribbon:
+  eager-load:
+    # 开启饥饿加载
+    enabled: true
+    # 指定对 userservice 这个服务饥饿加载
+    clients: userservice
+
+
+server:
+  port: 8081
+
+
+mybatis:
+  type-aliases-package: mao.order_service
+  configuration:
+    map-underscore-to-camel-case: true
+```
+
+
+
+重启服务
+
+
+
+![image-20220713212219656](.\img\image-20220713212219656.png)
+
+
+
+
+
+查看nacos控制台
+
+
+
+![image-20220713212350182](.\img\image-20220713212350182.png)
+
+
+
+关闭order_service和user_service2
+
+
+
+![image-20220713212517399](.\img\image-20220713212517399.png)
+
+
+
+
+
+查看nacos控制台：
+
+![image-20220713213349241](.\img\image-20220713213349241.png)
+
+
+
+
+
+![image-20220713213430783](.\img\image-20220713213430783.png)
+
+
+
+![image-20220713213456466](.\img\image-20220713213456466.png)
+
+
+
+
+
+再次启动
+
+
+
+![image-20220713213624798](.\img\image-20220713213624798.png)
+
+
+
+![image-20220713213645337](.\img\image-20220713213645337.png)
+
+
+
+因为非临时实例是nacos主动与服务进行心跳检测的，存在一定的延迟，而临时实例则不会存在延迟，因为临时实例要主动和nacos进行心跳检测
+
+
+
+
+
+
+
+
+
+# Nacos与eureka
+
+## 共同点
+
+* 都支持服务注册和服务拉取
+* 都支持服务提供者心跳方式做健康检测
+
+
+
+## 区别
+
+* Nacos支持服务端主动检测提供者状态：临时实例采用心跳模式，非临时实例采用主动检测模式
+* 临时实例心跳不正常会被剔除，非临时实例则不会被剔除
+* Nacos支持服务列表变更的消息推送模式，服务列表更新更及时
+* Nacos集群默认采用AP方式，当集群中存在非临时实例时，采用CP模式；Eureka采用AP方式
+
+
+
+
+
+
+
+
+
+# Nacos配置管理
+
