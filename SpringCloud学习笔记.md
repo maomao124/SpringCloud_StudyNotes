@@ -5850,3 +5850,277 @@ order_service：
 
 
 
+
+
+
+
+## 环境隔离
+
+Nacos中服务存储和数据存储的最外层都是一个名为namespace的东西，用来做最外层隔离
+
+
+
+1. 在Nacos控制台可以创建namespace，用来隔离不同环境
+
+
+
+点击命名空间
+
+![image-20220713203114543](.\img\image-20220713203114543.png)
+
+
+
+新建命名空间
+
+![image-20220713203148802](.\img\image-20220713203148802.png)
+
+
+
+
+
+2. 填写一个新的命名空间信息
+
+
+
+![image-20220713203303968](.\img\image-20220713203303968.png)
+
+
+
+
+
+点击确认
+
+
+
+![image-20220713203355607](.\img\image-20220713203355607.png)
+
+
+
+
+
+4. 修改order-service的application.yml，添加namespace
+
+粘贴命名空间的ID
+
+
+
+```yaml
+# order 业务 配置文件
+
+spring:
+
+
+  # 配置数据源
+  datasource:
+
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/cloud_order
+      username: root
+      password: 20010713
+
+
+
+
+  application:
+    name: orderservice
+
+#eureka:
+#  client:
+#    service-url:
+#      defaultZone: http://127.0.0.1:10080/eureka/
+
+
+  cloud:
+    nacos:
+      discovery:
+        # nacos 服务端地址
+        server-addr: localhost:8848
+        # 配置集群名称，也就是机房位置
+        cluster-name: HZ
+        namespace: 5544c4b1-2899-4915-94af-f9940c01c2b9
+
+# 负载均衡
+#userservice:
+#  ribbon:
+#    # 负载均衡规则
+#    NFLoadBalancerRuleClassName: com.alibaba.cloud.nacos.ribbon.NacosRule
+
+
+
+# 开启debug模式，输出调试信息，常用于检查系统运行状况
+#debug: true
+
+# 设置日志级别，root表示根节点，即整体应用日志级别
+logging:
+ # 日志输出到文件的文件名
+  file:
+     name: order_server.log
+  # 设置日志组
+  group:
+  # 自定义组名，设置当前组中所包含的包
+    mao_pro: mao
+  level:
+    root: info
+    # 为对应组设置日志级别
+    mao_pro: debug
+    # 日志输出格式
+# pattern:
+  # console: "%d %clr(%p) --- [%16t] %clr(%-40.40c){cyan} : %m %n"
+
+
+# 配置负载均衡规则
+#userservice:
+#  ribbon:
+#    NFLoadBalancerRuleClassName: com.netflix.loadbalancer.RandomRule
+
+
+ribbon:
+  eager-load:
+    # 开启饥饿加载
+    enabled: true
+    # 指定对 userservice 这个服务饥饿加载
+    clients: userservice
+
+
+server:
+  port: 8081
+
+
+mybatis:
+  type-aliases-package: mao.order_service
+  configuration:
+    map-underscore-to-camel-case: true
+
+```
+
+
+
+5. 重启order_service服务
+
+
+
+6. 查看nacos控制台
+
+
+
+![image-20220713203839062](.\img\image-20220713203839062.png)
+
+
+
+![image-20220713203858383](.\img\image-20220713203858383.png)
+
+
+
+不在同一个命名空间里
+
+
+
+7. 访问
+
+
+
+http://localhost:8081/order/101
+
+
+
+8. 查看日志
+
+
+
+```sh
+OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::        (v2.3.9.RELEASE)
+
+2022-07-13 20:36:49.820  INFO 15732 --- [           main] m.order_service.OrderServiceApplication  : No active profile set, falling back to default profiles: default
+2022-07-13 20:36:50.261  INFO 15732 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=eb76627d-fe62-3052-a2c0-6eeeee9dfcff
+2022-07-13 20:36:50.455  INFO 15732 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8081 (http)
+2022-07-13 20:36:50.462  INFO 15732 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-07-13 20:36:50.462  INFO 15732 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.43]
+2022-07-13 20:36:50.570  INFO 15732 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-07-13 20:36:50.571  INFO 15732 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 740 ms
+2022-07-13 20:36:50.652  INFO 15732 --- [           main] c.a.d.s.b.a.DruidDataSourceAutoConfigure : Init DruidDataSource
+2022-07-13 20:36:50.743  INFO 15732 --- [           main] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+2022-07-13 20:36:50.946  WARN 15732 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-13 20:36:50.947  INFO 15732 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-13 20:36:50.949  WARN 15732 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-13 20:36:50.949  INFO 15732 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-13 20:36:51.043  INFO 15732 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-13 20:36:51.115  INFO 15732 --- [           main] o.s.s.c.ThreadPoolTaskScheduler          : Initializing ExecutorService 'Nacos-Watch-Task-Scheduler'
+2022-07-13 20:36:51.523  INFO 15732 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8081 (http) with context path ''
+2022-07-13 20:36:51.534  INFO 15732 --- [           main] c.a.c.n.registry.NacosServiceRegistry    : nacos registry, DEFAULT_GROUP orderservice 192.168.202.1:8081 register finished
+2022-07-13 20:36:51.664  INFO 15732 --- [           main] m.order_service.OrderServiceApplication  : Started OrderServiceApplication in 2.716 seconds (JVM running for 3.306)
+2022-07-13 20:36:51.866  INFO 15732 --- [           main] c.netflix.loadbalancer.BaseLoadBalancer  : Client: userservice instantiated a LoadBalancer: DynamicServerListLoadBalancer:{NFLoadBalancer:name=userservice,current list of Servers=[],Load balancer stats=Zone stats: {},Server stats: []}ServerList:null
+2022-07-13 20:36:51.878  INFO 15732 --- [           main] c.n.l.DynamicServerListLoadBalancer      : Using serverListUpdater PollingServerListUpdater
+2022-07-13 20:36:51.883  INFO 15732 --- [           main] c.n.l.DynamicServerListLoadBalancer      : DynamicServerListLoadBalancer for client userservice initialized: DynamicServerListLoadBalancer:{NFLoadBalancer:name=userservice,current list of Servers=[],Load balancer stats=Zone stats: {},Server stats: []}ServerList:com.alibaba.cloud.nacos.ribbon.NacosServerList@e521067
+2022-07-13 20:39:48.332  INFO 15732 --- [nio-8081-exec-2] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2022-07-13 20:39:48.332  INFO 15732 --- [nio-8081-exec-2] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2022-07-13 20:39:48.340  INFO 15732 --- [nio-8081-exec-2] o.s.web.servlet.DispatcherServlet        : Completed initialization in 8 ms
+2022-07-13 20:39:48.532 DEBUG 15732 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:39:48.549 DEBUG 15732 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:39:48.566 DEBUG 15732 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:39:48.582  WARN 15732 --- [nio-8081-exec-2] c.alibaba.cloud.nacos.ribbon.NacosRule   : no instance in service userservice
+2022-07-13 20:39:48.589 ERROR 15732 --- [nio-8081-exec-2] o.a.c.c.C.[.[.[/].[dispatcherServlet]    : Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is java.lang.IllegalStateException: No instances available for userservice] with root cause
+
+java.lang.IllegalStateException: No instances available for userservice
+	at org.springframework.cloud.netflix.ribbon.RibbonLoadBalancerClient.execute(RibbonLoadBalancerClient.java:119) ~[spring-cloud-netflix-ribbon-2.2.7.RELEASE.jar:2.2.7.RELEASE]
+	at org.springframework.cloud.netflix.ribbon.RibbonLoadBalancerClient.execute(RibbonLoadBalancerClient.java:99) ~[spring-cloud-netflix-ribbon-2.2.7.RELEASE.jar:2.2.7.RELEASE]
+	at org.springframework.cloud.client.loadbalancer.LoadBalancerInterceptor.intercept(LoadBalancerInterceptor.java:58) ~[spring-cloud-commons-2.2.7.RELEASE.jar:2.2.7.RELEASE]
+	at org.springframework.http.client.InterceptingClientHttpRequest$InterceptingRequestExecution.execute(InterceptingClientHttpRequest.java:93) ~[spring-web-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at org.springframework.http.client.InterceptingClientHttpRequest.executeInternal(InterceptingClientHttpRequest.java:77) ~[spring-web-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at org.springframework.http.client.AbstractBufferingClientHttpRequest.executeInternal(AbstractBufferingClientHttpRequest.java:48) ~[spring-web-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at org.springframework.http.client.AbstractClientHttpRequest.execute(AbstractClientHttpRequest.java:53) ~[spring-web-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at org.springframework.web.client.RestTemplate.doExecute(RestTemplate.java:737) ~[spring-web-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at org.springframework.web.client.RestTemplate.execute(RestTemplate.java:672) ~[spring-web-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at org.springframework.web.client.RestTemplate.getForObject(RestTemplate.java:313) ~[spring-web-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at mao.order_service.service.OrderService.queryOrderById(OrderService.java:47) ~[classes/:na]
+	at mao.order_service.controller.OrderController.queryOrderByUserId(OrderController.java:40) ~[classes/:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[na:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:78) ~[na:na]
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:567) ~[na:na]
+	at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:190) ~[spring-web-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:138) ~[spring-web-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:105) ~[spring-webmvc-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:878) ~[spring-webmvc-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:792) ~[spring-webmvc-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87) ~[spring-webmvc-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1040) ~[spring-webmvc-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:943) ~[spring-webmvc-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1006) ~[spring-webmvc-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at org.springframework.web.servlet.FrameworkServlet.doGet(FrameworkServlet.java:898) ~[spring-webmvc-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at javax.servlet.http.HttpServlet.service(HttpServlet.java:626) ~[tomcat-embed-core-9.0.43.jar:4.0.FR]
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:883) ~[spring-webmvc-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at javax.servlet.http.HttpServlet.service(HttpServlet.java:733) ~[tomcat-embed-core-9.0.43.jar:4.0.FR]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:227) ~[tomcat-embed-core-9.0.43.jar:9.0.43]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:162) ~[tomcat-embed-core-9.0.43.jar:9.0.43]
+	at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:53) ~[tomcat-embed-websocket-9.0.43.jar:9.0.43]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:189) ~[tomcat-embed-core-9.0.43.jar:9.0.43]
+...
+...
+...
+```
+
+
+
+因为namespace不同，会导致找不到userservice，控制台会报错
+
+
+
+记得更改回来
+
+
+
+
+
+
+
+## Nacos注册中心原理
+
