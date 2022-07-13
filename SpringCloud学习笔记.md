@@ -3487,6 +3487,7 @@ import org.springframework.context.annotation.Bean;
  * Description(描述)： 无
  */
 
+@Configuration
 public class RibbonConfig
 {
     /**
@@ -5003,7 +5004,7 @@ http://localhost:8081/order/101
 
 
 
-![image-20220712205138593](C:\Users\mao\Desktop\img\image-20220712205138593.png)
+![image-20220712205138593](.\img\image-20220712205138593.png)
 
 
 
@@ -5041,7 +5042,811 @@ Nacos就将同一机房内的实例 划分为一个**集群**。
 
 ## 服务集群属性
 
+修改user_service的application.yml文件，添加集群配置：
 
+
+
+```yaml
+spring:  
+ cloud:
+    nacos:
+      discovery:
+        # nacos 服务端地址
+        server-addr:  localhost:8848
+        # 集群名称
+        cluster-name: HZ
+```
+
+
+
+```yaml
+# user 业务 配置文件
+
+
+spring:
+
+
+  # 配置数据源
+  datasource:
+
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/cloud_user
+      username: root
+      password: 20010713
+
+
+  application:
+    name: userservice
+
+#eureka:
+#  client:
+#    service-url:
+#      defaultZone: http://127.0.0.1:10080/eureka/
+
+
+  cloud:
+    nacos:
+      discovery:
+        # nacos 服务端地址
+        server-addr:  localhost:8848
+        # 集群名称
+        cluster-name: HZ
+
+
+
+# 开启debug模式，输出调试信息，常用于检查系统运行状况
+#debug: true
+
+# 设置日志级别，root表示根节点，即整体应用日志级别
+logging:
+  # 日志输出到文件的文件名
+  file:
+    name: user_server.log
+  # 设置日志组
+  group:
+    # 自定义组名，设置当前组中所包含的包
+    mao_pro: mao
+  level:
+    root: info
+    # 为对应组设置日志级别
+    mao_pro: debug
+    # 日志输出格式
+  # pattern:
+  # console: "%d %clr(%p) --- [%16t] %clr(%-40.40c){cyan} : %m %n"
+
+
+
+server:
+  port: 8082
+
+
+
+mybatis:
+  type-aliases-package: mao.user_service
+  configuration:
+    map-underscore-to-camel-case: true
+```
+
+
+
+
+
+再次复制一个user-service启动配置，添加参数：
+
+```sh
+--server.port=8084 --spring.cloud.nacos.discovery.cluster-name=SH
+```
+
+
+
+![image-20220712213632389](.\img\image-20220712213632389.png)
+
+
+
+
+
+启动
+
+
+
+![image-20220712213909965](.\img\image-20220712213909965.png)
+
+
+
+
+
+![image-20220712214121209](.\img\image-20220712214121209.png)
+
+![image-20220712214215268](.\img\image-20220712214215268.png)
+
+
+
+
+
+
+
+### 同集群优先的负载均衡
+
+1. 修改order_service中的application.yml，设置集群为HZ
+2. 然后在order_service中设置负载均衡的IRule为NacosRule，这个规则优先会寻找与自己同集群的服务
+
+
+
+配置负载均衡方式有两种选择：
+
+选择1：
+
+在配置文件里配置负载均衡：
+
+```sh
+# order 业务 配置文件
+
+spring:
+
+
+  # 配置数据源
+  datasource:
+
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/cloud_order
+      username: root
+      password: 20010713
+
+
+
+
+  application:
+    name: orderservice
+
+#eureka:
+#  client:
+#    service-url:
+#      defaultZone: http://127.0.0.1:10080/eureka/
+
+
+  cloud:
+    nacos:
+      discovery:
+        # nacos 服务端地址
+        server-addr: localhost:8848
+        # 配置集群名称，也就是机房位置
+        cluster-name: HZ 
+
+# 负载均衡
+#userservice:
+#  ribbon:
+#    # 负载均衡规则
+#    NFLoadBalancerRuleClassName: com.alibaba.cloud.nacos.ribbon.NacosRule
+#
+
+
+# 开启debug模式，输出调试信息，常用于检查系统运行状况
+#debug: true
+
+# 设置日志级别，root表示根节点，即整体应用日志级别
+logging:
+ # 日志输出到文件的文件名
+  file:
+     name: order_server.log
+  # 设置日志组
+  group:
+  # 自定义组名，设置当前组中所包含的包
+    mao_pro: mao
+  level:
+    root: info
+    # 为对应组设置日志级别
+    mao_pro: debug
+    # 日志输出格式
+# pattern:
+  # console: "%d %clr(%p) --- [%16t] %clr(%-40.40c){cyan} : %m %n"
+
+
+# 配置负载均衡规则
+#userservice:
+#  ribbon:
+#    NFLoadBalancerRuleClassName: com.netflix.loadbalancer.RandomRule
+
+
+ribbon:
+  eager-load:
+    # 开启饥饿加载
+    enabled: true
+    # 指定对 userservice 这个服务饥饿加载
+    clients: userservice
+
+
+server:
+  port: 8081
+
+
+mybatis:
+  type-aliases-package: mao.order_service
+  configuration:
+    map-underscore-to-camel-case: true
+
+```
+
+
+
+选择2：
+
+配置类：
+
+```java
+package mao.order_service.config;
+
+import com.alibaba.cloud.nacos.ribbon.NacosRule;
+import com.netflix.loadbalancer.IRule;
+import com.netflix.loadbalancer.RandomRule;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+/**
+ * Project name(项目名称)：spring_cloud_demo_eureka
+ * Package(包名): mao.order_service.config
+ * Class(类名): RibbonConfig
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/11
+ * Time(创建时间)： 20:59
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+@Configuration
+public class RibbonConfig
+{
+    /**
+     * 配置Ribbon负载均衡规则
+     *
+     * @return RandomRule
+     */
+    @Bean
+    public IRule nacosRule()
+    {
+        return new NacosRule();
+    }
+}
+
+```
+
+
+
+
+
+启动服务
+
+order_servvice：
+
+```sh
+OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::        (v2.3.9.RELEASE)
+
+2022-07-13 20:07:59.861  INFO 2104 --- [           main] m.order_service.OrderServiceApplication  : No active profile set, falling back to default profiles: default
+2022-07-13 20:08:00.311  INFO 2104 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=dded3331-cedf-3595-87ef-faedbec03f47
+2022-07-13 20:08:00.499  INFO 2104 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8081 (http)
+2022-07-13 20:08:00.505  INFO 2104 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-07-13 20:08:00.506  INFO 2104 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.43]
+2022-07-13 20:08:00.610  INFO 2104 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-07-13 20:08:00.611  INFO 2104 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 738 ms
+2022-07-13 20:08:00.693  INFO 2104 --- [           main] c.a.d.s.b.a.DruidDataSourceAutoConfigure : Init DruidDataSource
+2022-07-13 20:08:00.778  INFO 2104 --- [           main] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+2022-07-13 20:08:00.838  WARN 2104 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-13 20:08:00.838  INFO 2104 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-13 20:08:00.841  WARN 2104 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-13 20:08:00.841  INFO 2104 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-13 20:08:00.931  INFO 2104 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-13 20:08:01.135  INFO 2104 --- [           main] o.s.s.c.ThreadPoolTaskScheduler          : Initializing ExecutorService 'Nacos-Watch-Task-Scheduler'
+2022-07-13 20:08:01.529  INFO 2104 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8081 (http) with context path ''
+2022-07-13 20:08:01.537  INFO 2104 --- [           main] c.a.c.n.registry.NacosServiceRegistry    : nacos registry, DEFAULT_GROUP orderservice 192.168.202.1:8081 register finished
+2022-07-13 20:08:01.659  INFO 2104 --- [           main] m.order_service.OrderServiceApplication  : Started OrderServiceApplication in 2.655 seconds (JVM running for 3.194)
+2022-07-13 20:08:01.864  INFO 2104 --- [           main] c.netflix.loadbalancer.BaseLoadBalancer  : Client: userservice instantiated a LoadBalancer: DynamicServerListLoadBalancer:{NFLoadBalancer:name=userservice,current list of Servers=[],Load balancer stats=Zone stats: {},Server stats: []}ServerList:null
+2022-07-13 20:08:01.875  INFO 2104 --- [           main] c.n.l.DynamicServerListLoadBalancer      : Using serverListUpdater PollingServerListUpdater
+2022-07-13 20:08:01.914  INFO 2104 --- [           main] c.n.l.DynamicServerListLoadBalancer      : DynamicServerListLoadBalancer for client userservice initialized: DynamicServerListLoadBalancer:{NFLoadBalancer:name=userservice,current list of Servers=[192.168.202.1:8083, 192.168.202.1:8082, 192.168.202.1:8084],Load balancer stats=Zone stats: {unknown=[Zone:unknown;	Instance count:3;	Active connections count: 0;	Circuit breaker tripped count: 0;	Active connections per server: 0.0;]
+},Server stats: [[Server:192.168.202.1:8084;	Zone:UNKNOWN;	Total Requests:0;	Successive connection failure:0;	Total blackout seconds:0;	Last connection made:Thu Jan 01 08:00:00 CST 1970;	First connection made: Thu Jan 01 08:00:00 CST 1970;	Active Connections:0;	total failure count in last (1000) msecs:0;	average resp time:0.0;	90 percentile resp time:0.0;	95 percentile resp time:0.0;	min resp time:0.0;	max resp time:0.0;	stddev resp time:0.0]
+, [Server:192.168.202.1:8082;	Zone:UNKNOWN;	Total Requests:0;	Successive connection failure:0;	Total blackout seconds:0;	Last connection made:Thu Jan 01 08:00:00 CST 1970;	First connection made: Thu Jan 01 08:00:00 CST 1970;	Active Connections:0;	total failure count in last (1000) msecs:0;	average resp time:0.0;	90 percentile resp time:0.0;	95 percentile resp time:0.0;	min resp time:0.0;	max resp time:0.0;	stddev resp time:0.0]
+, [Server:192.168.202.1:8083;	Zone:UNKNOWN;	Total Requests:0;	Successive connection failure:0;	Total blackout seconds:0;	Last connection made:Thu Jan 01 08:00:00 CST 1970;	First connection made: Thu Jan 01 08:00:00 CST 1970;	Active Connections:0;	total failure count in last (1000) msecs:0;	average resp time:0.0;	90 percentile resp time:0.0;	95 percentile resp time:0.0;	min resp time:0.0;	max resp time:0.0;	stddev resp time:0.0]
+]}ServerList:com.alibaba.cloud.nacos.ribbon.NacosServerList@145a821d
+```
+
+
+
+
+
+查看状态：
+
+![image-20220713195523703](.\img\image-20220713195523703.png)
+
+
+
+![image-20220713195607992](.\img\image-20220713195607992.png)
+
+
+
+![image-20220713195651800](.\img\image-20220713195651800.png)
+
+
+
+
+
+清空控制台日志，发起20次请求
+
+http://localhost:8081/order/101
+
+
+
+
+
+u1：
+
+```sh
+2022-07-13 20:11:40.644  WARN 15912 --- [nio-8082-exec-7] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/cloud_user, version : 1.2.8, lastPacketReceivedIdleMillis : 152167
+2022-07-13 20:11:40.665 DEBUG 15912 --- [nio-8082-exec-7] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:11:40.665 DEBUG 15912 --- [nio-8082-exec-7] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:11:40.666 DEBUG 15912 --- [nio-8082-exec-7] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:11:41.012 DEBUG 15912 --- [nio-8082-exec-8] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:11:41.013 DEBUG 15912 --- [nio-8082-exec-8] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:11:41.014 DEBUG 15912 --- [nio-8082-exec-8] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:11:42.415 DEBUG 15912 --- [nio-8082-exec-9] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:11:42.415 DEBUG 15912 --- [nio-8082-exec-9] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:11:42.416 DEBUG 15912 --- [nio-8082-exec-9] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:11:42.820 DEBUG 15912 --- [io-8082-exec-10] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:11:42.820 DEBUG 15912 --- [io-8082-exec-10] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:11:42.821 DEBUG 15912 --- [io-8082-exec-10] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:11:43.016 DEBUG 15912 --- [nio-8082-exec-1] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:11:43.017 DEBUG 15912 --- [nio-8082-exec-1] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:11:43.018 DEBUG 15912 --- [nio-8082-exec-1] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:11:44.080 DEBUG 15912 --- [nio-8082-exec-2] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:11:44.080 DEBUG 15912 --- [nio-8082-exec-2] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:11:44.082 DEBUG 15912 --- [nio-8082-exec-2] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:11:44.347 DEBUG 15912 --- [nio-8082-exec-3] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:11:44.347 DEBUG 15912 --- [nio-8082-exec-3] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:11:44.348 DEBUG 15912 --- [nio-8082-exec-3] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:11:45.350 DEBUG 15912 --- [nio-8082-exec-4] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:11:45.350 DEBUG 15912 --- [nio-8082-exec-4] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:11:45.351 DEBUG 15912 --- [nio-8082-exec-4] m.u.mapper.UserMapper.findById           : <==      Total: 1
+
+```
+
+
+
+u2：
+
+```sh
+2022-07-13 20:11:41.410  WARN 19068 --- [nio-8083-exec-5] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/cloud_user, version : 1.2.8, lastPacketReceivedIdleMillis : 154262
+2022-07-13 20:11:41.431 DEBUG 19068 --- [nio-8083-exec-5] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:11:41.431 DEBUG 19068 --- [nio-8083-exec-5] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:11:41.432 DEBUG 19068 --- [nio-8083-exec-5] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:11:41.702 DEBUG 19068 --- [nio-8083-exec-6] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:11:41.702 DEBUG 19068 --- [nio-8083-exec-6] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:11:41.703 DEBUG 19068 --- [nio-8083-exec-6] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:11:41.979 DEBUG 19068 --- [nio-8083-exec-7] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:11:41.979 DEBUG 19068 --- [nio-8083-exec-7] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:11:41.981 DEBUG 19068 --- [nio-8083-exec-7] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:11:42.212 DEBUG 19068 --- [nio-8083-exec-8] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:11:42.212 DEBUG 19068 --- [nio-8083-exec-8] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:11:42.213 DEBUG 19068 --- [nio-8083-exec-8] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:11:42.627 DEBUG 19068 --- [nio-8083-exec-9] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:11:42.628 DEBUG 19068 --- [nio-8083-exec-9] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:11:42.630 DEBUG 19068 --- [nio-8083-exec-9] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:11:43.777 DEBUG 19068 --- [io-8083-exec-10] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:11:43.777 DEBUG 19068 --- [io-8083-exec-10] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:11:43.779 DEBUG 19068 --- [io-8083-exec-10] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:11:44.666 DEBUG 19068 --- [nio-8083-exec-1] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:11:44.666 DEBUG 19068 --- [nio-8083-exec-1] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:11:44.668 DEBUG 19068 --- [nio-8083-exec-1] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:11:45.013 DEBUG 19068 --- [nio-8083-exec-2] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:11:45.013 DEBUG 19068 --- [nio-8083-exec-2] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:11:45.015 DEBUG 19068 --- [nio-8083-exec-2] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:11:45.740 DEBUG 19068 --- [nio-8083-exec-3] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:11:45.740 DEBUG 19068 --- [nio-8083-exec-3] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:11:45.741 DEBUG 19068 --- [nio-8083-exec-3] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:11:46.076 DEBUG 19068 --- [nio-8083-exec-4] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:11:46.077 DEBUG 19068 --- [nio-8083-exec-4] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:11:46.079 DEBUG 19068 --- [nio-8083-exec-4] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:11:46.316 DEBUG 19068 --- [nio-8083-exec-5] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:11:46.316 DEBUG 19068 --- [nio-8083-exec-5] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:11:46.318 DEBUG 19068 --- [nio-8083-exec-5] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:11:46.570 DEBUG 19068 --- [nio-8083-exec-6] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:11:46.571 DEBUG 19068 --- [nio-8083-exec-6] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:11:46.573 DEBUG 19068 --- [nio-8083-exec-6] m.u.mapper.UserMapper.findById           : <==      Total: 1
+
+```
+
+
+
+u3：
+
+```sh
+```
+
+
+
+order_service：
+
+```sh
+OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::        (v2.3.9.RELEASE)
+
+2022-07-13 20:11:20.931  INFO 22072 --- [           main] m.order_service.OrderServiceApplication  : No active profile set, falling back to default profiles: default
+2022-07-13 20:11:21.376  INFO 22072 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=eb76627d-fe62-3052-a2c0-6eeeee9dfcff
+2022-07-13 20:11:21.571  INFO 22072 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8081 (http)
+2022-07-13 20:11:21.578  INFO 22072 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-07-13 20:11:21.579  INFO 22072 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.43]
+2022-07-13 20:11:21.691  INFO 22072 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-07-13 20:11:21.691  INFO 22072 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 747 ms
+2022-07-13 20:11:21.776  INFO 22072 --- [           main] c.a.d.s.b.a.DruidDataSourceAutoConfigure : Init DruidDataSource
+2022-07-13 20:11:21.868  INFO 22072 --- [           main] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+2022-07-13 20:11:22.071  WARN 22072 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-13 20:11:22.071  INFO 22072 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-13 20:11:22.076  WARN 22072 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-13 20:11:22.076  INFO 22072 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-13 20:11:22.171  INFO 22072 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-13 20:11:22.243  INFO 22072 --- [           main] o.s.s.c.ThreadPoolTaskScheduler          : Initializing ExecutorService 'Nacos-Watch-Task-Scheduler'
+2022-07-13 20:11:22.631  INFO 22072 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8081 (http) with context path ''
+2022-07-13 20:11:22.639  INFO 22072 --- [           main] c.a.c.n.registry.NacosServiceRegistry    : nacos registry, DEFAULT_GROUP orderservice 192.168.202.1:8081 register finished
+2022-07-13 20:11:22.770  INFO 22072 --- [           main] m.order_service.OrderServiceApplication  : Started OrderServiceApplication in 2.644 seconds (JVM running for 3.179)
+2022-07-13 20:11:22.976  INFO 22072 --- [           main] c.netflix.loadbalancer.BaseLoadBalancer  : Client: userservice instantiated a LoadBalancer: DynamicServerListLoadBalancer:{NFLoadBalancer:name=userservice,current list of Servers=[],Load balancer stats=Zone stats: {},Server stats: []}ServerList:null
+2022-07-13 20:11:22.987  INFO 22072 --- [           main] c.n.l.DynamicServerListLoadBalancer      : Using serverListUpdater PollingServerListUpdater
+2022-07-13 20:11:23.025  INFO 22072 --- [           main] c.n.l.DynamicServerListLoadBalancer      : DynamicServerListLoadBalancer for client userservice initialized: DynamicServerListLoadBalancer:{NFLoadBalancer:name=userservice,current list of Servers=[192.168.202.1:8083, 192.168.202.1:8082, 192.168.202.1:8084],Load balancer stats=Zone stats: {unknown=[Zone:unknown;	Instance count:3;	Active connections count: 0;	Circuit breaker tripped count: 0;	Active connections per server: 0.0;]
+},Server stats: [[Server:192.168.202.1:8084;	Zone:UNKNOWN;	Total Requests:0;	Successive connection failure:0;	Total blackout seconds:0;	Last connection made:Thu Jan 01 08:00:00 CST 1970;	First connection made: Thu Jan 01 08:00:00 CST 1970;	Active Connections:0;	total failure count in last (1000) msecs:0;	average resp time:0.0;	90 percentile resp time:0.0;	95 percentile resp time:0.0;	min resp time:0.0;	max resp time:0.0;	stddev resp time:0.0]
+, [Server:192.168.202.1:8082;	Zone:UNKNOWN;	Total Requests:0;	Successive connection failure:0;	Total blackout seconds:0;	Last connection made:Thu Jan 01 08:00:00 CST 1970;	First connection made: Thu Jan 01 08:00:00 CST 1970;	Active Connections:0;	total failure count in last (1000) msecs:0;	average resp time:0.0;	90 percentile resp time:0.0;	95 percentile resp time:0.0;	min resp time:0.0;	max resp time:0.0;	stddev resp time:0.0]
+, [Server:192.168.202.1:8083;	Zone:UNKNOWN;	Total Requests:0;	Successive connection failure:0;	Total blackout seconds:0;	Last connection made:Thu Jan 01 08:00:00 CST 1970;	First connection made: Thu Jan 01 08:00:00 CST 1970;	Active Connections:0;	total failure count in last (1000) msecs:0;	average resp time:0.0;	90 percentile resp time:0.0;	95 percentile resp time:0.0;	min resp time:0.0;	max resp time:0.0;	stddev resp time:0.0]
+]}ServerList:com.alibaba.cloud.nacos.ribbon.NacosServerList@7ba06506
+2022-07-13 20:11:40.384  INFO 22072 --- [nio-8081-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2022-07-13 20:11:40.385  INFO 22072 --- [nio-8081-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2022-07-13 20:11:40.388  INFO 22072 --- [nio-8081-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 3 ms
+2022-07-13 20:11:40.586 DEBUG 22072 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:11:40.602 DEBUG 22072 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:11:40.618 DEBUG 22072 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:11:41.004 DEBUG 22072 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:11:41.006 DEBUG 22072 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:11:41.008 DEBUG 22072 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:11:41.403 DEBUG 22072 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:11:41.403 DEBUG 22072 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:11:41.404 DEBUG 22072 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:11:41.694 DEBUG 22072 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:11:41.695 DEBUG 22072 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:11:41.697 DEBUG 22072 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:11:41.973 DEBUG 22072 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:11:41.973 DEBUG 22072 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:11:41.975 DEBUG 22072 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:11:42.205 DEBUG 22072 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:11:42.205 DEBUG 22072 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:11:42.208 DEBUG 22072 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:11:42.410 DEBUG 22072 --- [nio-8081-exec-7] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:11:42.411 DEBUG 22072 --- [nio-8081-exec-7] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:11:42.413 DEBUG 22072 --- [nio-8081-exec-7] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:11:42.622 DEBUG 22072 --- [nio-8081-exec-8] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:11:42.622 DEBUG 22072 --- [nio-8081-exec-8] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:11:42.624 DEBUG 22072 --- [nio-8081-exec-8] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:11:42.813 DEBUG 22072 --- [nio-8081-exec-9] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:11:42.814 DEBUG 22072 --- [nio-8081-exec-9] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:11:42.817 DEBUG 22072 --- [nio-8081-exec-9] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:11:43.013 DEBUG 22072 --- [io-8081-exec-10] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:11:43.013 DEBUG 22072 --- [io-8081-exec-10] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:11:43.015 DEBUG 22072 --- [io-8081-exec-10] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:11:43.772 DEBUG 22072 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:11:43.773 DEBUG 22072 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:11:43.775 DEBUG 22072 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:11:44.076 DEBUG 22072 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:11:44.076 DEBUG 22072 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:11:44.077 DEBUG 22072 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:11:44.343 DEBUG 22072 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:11:44.343 DEBUG 22072 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:11:44.345 DEBUG 22072 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:11:44.661 DEBUG 22072 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:11:44.662 DEBUG 22072 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:11:44.663 DEBUG 22072 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:11:45.007 DEBUG 22072 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:11:45.008 DEBUG 22072 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:11:45.009 DEBUG 22072 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:11:45.344 DEBUG 22072 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:11:45.344 DEBUG 22072 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:11:45.347 DEBUG 22072 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:11:45.736 DEBUG 22072 --- [nio-8081-exec-7] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:11:45.737 DEBUG 22072 --- [nio-8081-exec-7] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:11:45.738 DEBUG 22072 --- [nio-8081-exec-7] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:11:46.072 DEBUG 22072 --- [nio-8081-exec-8] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:11:46.073 DEBUG 22072 --- [nio-8081-exec-8] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:11:46.074 DEBUG 22072 --- [nio-8081-exec-8] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:11:46.311 DEBUG 22072 --- [nio-8081-exec-9] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:11:46.311 DEBUG 22072 --- [nio-8081-exec-9] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:11:46.313 DEBUG 22072 --- [nio-8081-exec-9] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:11:46.564 DEBUG 22072 --- [io-8081-exec-10] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:11:46.564 DEBUG 22072 --- [io-8081-exec-10] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:11:46.566 DEBUG 22072 --- [io-8081-exec-10] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+```
+
+
+
+
+
+
+
+### 根据权重负载均衡
+
+实际部署中会出现这样的场景：
+
+服务器设备性能有差异，部分实例所在机器性能较好，另一些较差，我们希望性能好的机器承担更多的用户请求
+
+Nacos提供了权重配置来控制访问频率，权重越大则访问频率越高
+
+
+
+实例的权重控制：
+
+* Nacos控制台可以设置实例的权重值，0~1之间
+* 同集群内的多个实例，权重越高被访问的频率越高
+* 权重设置为0则完全不会被访问
+
+
+
+
+
+
+
+进入控制台，点击user_service详情
+
+
+
+点击编辑按钮
+
+![image-20220713201722930](.\img\image-20220713201722930.png)
+
+![image-20220713201749794](.\img\image-20220713201749794.png)
+
+
+
+将8083端口的权重改为0.1
+
+![image-20220713201918270](.\img\image-20220713201918270.png)
+
+
+
+点击确认保存
+
+
+
+![image-20220713201945108](.\img\image-20220713201945108.png)
+
+
+
+
+
+清空控制台日志
+
+刷新30次：
+
+因为次数少了偶然现象大
+
+
+
+u1：
+
+```sh
+2022-07-13 20:20:17.766  WARN 15912 --- [nio-8082-exec-6] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/cloud_user, version : 1.2.8, lastPacketReceivedIdleMillis : 512415
+2022-07-13 20:20:17.785 DEBUG 15912 --- [nio-8082-exec-6] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:20:17.785 DEBUG 15912 --- [nio-8082-exec-6] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:20:17.786 DEBUG 15912 --- [nio-8082-exec-6] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:20:18.290 DEBUG 15912 --- [nio-8082-exec-7] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:20:18.290 DEBUG 15912 --- [nio-8082-exec-7] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:20:18.292 DEBUG 15912 --- [nio-8082-exec-7] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:20:18.629 DEBUG 15912 --- [nio-8082-exec-8] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:20:18.629 DEBUG 15912 --- [nio-8082-exec-8] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:20:18.630 DEBUG 15912 --- [nio-8082-exec-8] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:20:18.920 DEBUG 15912 --- [nio-8082-exec-9] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:20:18.920 DEBUG 15912 --- [nio-8082-exec-9] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:20:18.921 DEBUG 15912 --- [nio-8082-exec-9] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:20:19.192 DEBUG 15912 --- [io-8082-exec-10] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:20:19.192 DEBUG 15912 --- [io-8082-exec-10] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:20:19.193 DEBUG 15912 --- [io-8082-exec-10] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:20:19.445 DEBUG 15912 --- [nio-8082-exec-1] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:20:19.446 DEBUG 15912 --- [nio-8082-exec-1] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:20:19.446 DEBUG 15912 --- [nio-8082-exec-1] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:20:19.716 DEBUG 15912 --- [nio-8082-exec-2] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:20:19.716 DEBUG 15912 --- [nio-8082-exec-2] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:20:19.718 DEBUG 15912 --- [nio-8082-exec-2] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:20:19.947 DEBUG 15912 --- [nio-8082-exec-3] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:20:19.947 DEBUG 15912 --- [nio-8082-exec-3] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:20:19.949 DEBUG 15912 --- [nio-8082-exec-3] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:20:20.208 DEBUG 15912 --- [nio-8082-exec-4] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:20:20.209 DEBUG 15912 --- [nio-8082-exec-4] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:20:20.209 DEBUG 15912 --- [nio-8082-exec-4] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:20:20.447 DEBUG 15912 --- [nio-8082-exec-5] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:20:20.448 DEBUG 15912 --- [nio-8082-exec-5] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:20:20.449 DEBUG 15912 --- [nio-8082-exec-5] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:20:20.980 DEBUG 15912 --- [nio-8082-exec-6] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:20:20.980 DEBUG 15912 --- [nio-8082-exec-6] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:20:20.981 DEBUG 15912 --- [nio-8082-exec-6] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:20:21.287 DEBUG 15912 --- [nio-8082-exec-7] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:20:21.288 DEBUG 15912 --- [nio-8082-exec-7] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:20:21.289 DEBUG 15912 --- [nio-8082-exec-7] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:20:21.569 DEBUG 15912 --- [nio-8082-exec-8] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:20:21.569 DEBUG 15912 --- [nio-8082-exec-8] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:20:21.570 DEBUG 15912 --- [nio-8082-exec-8] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:20:21.898 DEBUG 15912 --- [nio-8082-exec-9] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:20:21.898 DEBUG 15912 --- [nio-8082-exec-9] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:20:21.899 DEBUG 15912 --- [nio-8082-exec-9] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:20:22.210 DEBUG 15912 --- [io-8082-exec-10] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:20:22.211 DEBUG 15912 --- [io-8082-exec-10] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:20:22.212 DEBUG 15912 --- [io-8082-exec-10] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:20:22.490 DEBUG 15912 --- [nio-8082-exec-1] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:20:22.491 DEBUG 15912 --- [nio-8082-exec-1] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:20:22.491 DEBUG 15912 --- [nio-8082-exec-1] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:20:22.809 DEBUG 15912 --- [nio-8082-exec-2] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:20:22.809 DEBUG 15912 --- [nio-8082-exec-2] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:20:22.810 DEBUG 15912 --- [nio-8082-exec-2] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:20:23.112 DEBUG 15912 --- [nio-8082-exec-3] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:20:23.112 DEBUG 15912 --- [nio-8082-exec-3] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:20:23.113 DEBUG 15912 --- [nio-8082-exec-3] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:20:23.419 DEBUG 15912 --- [nio-8082-exec-4] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:20:23.419 DEBUG 15912 --- [nio-8082-exec-4] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:20:23.420 DEBUG 15912 --- [nio-8082-exec-4] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:20:23.666 DEBUG 15912 --- [nio-8082-exec-5] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:20:23.667 DEBUG 15912 --- [nio-8082-exec-5] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:20:23.668 DEBUG 15912 --- [nio-8082-exec-5] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:20:39.228 DEBUG 15912 --- [nio-8082-exec-6] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:20:39.228 DEBUG 15912 --- [nio-8082-exec-6] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:20:39.229 DEBUG 15912 --- [nio-8082-exec-6] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:20:39.589 DEBUG 15912 --- [nio-8082-exec-7] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:20:39.589 DEBUG 15912 --- [nio-8082-exec-7] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:20:39.591 DEBUG 15912 --- [nio-8082-exec-7] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:20:39.950 DEBUG 15912 --- [nio-8082-exec-8] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:20:39.951 DEBUG 15912 --- [nio-8082-exec-8] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:20:39.952 DEBUG 15912 --- [nio-8082-exec-8] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:20:40.254 DEBUG 15912 --- [nio-8082-exec-9] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:20:40.255 DEBUG 15912 --- [nio-8082-exec-9] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:20:40.256 DEBUG 15912 --- [nio-8082-exec-9] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:20:40.589 DEBUG 15912 --- [io-8082-exec-10] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:20:40.590 DEBUG 15912 --- [io-8082-exec-10] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:20:40.591 DEBUG 15912 --- [io-8082-exec-10] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:20:41.161 DEBUG 15912 --- [nio-8082-exec-1] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:20:41.161 DEBUG 15912 --- [nio-8082-exec-1] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:20:41.162 DEBUG 15912 --- [nio-8082-exec-1] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:20:41.420 DEBUG 15912 --- [nio-8082-exec-2] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:20:41.420 DEBUG 15912 --- [nio-8082-exec-2] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:20:41.422 DEBUG 15912 --- [nio-8082-exec-2] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:20:41.688 DEBUG 15912 --- [nio-8082-exec-3] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:20:41.688 DEBUG 15912 --- [nio-8082-exec-3] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:20:41.689 DEBUG 15912 --- [nio-8082-exec-3] m.u.mapper.UserMapper.findById           : <==      Total: 1
+2022-07-13 20:20:41.924 DEBUG 15912 --- [nio-8082-exec-4] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:20:41.924 DEBUG 15912 --- [nio-8082-exec-4] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:20:41.926 DEBUG 15912 --- [nio-8082-exec-4] m.u.mapper.UserMapper.findById           : <==      Total: 1
+```
+
+
+
+u2：
+
+```sh
+2022-07-13 20:20:40.873  WARN 19068 --- [nio-8083-exec-8] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/cloud_user, version : 1.2.8, lastPacketReceivedIdleMillis : 534300
+2022-07-13 20:20:40.903 DEBUG 19068 --- [nio-8083-exec-8] m.u.mapper.UserMapper.findById           : ==>  Preparing: select * from tb_user where id = ?
+2022-07-13 20:20:40.903 DEBUG 19068 --- [nio-8083-exec-8] m.u.mapper.UserMapper.findById           : ==> Parameters: 1(Long)
+2022-07-13 20:20:40.904 DEBUG 19068 --- [nio-8083-exec-8] m.u.mapper.UserMapper.findById           : <==      Total: 1
+```
+
+
+
+u3：
+
+```sh
+```
+
+
+
+order_service：
+
+```sh
+2022-07-13 20:20:17.735  WARN 22072 --- [nio-8081-exec-4] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/cloud_order, version : 1.2.8, lastPacketReceivedIdleMillis : 511163
+2022-07-13 20:20:17.761 DEBUG 22072 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:20:17.762 DEBUG 22072 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:20:17.763 DEBUG 22072 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:20:18.286 DEBUG 22072 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:20:18.287 DEBUG 22072 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:20:18.288 DEBUG 22072 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:20:18.622 DEBUG 22072 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:20:18.623 DEBUG 22072 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:20:18.625 DEBUG 22072 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:20:18.916 DEBUG 22072 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:20:18.917 DEBUG 22072 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:20:18.918 DEBUG 22072 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:20:19.186 DEBUG 22072 --- [nio-8081-exec-7] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:20:19.186 DEBUG 22072 --- [nio-8081-exec-7] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:20:19.190 DEBUG 22072 --- [nio-8081-exec-7] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:20:19.442 DEBUG 22072 --- [nio-8081-exec-8] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:20:19.443 DEBUG 22072 --- [nio-8081-exec-8] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:20:19.444 DEBUG 22072 --- [nio-8081-exec-8] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:20:19.713 DEBUG 22072 --- [nio-8081-exec-9] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:20:19.713 DEBUG 22072 --- [nio-8081-exec-9] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:20:19.714 DEBUG 22072 --- [nio-8081-exec-9] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:20:19.941 DEBUG 22072 --- [io-8081-exec-10] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:20:19.942 DEBUG 22072 --- [io-8081-exec-10] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:20:19.944 DEBUG 22072 --- [io-8081-exec-10] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:20:20.205 DEBUG 22072 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:20:20.206 DEBUG 22072 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:20:20.207 DEBUG 22072 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:20:20.442 DEBUG 22072 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:20:20.443 DEBUG 22072 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:20:20.444 DEBUG 22072 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:20:20.976 DEBUG 22072 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:20:20.977 DEBUG 22072 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:20:20.978 DEBUG 22072 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:20:21.282 DEBUG 22072 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:20:21.283 DEBUG 22072 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:20:21.284 DEBUG 22072 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:20:21.562 DEBUG 22072 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:20:21.563 DEBUG 22072 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:20:21.565 DEBUG 22072 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:20:21.893 DEBUG 22072 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:20:21.894 DEBUG 22072 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:20:21.896 DEBUG 22072 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:20:22.206 DEBUG 22072 --- [nio-8081-exec-7] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:20:22.207 DEBUG 22072 --- [nio-8081-exec-7] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:20:22.208 DEBUG 22072 --- [nio-8081-exec-7] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:20:22.487 DEBUG 22072 --- [nio-8081-exec-8] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:20:22.487 DEBUG 22072 --- [nio-8081-exec-8] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:20:22.488 DEBUG 22072 --- [nio-8081-exec-8] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:20:22.802 DEBUG 22072 --- [nio-8081-exec-9] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:20:22.803 DEBUG 22072 --- [nio-8081-exec-9] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:20:22.804 DEBUG 22072 --- [nio-8081-exec-9] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:20:23.105 DEBUG 22072 --- [io-8081-exec-10] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:20:23.106 DEBUG 22072 --- [io-8081-exec-10] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:20:23.108 DEBUG 22072 --- [io-8081-exec-10] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:20:23.415 DEBUG 22072 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:20:23.416 DEBUG 22072 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:20:23.417 DEBUG 22072 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:20:23.662 DEBUG 22072 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:20:23.662 DEBUG 22072 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:20:23.664 DEBUG 22072 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:20:39.225 DEBUG 22072 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:20:39.225 DEBUG 22072 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:20:39.226 DEBUG 22072 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:20:39.586 DEBUG 22072 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:20:39.586 DEBUG 22072 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:20:39.587 DEBUG 22072 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:20:39.946 DEBUG 22072 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:20:39.947 DEBUG 22072 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:20:39.948 DEBUG 22072 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:20:40.251 DEBUG 22072 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:20:40.251 DEBUG 22072 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:20:40.252 DEBUG 22072 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:20:40.585 DEBUG 22072 --- [nio-8081-exec-7] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:20:40.586 DEBUG 22072 --- [nio-8081-exec-7] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:20:40.587 DEBUG 22072 --- [nio-8081-exec-7] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:20:40.865 DEBUG 22072 --- [nio-8081-exec-8] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:20:40.865 DEBUG 22072 --- [nio-8081-exec-8] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:20:40.867 DEBUG 22072 --- [nio-8081-exec-8] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:20:41.155 DEBUG 22072 --- [nio-8081-exec-9] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:20:41.155 DEBUG 22072 --- [nio-8081-exec-9] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:20:41.157 DEBUG 22072 --- [nio-8081-exec-9] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:20:41.416 DEBUG 22072 --- [io-8081-exec-10] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:20:41.416 DEBUG 22072 --- [io-8081-exec-10] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:20:41.418 DEBUG 22072 --- [io-8081-exec-10] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:20:41.685 DEBUG 22072 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:20:41.685 DEBUG 22072 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:20:41.687 DEBUG 22072 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-13 20:20:41.918 DEBUG 22072 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-13 20:20:41.918 DEBUG 22072 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-13 20:20:41.920 DEBUG 22072 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+```
 
 
 
