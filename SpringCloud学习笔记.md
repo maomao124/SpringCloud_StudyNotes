@@ -6408,14 +6408,14 @@ mybatis:
 
 
 
-1. 打开nacos控制台
-2. 点击配置列表
+### 1. 打开nacos控制台
+### 2. 点击配置列表
 
 ![image-20220715211708308](img/image-20220715211708308.png)
 
 
 
-3. 点击+号
+### 3. 点击+号
 
 
 
@@ -6429,7 +6429,7 @@ mybatis:
 
 
 
-4. 新建配置
+### 4. 新建配置
 
 
 
@@ -6440,7 +6440,7 @@ mybatis:
 
 
 
-5. 填写配置
+### 5. 填写配置
 
 
 
@@ -6450,7 +6450,7 @@ mybatis:
 
 
 
-6. 点击发布
+### 6. 点击发布
 
 
 
@@ -6470,13 +6470,13 @@ mybatis:
 
 
 
-7. 打开项目
+### 7. 打开项目
 
 使用原来的项目或者新建一个项目
 
 
 
-8. 引入Nacos的客户端依赖
+### 8. 引入Nacos的客户端依赖
 
 
 
@@ -6584,7 +6584,7 @@ mybatis:
 
 
 
-9. 新增bootstrap.yml文件
+### 9. 新增bootstrap.yml文件
 
 
 
@@ -6596,7 +6596,7 @@ mybatis:
 
 
 
-10. 写入配置
+### 10. 写入配置
 
 
 
@@ -6701,7 +6701,7 @@ mybatis:
 
 
 
-11. 启动
+### 11. 启动
 
 
 
@@ -6759,7 +6759,7 @@ OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were depre
 
 
 
-12. 编写业务类
+### 12. 编写业务类
 
 
 
@@ -6964,7 +6964,7 @@ public class TestController
 
 
 
-13. 访问
+### 13. 访问
 
 
 
@@ -6984,7 +6984,7 @@ http://localhost:8082/test
 
 
 
-14. 查看日志：
+### 14. 查看日志：
 
 
 
@@ -7006,4 +7006,297 @@ age：18
 
 
 ## 配置自动刷新
+
+### 实现
+
+Nacos中的配置文件变更后，微服务无需重启就可以感知。不过需要通过下面两种配置实现：
+
+
+
+方式一：在@Value注入的变量所在类上添加注解@RefreshScope
+
+
+
+方式二：使用@ConfigurationProperties注解
+
+@ConfigurationProperties注解不用额外的加注解，直接支持
+
+
+
+* 不是所有的配置都适合放到配置中心，维护起来比较麻烦
+
+* 建议将一些关键参数，需要运行时调整的参数放到nacos配置中心，一般都是自定义配置
+
+
+
+
+
+### 测试配置自动刷新
+
+
+
+#### 1. 运行项目
+
+
+
+![image-20220715221529868](img/image-20220715221529868.png)
+
+
+
+
+
+#### 2. 访问
+
+
+
+http://localhost:8082/test
+
+
+
+```json
+{"id":15687,"name":"张三","sex":"男","age":18}
+```
+
+
+
+日志：
+
+```sh
+2022-07-15 22:18:33.683  INFO 3388 --- [nio-8082-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2022-07-15 22:18:33.683  INFO 3388 --- [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2022-07-15 22:18:33.687  INFO 3388 --- [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 4 ms
+2022-07-15 22:18:33.700  INFO 3388 --- [nio-8082-exec-1] m.u.controller.TestController            : id：15687
+name：张三
+sex：男
+age：18
+
+2022-07-15 22:18:34.652  INFO 3388 --- [nio-8082-exec-2] m.u.controller.TestController            : id：15687
+name：张三
+sex：男
+age：18
+
+2022-07-15 22:18:34.830  INFO 3388 --- [nio-8082-exec-3] m.u.controller.TestController            : id：15687
+name：张三
+sex：男
+age：18
+```
+
+
+
+
+
+#### 3. 进入nacos控制台
+
+
+
+![image-20220715221956946](img/image-20220715221956946.png)
+
+
+
+#### 4. 点击编辑
+
+
+
+![image-20220715222039894](img/image-20220715222039894.png)
+
+
+
+#### 5. 更改配置
+
+把年龄（age）更改为21
+
+
+
+![image-20220715222138030](img/image-20220715222138030.png)
+
+
+
+
+
+#### 6. 点击发布
+
+
+
+![image-20220715222213652](img/image-20220715222213652.png)
+
+
+
+![image-20220715222225149](img/image-20220715222225149.png)
+
+
+
+
+
+#### 7. 发起请求
+
+
+
+http://localhost:8082/test
+
+
+
+结果：
+
+```json
+{"id":15687,"name":"张三","sex":"男","age":21}
+```
+
+
+
+#### 8. 再次更改
+
+
+
+![image-20220715222434027](img/image-20220715222434027.png)
+
+
+
+* ID更改成124
+* 姓名更改成李四
+* 性别更改成女
+* 年龄更改成17
+
+
+
+![image-20220715222547981](img/image-20220715222547981.png)
+
+
+
+
+
+#### 9. 发布
+
+
+
+![image-20220715222613273](img/image-20220715222613273.png)
+
+
+
+![image-20220715222623683](img/image-20220715222623683.png)
+
+
+
+
+
+#### 10. 再次发起请求
+
+
+
+http://localhost:8082/test
+
+
+
+结果：
+
+```json
+{"id":124,"name":"李四","sex":"女","age":17}
+```
+
+
+
+
+
+#### 11. 查看日志
+
+
+
+```sh
+2022-07-15 22:18:33.683  INFO 3388 --- [nio-8082-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2022-07-15 22:18:33.683  INFO 3388 --- [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2022-07-15 22:18:33.687  INFO 3388 --- [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 4 ms
+2022-07-15 22:18:33.700  INFO 3388 --- [nio-8082-exec-1] m.u.controller.TestController            : id：15687
+name：张三
+sex：男
+age：18
+
+2022-07-15 22:18:34.652  INFO 3388 --- [nio-8082-exec-2] m.u.controller.TestController            : id：15687
+name：张三
+sex：男
+age：18
+
+2022-07-15 22:18:34.830  INFO 3388 --- [nio-8082-exec-3] m.u.controller.TestController            : id：15687
+name：张三
+sex：男
+age：18
+
+2022-07-15 22:22:20.375  INFO 3388 --- [-localhost_8848] c.a.n.client.config.impl.ClientWorker    : [fixed-localhost_8848] [polling-resp] config changed. dataId=userservice-dev.yml, group=DEFAULT_GROUP
+2022-07-15 22:22:20.375  INFO 3388 --- [-localhost_8848] c.a.n.client.config.impl.ClientWorker    : get changedGroupKeys:[userservice-dev.yml+DEFAULT_GROUP]
+2022-07-15 22:22:20.384  INFO 3388 --- [-localhost_8848] c.a.n.client.config.impl.ClientWorker    : [fixed-localhost_8848] [data-received] dataId=userservice-dev.yml, group=DEFAULT_GROUP, tenant=null, md5=dcb2492fa24e539925fcf665c8d9a6e4, content=configTests:
+  id: 15687
+  name: "张三"
+  sex: "男"
+  age: 21, type=yaml
+2022-07-15 22:22:20.384  INFO 3388 --- [-localhost_8848] c.a.nacos.client.config.impl.CacheData   : [fixed-localhost_8848] [notify-context] dataId=userservice-dev.yml, group=DEFAULT_GROUP, md5=dcb2492fa24e539925fcf665c8d9a6e4
+2022-07-15 22:22:20.655  WARN 3388 --- [-localhost_8848] c.a.c.n.c.NacosPropertySourceBuilder     : Ignore the empty nacos configuration and get it based on dataId[userservice] & group[DEFAULT_GROUP]
+2022-07-15 22:22:20.657  WARN 3388 --- [-localhost_8848] c.a.c.n.c.NacosPropertySourceBuilder     : Ignore the empty nacos configuration and get it based on dataId[userservice.yml] & group[DEFAULT_GROUP]
+2022-07-15 22:22:20.660  INFO 3388 --- [-localhost_8848] b.c.PropertySourceBootstrapConfiguration : Located property source: [BootstrapPropertySource {name='bootstrapProperties-userservice-dev.yml,DEFAULT_GROUP'}, BootstrapPropertySource {name='bootstrapProperties-userservice.yml,DEFAULT_GROUP'}, BootstrapPropertySource {name='bootstrapProperties-userservice,DEFAULT_GROUP'}]
+2022-07-15 22:22:20.668  INFO 3388 --- [-localhost_8848] o.s.boot.SpringApplication               : The following profiles are active: dev
+2022-07-15 22:22:20.675  INFO 3388 --- [-localhost_8848] o.s.boot.SpringApplication               : Started application in 0.288 seconds (JVM running for 764.531)
+2022-07-15 22:22:20.743  INFO 3388 --- [-localhost_8848] o.s.c.e.event.RefreshEventListener       : Refresh keys changed: [configTests.age]
+2022-07-15 22:22:20.743  INFO 3388 --- [-localhost_8848] c.a.nacos.client.config.impl.CacheData   : [fixed-localhost_8848] [notify-ok] dataId=userservice-dev.yml, group=DEFAULT_GROUP, md5=dcb2492fa24e539925fcf665c8d9a6e4, listener=com.alibaba.cloud.nacos.refresh.NacosContextRefresher$1@59b747dc 
+2022-07-15 22:22:20.743  INFO 3388 --- [-localhost_8848] c.a.nacos.client.config.impl.CacheData   : [fixed-localhost_8848] [notify-listener] time cost=359ms in ClientWorker, dataId=userservice-dev.yml, group=DEFAULT_GROUP, md5=dcb2492fa24e539925fcf665c8d9a6e4, listener=com.alibaba.cloud.nacos.refresh.NacosContextRefresher$1@59b747dc 
+2022-07-15 22:22:43.497  INFO 3388 --- [nio-8082-exec-6] m.u.controller.TestController            : id：15687
+name：张三
+sex：男
+age：21
+
+2022-07-15 22:26:20.469  INFO 3388 --- [-localhost_8848] c.a.n.client.config.impl.ClientWorker    : [fixed-localhost_8848] [polling-resp] config changed. dataId=userservice-dev.yml, group=DEFAULT_GROUP
+2022-07-15 22:26:20.469  INFO 3388 --- [-localhost_8848] c.a.n.client.config.impl.ClientWorker    : get changedGroupKeys:[userservice-dev.yml+DEFAULT_GROUP]
+2022-07-15 22:26:20.472  INFO 3388 --- [-localhost_8848] c.a.n.client.config.impl.ClientWorker    : [fixed-localhost_8848] [data-received] dataId=userservice-dev.yml, group=DEFAULT_GROUP, tenant=null, md5=346f7abbe4d42f75fb2993ccb1e1dd74, content=configTests:
+  id: 124
+  name: "李四"
+  sex: "女"
+  age: 17, type=yaml
+2022-07-15 22:26:20.472  INFO 3388 --- [-localhost_8848] c.a.nacos.client.config.impl.CacheData   : [fixed-localhost_8848] [notify-context] dataId=userservice-dev.yml, group=DEFAULT_GROUP, md5=346f7abbe4d42f75fb2993ccb1e1dd74
+2022-07-15 22:26:20.738  WARN 3388 --- [-localhost_8848] c.a.c.n.c.NacosPropertySourceBuilder     : Ignore the empty nacos configuration and get it based on dataId[userservice] & group[DEFAULT_GROUP]
+2022-07-15 22:26:20.741  WARN 3388 --- [-localhost_8848] c.a.c.n.c.NacosPropertySourceBuilder     : Ignore the empty nacos configuration and get it based on dataId[userservice.yml] & group[DEFAULT_GROUP]
+2022-07-15 22:26:20.744  INFO 3388 --- [-localhost_8848] b.c.PropertySourceBootstrapConfiguration : Located property source: [BootstrapPropertySource {name='bootstrapProperties-userservice-dev.yml,DEFAULT_GROUP'}, BootstrapPropertySource {name='bootstrapProperties-userservice.yml,DEFAULT_GROUP'}, BootstrapPropertySource {name='bootstrapProperties-userservice,DEFAULT_GROUP'}]
+2022-07-15 22:26:20.752  INFO 3388 --- [-localhost_8848] o.s.boot.SpringApplication               : The following profiles are active: dev
+2022-07-15 22:26:20.759  INFO 3388 --- [-localhost_8848] o.s.boot.SpringApplication               : Started application in 0.285 seconds (JVM running for 1004.615)
+2022-07-15 22:26:20.822  INFO 3388 --- [-localhost_8848] o.s.c.e.event.RefreshEventListener       : Refresh keys changed: [configTests.name, configTests.id, configTests.age, configTests.sex]
+2022-07-15 22:26:20.822  INFO 3388 --- [-localhost_8848] c.a.nacos.client.config.impl.CacheData   : [fixed-localhost_8848] [notify-ok] dataId=userservice-dev.yml, group=DEFAULT_GROUP, md5=346f7abbe4d42f75fb2993ccb1e1dd74, listener=com.alibaba.cloud.nacos.refresh.NacosContextRefresher$1@59b747dc 
+2022-07-15 22:26:20.823  INFO 3388 --- [-localhost_8848] c.a.nacos.client.config.impl.CacheData   : [fixed-localhost_8848] [notify-listener] time cost=351ms in ClientWorker, dataId=userservice-dev.yml, group=DEFAULT_GROUP, md5=346f7abbe4d42f75fb2993ccb1e1dd74, listener=com.alibaba.cloud.nacos.refresh.NacosContextRefresher$1@59b747dc 
+2022-07-15 22:27:01.886  INFO 3388 --- [io-8082-exec-10] m.u.controller.TestController            : id：124
+name：李四
+sex：女
+age：17
+
+2022-07-15 22:27:02.484  INFO 3388 --- [nio-8082-exec-9] m.u.controller.TestController            : id：124
+name：李四
+sex：女
+age：17
+
+2022-07-15 22:27:02.776  INFO 3388 --- [nio-8082-exec-1] m.u.controller.TestController            : id：124
+name：李四
+sex：女
+age：17
+```
+
+
+
+
+
+#### 12. 查看历史版本
+
+
+
+![image-20220715222905394](img/image-20220715222905394.png)
+
+
+
+![image-20220715222926273](img/image-20220715222926273.png)
+
+
+
+
+
+
+
+
+
+## 多环境配置共享
+
+
+
+
 
