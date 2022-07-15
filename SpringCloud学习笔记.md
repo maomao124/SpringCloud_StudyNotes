@@ -6333,3 +6333,677 @@ mybatis:
 
 # Nacos配置管理
 
+## 配置中心
+
+### 配置
+
+应用程序在启动和运行的时候往往需要读取一些配置信息，配置基本上伴随着应用程序的整个生命周期，比如：数据库连接参数、启动参数等
+
+特点：
+
+* **配置是独立于程序的只读变量**
+  * 配置对于程序是只读的，程序通过读取配置来改变自己的行为，但是程序不应该去改变配置
+* **配置伴随应用的整个生命周期**
+  * 配置贯穿于应用的整个生命周期，应用在启动时通过读取配置来初始化，在运行时根据配置调整行为
+* **配置可以有多种加载方式**
+  * 常见的有程序内部hard code，配置文件，环境变量，启动参数，基于数据库等
+* **配置需要治理**
+  * 同一份程序在不同的环境（开发，测试，生产）、不同的集群（如不同的数据中心）经常需要有不同的配置，所以需要有完善的环境、集群配置管理
+
+
+
+### 配置中心
+
+ 微服务架构中，当系统从一个单体应用，被拆分成分布式系统上一个个服务节点后，配置文件也必须跟着迁移（分割），这样配置就分散了，不仅如此，分散中还包含着冗余。配置中心将配置从各应用中剥离出来，对配置进行统一管理。
+
+
+
+流程：
+
+* 用户在配置中心更新配置信息
+* 服务A和服务B及时得到配置更新通知，从配置中心获取配置
+
+
+
+
+
+![image-20220715210528673](img/image-20220715210528673.png)
+
+
+
+| 对比项目     | Spring Cloud Config    | Apollo               | Nacos                |
+| :----------: | :--------------------: | :------------------: | :------------------: |
+| 配置实时推送 | 支持(Spring Cloud Bus) | 支持(HTTP长轮询1s内) | 支持(HTTP长轮询1s内) |
+| 版本管理     | 支持(Git)              | 支持                 | 支持                 |
+| 配置回滚 | 支持(Git)     | 支持 | 支持         |
+| 灰度发布 | 支持          | 支持 | 不支持       |
+| 权限管理 | 支持(依赖Git) | 支持 | 不支持       |
+| 多集群   | 支持          | 支持 | 支持         |
+| 多环境   | 支持          | 支持 | 支持配置回滚 |
+| 监听查询     | 支持       | 支持                     | 支持                     |
+| 多语言       | 只支持Java | 主流语言，提供了Open API | 主流语言，提供了Open API |
+| 配置格式校验 | 不支持     | 支持                     | 支持                     |
+| 单机读(QPS)  | 7(限流所致)  | 9000  | 15000           |
+| 单击写(QPS)  | 5(限流所致)  | 1100  | 1800            |
+| 3节点读(QPS) | 21(限流所致) | 27000 | 45000           |
+| 3节点写(QPS) | 5(限流所致)  | 3300  | 5600单机读(QPS) |
+
+
+
+
+
+### 步骤
+
+
+
+![image-20220715211221330](img/image-20220715211221330.png)
+
+
+
+
+
+
+
+## 详细步骤
+
+
+
+1. 打开nacos控制台
+2. 点击配置列表
+
+![image-20220715211708308](img/image-20220715211708308.png)
+
+
+
+3. 点击+号
+
+
+
+![image-20220715211737790](img/image-20220715211737790.png)
+
+
+
+
+
+![image-20220715211755084](img/image-20220715211755084.png)
+
+
+
+4. 新建配置
+
+
+
+* data  ID：配置文件的ID。格式：[服务名称]-[profile].[后缀名]，profile是环境，比如开发环境、生产环境、测试环境
+* group：分组信息
+
+
+
+
+
+5. 填写配置
+
+
+
+![image-20220715212409996](img/image-20220715212409996.png)
+
+
+
+
+
+6. 点击发布
+
+
+
+![image-20220715212442628](img/image-20220715212442628.png)
+
+
+
+
+
+![image-20220715212626440](img/image-20220715212626440.png)
+
+
+
+
+
+
+
+
+
+7. 打开项目
+
+使用原来的项目或者新建一个项目
+
+
+
+8. 引入Nacos的客户端依赖
+
+
+
+```xml
+<!--Nacos配置管理客户端依赖-->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+        </dependency>
+```
+
+
+
+全部：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+
+    <parent>
+        <groupId>mao</groupId>
+        <artifactId>spring_cloud_demo</artifactId>
+        <version>0.0.1</version>
+        <relativePath>../pom.xml</relativePath> <!-- lookup parent from repository -->
+    </parent>
+
+
+    <artifactId>user_service</artifactId>
+    <version>0.0.1</version>
+    <name>user_service</name>
+    <description>user_service</description>
+
+    <properties>
+        <java.version>11</java.version>
+    </properties>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!--mysql依赖 spring-boot-->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+        </dependency>
+
+        <!--spring-boot druid连接池依赖-->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid-spring-boot-starter</artifactId>
+        </dependency>
+
+        <!--spring-boot mybatis依赖-->
+        <dependency>
+            <groupId>org.mybatis.spring.boot</groupId>
+            <artifactId>mybatis-spring-boot-starter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!--eureka-client 依赖-->
+        <!--<dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+        </dependency>-->
+
+        <!-- nacos 客户端依赖 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+
+        <!--Nacos配置管理客户端依赖-->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+        </dependency>
+
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
+```
+
+
+
+
+
+9. 新增bootstrap.yml文件
+
+
+
+这个文件是引导文件，优先级高于 application.yml
+
+
+
+![image-20220715213504076](img/image-20220715213504076.png)
+
+
+
+10. 写入配置
+
+
+
+```yaml
+# bootstrap 配置
+
+spring:
+
+  application:
+    name: userservice
+  # 配置环境
+  profiles:
+    active: dev
+
+
+
+  cloud:
+    nacos:
+      discovery:
+        # nacos 服务端地址
+        server-addr:  localhost:8848
+
+      config:
+        # 设置配置文件格式
+        file-extension: yml
+
+```
+
+
+
+
+
+application.yml：
+
+```yaml
+# user 业务 配置文件
+
+
+spring:
+
+
+  # 配置数据源
+  datasource:
+
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/cloud_user
+      username: root
+      password: 20010713
+
+
+
+#eureka:
+#  client:
+#    service-url:
+#      defaultZone: http://127.0.0.1:10080/eureka/
+
+
+  cloud:
+    nacos:
+      discovery:
+        # 集群名称
+        cluster-name: HZ
+
+  #--server.port=8083
+  #--spring.cloud.nacos.discovery.cluster-name=SH
+
+# 开启debug模式，输出调试信息，常用于检查系统运行状况
+#debug: true
+
+# 设置日志级别，root表示根节点，即整体应用日志级别
+logging:
+  # 日志输出到文件的文件名
+  file:
+    name: user_server.log
+  # 设置日志组
+  group:
+    # 自定义组名，设置当前组中所包含的包
+    mao_pro: mao
+  level:
+    root: info
+    # 为对应组设置日志级别
+    mao_pro: debug
+    # 日志输出格式
+  # pattern:
+  # console: "%d %clr(%p) --- [%16t] %clr(%-40.40c){cyan} : %m %n"
+
+
+
+server:
+  port: 8082
+
+
+
+mybatis:
+  type-aliases-package: mao.user_service
+  configuration:
+    map-underscore-to-camel-case: true
+```
+
+
+
+
+
+11. 启动
+
+
+
+```sh
+OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::        (v2.3.9.RELEASE)
+
+2022-07-15 21:44:24.993  WARN 18684 --- [           main] c.a.c.n.c.NacosPropertySourceBuilder     : Ignore the empty nacos configuration and get it based on dataId[userservice] & group[DEFAULT_GROUP]
+2022-07-15 21:44:24.997  WARN 18684 --- [           main] c.a.c.n.c.NacosPropertySourceBuilder     : Ignore the empty nacos configuration and get it based on dataId[userservice.yml] & group[DEFAULT_GROUP]
+2022-07-15 21:44:25.005  INFO 18684 --- [           main] b.c.PropertySourceBootstrapConfiguration : Located property source: [BootstrapPropertySource {name='bootstrapProperties-userservice-dev.yml,DEFAULT_GROUP'}, BootstrapPropertySource {name='bootstrapProperties-userservice.yml,DEFAULT_GROUP'}, BootstrapPropertySource {name='bootstrapProperties-userservice,DEFAULT_GROUP'}]
+2022-07-15 21:44:25.043  INFO 18684 --- [           main] mao.user_service.UserServiceApplication  : The following profiles are active: dev
+2022-07-15 21:44:25.467  INFO 18684 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=9aa168bb-4134-3c13-ac07-9412d2531a7e
+2022-07-15 21:44:25.671  INFO 18684 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8082 (http)
+2022-07-15 21:44:25.678  INFO 18684 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-07-15 21:44:25.678  INFO 18684 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.43]
+2022-07-15 21:44:25.779  INFO 18684 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-07-15 21:44:25.779  INFO 18684 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 724 ms
+2022-07-15 21:44:25.869  INFO 18684 --- [           main] c.a.d.s.b.a.DruidDataSourceAutoConfigure : Init DruidDataSource
+2022-07-15 21:44:25.963  INFO 18684 --- [           main] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+2022-07-15 21:44:26.011  WARN 18684 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-15 21:44:26.011  INFO 18684 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-15 21:44:26.013  WARN 18684 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-15 21:44:26.013  INFO 18684 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-15 21:44:26.110  INFO 18684 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-15 21:44:26.317  INFO 18684 --- [           main] o.s.s.c.ThreadPoolTaskScheduler          : Initializing ExecutorService 'Nacos-Watch-Task-Scheduler'
+2022-07-15 21:44:26.559  INFO 18684 --- [           main] com.alibaba.nacos.client.naming          : initializer namespace from System Property :null
+2022-07-15 21:44:26.559  INFO 18684 --- [           main] com.alibaba.nacos.client.naming          : initializer namespace from System Environment :null
+2022-07-15 21:44:26.559  INFO 18684 --- [           main] com.alibaba.nacos.client.naming          : initializer namespace from System Property :null
+2022-07-15 21:44:26.659  INFO 18684 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8082 (http) with context path ''
+2022-07-15 21:44:26.662  INFO 18684 --- [           main] com.alibaba.nacos.client.naming          : [BEAT] adding beat: BeatInfo{port=8082, ip='192.168.202.1', weight=1.0, serviceName='DEFAULT_GROUP@@userservice', cluster='HZ', metadata={preserved.register.source=SPRING_CLOUD}, scheduled=false, period=5000, stopped=false} to beat map.
+2022-07-15 21:44:26.663  INFO 18684 --- [           main] com.alibaba.nacos.client.naming          : [REGISTER-SERVICE] public registering service DEFAULT_GROUP@@userservice with instance: Instance{instanceId='null', ip='192.168.202.1', port=8082, weight=1.0, healthy=true, enabled=true, ephemeral=true, clusterName='HZ', serviceName='null', metadata={preserved.register.source=SPRING_CLOUD}}
+2022-07-15 21:44:26.800  INFO 18684 --- [           main] c.a.c.n.registry.NacosServiceRegistry    : nacos registry, DEFAULT_GROUP userservice 192.168.202.1:8082 register finished
+2022-07-15 21:44:26.910  INFO 18684 --- [           main] mao.user_service.UserServiceApplication  : Started UserServiceApplication in 2.741 seconds (JVM running for 3.295)
+2022-07-15 21:44:26.914  INFO 18684 --- [           main] c.a.n.client.config.impl.ClientWorker    : [fixed-localhost_8848] [subscribe] userservice+DEFAULT_GROUP
+2022-07-15 21:44:26.915  INFO 18684 --- [           main] c.a.nacos.client.config.impl.CacheData   : [fixed-localhost_8848] [add-listener] ok, tenant=, dataId=userservice, group=DEFAULT_GROUP, cnt=1
+2022-07-15 21:44:26.919  INFO 18684 --- [           main] c.a.n.client.config.impl.ClientWorker    : [fixed-localhost_8848] [subscribe] userservice-dev.yml+DEFAULT_GROUP
+2022-07-15 21:44:26.920  INFO 18684 --- [           main] c.a.nacos.client.config.impl.CacheData   : [fixed-localhost_8848] [add-listener] ok, tenant=, dataId=userservice-dev.yml, group=DEFAULT_GROUP, cnt=1
+2022-07-15 21:44:26.920  INFO 18684 --- [           main] c.a.n.client.config.impl.ClientWorker    : [fixed-localhost_8848] [subscribe] userservice.yml+DEFAULT_GROUP
+2022-07-15 21:44:26.920  INFO 18684 --- [           main] c.a.nacos.client.config.impl.CacheData   : [fixed-localhost_8848] [add-listener] ok, tenant=, dataId=userservice.yml, group=DEFAULT_GROUP, cnt=1
+2022-07-15 21:44:27.650  INFO 18684 --- [.naming.updater] com.alibaba.nacos.client.naming          : new ips(1) service: DEFAULT_GROUP@@userservice@@HZ -> [{"instanceId":"192.168.202.1#8082#HZ#DEFAULT_GROUP@@userservice","ip":"192.168.202.1","port":8082,"weight":1.0,"healthy":true,"enabled":true,"ephemeral":true,"clusterName":"HZ","serviceName":"DEFAULT_GROUP@@userservice","metadata":{"preserved.register.source":"SPRING_CLOUD"},"ipDeleteTimeout":30000,"instanceHeartBeatInterval":5000,"instanceHeartBeatTimeOut":15000}]
+2022-07-15 21:44:27.657  INFO 18684 --- [.naming.updater] com.alibaba.nacos.client.naming          : current ips:(1) service: DEFAULT_GROUP@@userservice@@HZ -> [{"instanceId":"192.168.202.1#8082#HZ#DEFAULT_GROUP@@userservice","ip":"192.168.202.1","port":8082,"weight":1.0,"healthy":true,"enabled":true,"ephemeral":true,"clusterName":"HZ","serviceName":"DEFAULT_GROUP@@userservice","metadata":{"preserved.register.source":"SPRING_CLOUD"},"ipDeleteTimeout":30000,"instanceHeartBeatInterval":5000,"instanceHeartBeatTimeOut":15000}]
+2022-07-15 21:44:27.816  INFO 18684 --- [g.push.receiver] com.alibaba.nacos.client.naming          : received push data: {"type":"dom","data":"{\"hosts\":[{\"ip\":\"192.168.202.1\",\"port\":8082,\"valid\":true,\"healthy\":true,\"marked\":false,\"instanceId\":\"192.168.202.1#8082#HZ#DEFAULT_GROUP@@userservice\",\"metadata\":{\"preserved.register.source\":\"SPRING_CLOUD\"},\"enabled\":true,\"weight\":1.0,\"clusterName\":\"HZ\",\"serviceName\":\"DEFAULT_GROUP@@userservice\",\"ephemeral\":true}],\"dom\":\"DEFAULT_GROUP@@userservice\",\"name\":\"DEFAULT_GROUP@@userservice\",\"cacheMillis\":10000,\"lastRefTime\":1657892667810,\"checksum\":\"893e42166ce00e13b64fddd90f4b07c5\",\"useSpecifiedURL\":false,\"clusters\":\"HZ\",\"env\":\"\",\"metadata\":{}}","lastRefTime":6828575306400} from /192.168.202.1
+```
+
+
+
+没有报错
+
+
+
+12. 编写业务类
+
+
+
+TestConfigurationProperties：
+
+```java
+package mao.user_service.entity;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
+
+/**
+ * Project name(项目名称)：spring_cloud_demo_nacos_configuration_management
+ * Package(包名): mao.user_service.entity
+ * Class(类名): TestConfigurationProperties
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/15
+ * Time(创建时间)： 21:50
+ * Version(版本): 1.0
+ * Description(描述)： 测试nacos配置管理
+ */
+
+@Component
+@ConfigurationProperties(prefix = "config-tests")
+public class TestConfigurationProperties
+{
+    private int id;
+    private String name;
+    private String sex;
+    private int age;
+
+    /**
+     * Instantiates a new Test configuration properties.
+     */
+    public TestConfigurationProperties()
+    {
+
+    }
+
+    /**
+     * Instantiates a new Test configuration properties.
+     *
+     * @param id   the id
+     * @param name the name
+     * @param sex  the sex
+     * @param age  the age
+     */
+    public TestConfigurationProperties(int id, String name, String sex, int age)
+    {
+        this.id = id;
+        this.name = name;
+        this.sex = sex;
+        this.age = age;
+    }
+
+    /**
+     * Gets id.
+     *
+     * @return the id
+     */
+    public int getId()
+    {
+        return id;
+    }
+
+    /**
+     * Sets id.
+     *
+     * @param id the id
+     */
+    public void setId(int id)
+    {
+        this.id = id;
+    }
+
+    /**
+     * Gets name.
+     *
+     * @return the name
+     */
+    public String getName()
+    {
+        return name;
+    }
+
+    /**
+     * Sets name.
+     *
+     * @param name the name
+     */
+    public void setName(String name)
+    {
+        this.name = name;
+    }
+
+    /**
+     * Gets sex.
+     *
+     * @return the sex
+     */
+    public String getSex()
+    {
+        return sex;
+    }
+
+    /**
+     * Sets sex.
+     *
+     * @param sex the sex
+     */
+    public void setSex(String sex)
+    {
+        this.sex = sex;
+    }
+
+    /**
+     * Gets age.
+     *
+     * @return the age
+     */
+    public int getAge()
+    {
+        return age;
+    }
+
+    /**
+     * Sets age.
+     *
+     * @param age the age
+     */
+    public void setAge(int age)
+    {
+        this.age = age;
+    }
+
+    @Override
+    @SuppressWarnings("all")
+    public String toString()
+    {
+        final StringBuilder stringbuilder = new StringBuilder();
+        stringbuilder.append("id：").append(id).append('\n');
+        stringbuilder.append("name：").append(name).append('\n');
+        stringbuilder.append("sex：").append(sex).append('\n');
+        stringbuilder.append("age：").append(age).append('\n');
+        return stringbuilder.toString();
+    }
+}
+
+```
+
+
+
+TestController：
+
+```java
+package mao.user_service.controller;
+
+import lombok.extern.slf4j.Slf4j;
+import mao.user_service.entity.TestConfigurationProperties;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * Project name(项目名称)：spring_cloud_demo_nacos_configuration_management
+ * Package(包名): mao.user_service.controller
+ * Class(类名): TestController
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/15
+ * Time(创建时间)： 21:54
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+@Slf4j
+@RestController
+public class TestController
+{
+
+    @Autowired
+    private TestConfigurationProperties testConfigurationProperties;
+
+    /**
+     * Test test configuration properties.
+     *
+     * @return the test configuration properties
+     */
+    @GetMapping("/test")
+    public TestConfigurationProperties test()
+    {
+        log.debug(testConfigurationProperties.toString());
+        return testConfigurationProperties;
+    }
+}
+```
+
+
+
+
+
+13. 访问
+
+
+
+http://localhost:8082/test
+
+
+
+结果：
+
+```json
+{"id":15687,"name":"张三","sex":"男","age":18}
+```
+
+
+
+正常读取
+
+
+
+14. 查看日志：
+
+
+
+```sh
+2022-07-15 22:01:53.317  INFO 16180 --- [g.push.receiver] com.alibaba.nacos.client.naming          : received push data: {"type":"dom","data":"{\"hosts\":[{\"ip\":\"192.168.202.1\",\"port\":8082,\"valid\":true,\"healthy\":true,\"marked\":false,\"instanceId\":\"192.168.202.1#8082#HZ#DEFAULT_GROUP@@userservice\",\"metadata\":{\"preserved.register.source\":\"SPRING_CLOUD\"},\"enabled\":true,\"weight\":1.0,\"clusterName\":\"HZ\",\"serviceName\":\"DEFAULT_GROUP@@userservice\",\"ephemeral\":true}],\"dom\":\"DEFAULT_GROUP@@userservice\",\"name\":\"DEFAULT_GROUP@@userservice\",\"cacheMillis\":10000,\"lastRefTime\":1657893713317,\"checksum\":\"893e42166ce00e13b64fddd90f4b07c5\",\"useSpecifiedURL\":false,\"clusters\":\"HZ\",\"env\":\"\",\"metadata\":{}}","lastRefTime":7874081883700} from /192.168.202.1
+2022-07-15 22:01:58.268  INFO 16180 --- [nio-8082-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2022-07-15 22:01:58.269  INFO 16180 --- [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2022-07-15 22:01:58.273  INFO 16180 --- [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 3 ms
+2022-07-15 22:01:58.285  INFO 16180 --- [nio-8082-exec-1] m.u.controller.TestController            : id：15687
+name：张三
+sex：男
+age：18
+```
+
+
+
+
+
+
+
+## 配置自动刷新
+
