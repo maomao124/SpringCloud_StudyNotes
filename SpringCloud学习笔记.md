@@ -7801,7 +7801,9 @@ https://github.com/maomao124/MySql_study_notes.git
 
 
 
-1. 新建一个数据库，名称为nacos
+#### 1.  新建数据库
+
+新建一个数据库，名称为nacos
 
 
 
@@ -7853,7 +7855,7 @@ mysql>
 
 
 
-2. 导入表结构
+#### 2. 导入表结构
 
 
 
@@ -8304,7 +8306,7 @@ mysql>
 
 
 
-3. 查看表
+#### 3. 查看表
 
 
 
@@ -8335,7 +8337,9 @@ mysql>
 
 
 
-4. 复制原来单机环境的nacos文件夹，更改名称为nacos1，放入naocs-cluster文件夹里
+####  4.  复制文件夹
+
+复制原来单机环境的nacos文件夹，更改名称为nacos1，放入naocs-cluster文件夹里
 
 
 
@@ -8418,7 +8422,7 @@ PS H:\opensoft\naocs-cluster\nacos1>
 
 
 
-5. 更改nacos1配置文件名称
+#### 5. 更改nacos1配置文件名称
 
 
 
@@ -8469,7 +8473,7 @@ PS H:\opensoft\naocs-cluster\nacos1\conf>
 
 
 
-6. 更改配置内容
+#### 6. 更改配置内容
 
 更改cluster.conf的内容
 
@@ -8521,7 +8525,7 @@ PS H:\opensoft\naocs-cluster\nacos1\conf>
 
 
 
-7. 添加数据库配置
+#### 7. 添加数据库配置
 
 修改application.properties文件，添加数据库配置
 
@@ -8735,7 +8739,7 @@ PS H:\opensoft\naocs-cluster\nacos1\conf>
 
 
 
-8. 复制文件夹
+#### 8. 复制文件夹
 
 将nacos文件夹再复制三份，分别命名为：nacos2和nacos3
 
@@ -8773,7 +8777,7 @@ PS H:\opensoft\naocs-cluster>
 
 
 
-9. 分别更改端口号
+#### 9. 分别更改端口号
 
 
 
@@ -8801,7 +8805,7 @@ server.port=8853
 
 
 
-9. 启动
+#### 9. 启动
 
 
 
@@ -8951,7 +8955,7 @@ PS H:\opensoft\naocs-cluster\nacos3\bin> .\startup.cmd
 
 
 
-10. 解压nginx
+#### 10. 解压nginx
 
 
 
@@ -9025,7 +9029,7 @@ PS H:\opensoft>
 
 
 
-11. 修改配置文件
+#### 11. 修改配置文件
 
 
 
@@ -9141,7 +9145,7 @@ PS H:\opensoft\nginx-1.21.6\conf>
 
 
 
-12. 启动nginx
+#### 12. 启动nginx
 
 
 
@@ -9177,7 +9181,7 @@ PS H:\opensoft\nginx-1.21.6> .\nginx.exe
 
 
 
-13. 访问测试
+#### 13. 访问测试
 
 
 
@@ -9199,7 +9203,7 @@ http://localhost:8848/
 
 
 
-14. application.yml文件配置
+#### 14. application.yml文件配置
 
 
 
