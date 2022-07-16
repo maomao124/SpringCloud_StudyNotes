@@ -6305,6 +6305,12 @@ mybatis:
 
 
 
+**项目地址：**
+
+https://github.com/maomao124/spring_cloud_demo_nacos.git
+
+
+
 
 
 # Nacos与eureka
@@ -7739,6 +7745,14 @@ age：21
 
 
 
+### 项目地址
+
+https://github.com/maomao124/spring_cloud_demo_nacos_configuration_management.git
+
+
+
+
+
 
 
 ## Nacos集群
@@ -7756,4 +7770,1747 @@ age：21
 
 
 ### 步骤
+
+
+
+三个nacos节点的地址：
+
+| 节点   | ip        | port |
+| ------ | --------- | ---- |
+| nacos1 | 127.0.0.1 | 8851 |
+| nacos2 | 127.0.0.1 | 8852 |
+| nacos3 | 127.0.0.1 | 8853 |
+
+
+
+
+
+Nacos默认数据存储在内嵌数据库Derby中，不属于生产可用的数据库。
+
+官方推荐的最佳实践是使用带有主从的高可用数据库集群
+
+搭建数据库比较麻烦，现在已一个mysql节点来代替多节点
+
+
+
+MySQL学习笔记：
+
+https://github.com/maomao124/MySql_study_notes.git
+
+
+
+
+
+1. 新建一个数据库，名称为nacos
+
+
+
+```sh
+C:\Users\mao>mysql -u root -p
+Enter password: ********
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 8
+Server version: 8.0.27 MySQL Community Server - GPL
+
+Copyright (c) 2000, 2021, Oracle and/or its affiliates.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> create database nacos;
+Query OK, 1 row affected (0.03 sec)
+
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| cloud_order        |
+| cloud_user         |
+| hotel              |
+| information_schema |
+| mysql              |
+| nacos              |
+| performance_schema |
+| sakila             |
+| shop               |
+| student            |
+| student1           |
+| student_test       |
+| sys                |
+| test               |
+| tx                 |
+| world              |
++--------------------+
+16 rows in set (0.03 sec)
+
+mysql>
+```
+
+
+
+
+
+2. 导入表结构
+
+
+
+```sql
+
+/******************************************/
+/*   数据库全名 = nacos_config   */
+/*   表名称 = config_info   */
+/******************************************/
+CREATE TABLE `config_info` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `data_id` varchar(255) NOT NULL COMMENT 'data_id',
+  `group_id` varchar(255) DEFAULT NULL,
+  `content` longtext NOT NULL COMMENT 'content',
+  `md5` varchar(32) DEFAULT NULL COMMENT 'md5',
+  `gmt_create` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `gmt_modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '修改时间',
+  `src_user` text COMMENT 'source user',
+  `src_ip` varchar(50) DEFAULT NULL COMMENT 'source ip',
+  `app_name` varchar(128) DEFAULT NULL,
+  `tenant_id` varchar(128) DEFAULT '' COMMENT '租户字段',
+  `c_desc` varchar(256) DEFAULT NULL,
+  `c_use` varchar(64) DEFAULT NULL,
+  `effect` varchar(64) DEFAULT NULL,
+  `type` varchar(64) DEFAULT NULL,
+  `c_schema` text,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_configinfo_datagrouptenant` (`data_id`,`group_id`,`tenant_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='config_info';
+
+/******************************************/
+/*   数据库全名 = nacos_config   */
+/*   表名称 = config_info_aggr   */
+/******************************************/
+CREATE TABLE `config_info_aggr` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `data_id` varchar(255) NOT NULL COMMENT 'data_id',
+  `group_id` varchar(255) NOT NULL COMMENT 'group_id',
+  `datum_id` varchar(255) NOT NULL COMMENT 'datum_id',
+  `content` longtext NOT NULL COMMENT '内容',
+  `gmt_modified` datetime NOT NULL COMMENT '修改时间',
+  `app_name` varchar(128) DEFAULT NULL,
+  `tenant_id` varchar(128) DEFAULT '' COMMENT '租户字段',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_configinfoaggr_datagrouptenantdatum` (`data_id`,`group_id`,`tenant_id`,`datum_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='增加租户字段';
+
+
+/******************************************/
+/*   数据库全名 = nacos_config   */
+/*   表名称 = config_info_beta   */
+/******************************************/
+CREATE TABLE `config_info_beta` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `data_id` varchar(255) NOT NULL COMMENT 'data_id',
+  `group_id` varchar(128) NOT NULL COMMENT 'group_id',
+  `app_name` varchar(128) DEFAULT NULL COMMENT 'app_name',
+  `content` longtext NOT NULL COMMENT 'content',
+  `beta_ips` varchar(1024) DEFAULT NULL COMMENT 'betaIps',
+  `md5` varchar(32) DEFAULT NULL COMMENT 'md5',
+  `gmt_create` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `gmt_modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '修改时间',
+  `src_user` text COMMENT 'source user',
+  `src_ip` varchar(50) DEFAULT NULL COMMENT 'source ip',
+  `tenant_id` varchar(128) DEFAULT '' COMMENT '租户字段',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_configinfobeta_datagrouptenant` (`data_id`,`group_id`,`tenant_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='config_info_beta';
+
+/******************************************/
+/*   数据库全名 = nacos_config   */
+/*   表名称 = config_info_tag   */
+/******************************************/
+CREATE TABLE `config_info_tag` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `data_id` varchar(255) NOT NULL COMMENT 'data_id',
+  `group_id` varchar(128) NOT NULL COMMENT 'group_id',
+  `tenant_id` varchar(128) DEFAULT '' COMMENT 'tenant_id',
+  `tag_id` varchar(128) NOT NULL COMMENT 'tag_id',
+  `app_name` varchar(128) DEFAULT NULL COMMENT 'app_name',
+  `content` longtext NOT NULL COMMENT 'content',
+  `md5` varchar(32) DEFAULT NULL COMMENT 'md5',
+  `gmt_create` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `gmt_modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '修改时间',
+  `src_user` text COMMENT 'source user',
+  `src_ip` varchar(50) DEFAULT NULL COMMENT 'source ip',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_configinfotag_datagrouptenanttag` (`data_id`,`group_id`,`tenant_id`,`tag_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='config_info_tag';
+
+/******************************************/
+/*   数据库全名 = nacos_config   */
+/*   表名称 = config_tags_relation   */
+/******************************************/
+CREATE TABLE `config_tags_relation` (
+  `id` bigint(20) NOT NULL COMMENT 'id',
+  `tag_name` varchar(128) NOT NULL COMMENT 'tag_name',
+  `tag_type` varchar(64) DEFAULT NULL COMMENT 'tag_type',
+  `data_id` varchar(255) NOT NULL COMMENT 'data_id',
+  `group_id` varchar(128) NOT NULL COMMENT 'group_id',
+  `tenant_id` varchar(128) DEFAULT '' COMMENT 'tenant_id',
+  `nid` bigint(20) NOT NULL AUTO_INCREMENT,
+  PRIMARY KEY (`nid`),
+  UNIQUE KEY `uk_configtagrelation_configidtag` (`id`,`tag_name`,`tag_type`),
+  KEY `idx_tenant_id` (`tenant_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='config_tag_relation';
+
+/******************************************/
+/*   数据库全名 = nacos_config   */
+/*   表名称 = group_capacity   */
+/******************************************/
+CREATE TABLE `group_capacity` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `group_id` varchar(128) NOT NULL DEFAULT '' COMMENT 'Group ID，空字符表示整个集群',
+  `quota` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '配额，0表示使用默认值',
+  `usage` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '使用量',
+  `max_size` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '单个配置大小上限，单位为字节，0表示使用默认值',
+  `max_aggr_count` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '聚合子配置最大个数，，0表示使用默认值',
+  `max_aggr_size` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '单个聚合数据的子配置大小上限，单位为字节，0表示使用默认值',
+  `max_history_count` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '最大变更历史数量',
+  `gmt_create` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `gmt_modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '修改时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_group_id` (`group_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='集群、各Group容量信息表';
+
+/******************************************/
+/*   数据库全名 = nacos_config   */
+/*   表名称 = his_config_info   */
+/******************************************/
+CREATE TABLE `his_config_info` (
+  `id` bigint(64) unsigned NOT NULL,
+  `nid` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `data_id` varchar(255) NOT NULL,
+  `group_id` varchar(128) NOT NULL,
+  `app_name` varchar(128) DEFAULT NULL COMMENT 'app_name',
+  `content` longtext NOT NULL,
+  `md5` varchar(32) DEFAULT NULL,
+  `gmt_create` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `gmt_modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `src_user` text,
+  `src_ip` varchar(50) DEFAULT NULL,
+  `op_type` char(10) DEFAULT NULL,
+  `tenant_id` varchar(128) DEFAULT '' COMMENT '租户字段',
+  PRIMARY KEY (`nid`),
+  KEY `idx_gmt_create` (`gmt_create`),
+  KEY `idx_gmt_modified` (`gmt_modified`),
+  KEY `idx_did` (`data_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='多租户改造';
+
+
+/******************************************/
+/*   数据库全名 = nacos_config   */
+/*   表名称 = tenant_capacity   */
+/******************************************/
+CREATE TABLE `tenant_capacity` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `tenant_id` varchar(128) NOT NULL DEFAULT '' COMMENT 'Tenant ID',
+  `quota` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '配额，0表示使用默认值',
+  `usage` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '使用量',
+  `max_size` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '单个配置大小上限，单位为字节，0表示使用默认值',
+  `max_aggr_count` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '聚合子配置最大个数',
+  `max_aggr_size` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '单个聚合数据的子配置大小上限，单位为字节，0表示使用默认值',
+  `max_history_count` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '最大变更历史数量',
+  `gmt_create` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `gmt_modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '修改时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_tenant_id` (`tenant_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='租户容量信息表';
+
+
+CREATE TABLE `tenant_info` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `kp` varchar(128) NOT NULL COMMENT 'kp',
+  `tenant_id` varchar(128) default '' COMMENT 'tenant_id',
+  `tenant_name` varchar(128) default '' COMMENT 'tenant_name',
+  `tenant_desc` varchar(256) DEFAULT NULL COMMENT 'tenant_desc',
+  `create_source` varchar(32) DEFAULT NULL COMMENT 'create_source',
+  `gmt_create` bigint(20) NOT NULL COMMENT '创建时间',
+  `gmt_modified` bigint(20) NOT NULL COMMENT '修改时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_tenant_info_kptenantid` (`kp`,`tenant_id`),
+  KEY `idx_tenant_id` (`tenant_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='tenant_info';
+
+CREATE TABLE `users` (
+	`username` varchar(50) NOT NULL PRIMARY KEY,
+	`password` varchar(500) NOT NULL,
+	`enabled` boolean NOT NULL
+);
+
+CREATE TABLE `roles` (
+	`username` varchar(50) NOT NULL,
+	`role` varchar(50) NOT NULL,
+	UNIQUE INDEX `idx_user_role` (`username` ASC, `role` ASC) USING BTREE
+);
+
+CREATE TABLE `permissions` (
+    `role` varchar(50) NOT NULL,
+    `resource` varchar(255) NOT NULL,
+    `action` varchar(8) NOT NULL,
+    UNIQUE INDEX `uk_role_permission` (`role`,`resource`,`action`) USING BTREE
+);
+
+INSERT INTO users (username, password, enabled) VALUES ('nacos', '$2a$10$EuWPZHzz32dJN7jexM34MOeYirDdFAZm2kuWj7VEOJhhZkDrxfvUu', TRUE);
+
+INSERT INTO roles (username, role) VALUES ('nacos', 'ROLE_ADMIN');
+```
+
+
+
+
+
+```sh
+mysql> use nacos;
+Database changed
+mysql>
+mysql> CREATE TABLE `config_info` (
+    ->   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+    ->   `data_id` varchar(255) NOT NULL COMMENT 'data_id',
+    ->   `group_id` varchar(255) DEFAULT NULL,
+    ->   `content` longtext NOT NULL COMMENT 'content',
+    ->   `md5` varchar(32) DEFAULT NULL COMMENT 'md5',
+    ->   `gmt_create` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    ->   `gmt_modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '修改时间',
+    ->   `src_user` text COMMENT 'source user',
+    ->   `src_ip` varchar(50) DEFAULT NULL COMMENT 'source ip',
+    ->   `app_name` varchar(128) DEFAULT NULL,
+    ->   `tenant_id` varchar(128) DEFAULT '' COMMENT '租户字段',
+    ->   `c_desc` varchar(256) DEFAULT NULL,
+    ->   `c_use` varchar(64) DEFAULT NULL,
+    ->   `effect` varchar(64) DEFAULT NULL,
+    ->   `type` varchar(64) DEFAULT NULL,
+    ->   `c_schema` text,
+    ->   PRIMARY KEY (`id`),
+    ->   UNIQUE KEY `uk_configinfo_datagrouptenant` (`data_id`,`group_id`,`tenant_id`)
+    -> ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='config_info';
+Query OK, 0 rows affected, 3 warnings (0.05 sec)
+
+mysql>
+mysql> /******************************************/
+mysql> /*   数据库全名 = nacos_config   */
+mysql> /*   表名称 = config_info_aggr   */
+mysql> /******************************************/
+mysql> CREATE TABLE `config_info_aggr` (
+    ->   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+    ->   `data_id` varchar(255) NOT NULL COMMENT 'data_id',
+    ->   `group_id` varchar(255) NOT NULL COMMENT 'group_id',
+    ->   `datum_id` varchar(255) NOT NULL COMMENT 'datum_id',
+    ->   `content` longtext NOT NULL COMMENT '内容',
+    ->   `gmt_modified` datetime NOT NULL COMMENT '修改时间',
+    ->   `app_name` varchar(128) DEFAULT NULL,
+    ->   `tenant_id` varchar(128) DEFAULT '' COMMENT '租户字段',
+    ->   PRIMARY KEY (`id`),
+    ->   UNIQUE KEY `uk_configinfoaggr_datagrouptenantdatum` (`data_id`,`group_id`,`tenant_id`,`datum_id`)
+    -> ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='增加租户字段';
+Query OK, 0 rows affected, 3 warnings (0.03 sec)
+
+mysql>
+mysql>
+mysql> /******************************************/
+mysql> /*   数据库全名 = nacos_config   */
+mysql> /*   表名称 = config_info_beta   */
+mysql> /******************************************/
+mysql> CREATE TABLE `config_info_beta` (
+    ->   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+    ->   `data_id` varchar(255) NOT NULL COMMENT 'data_id',
+    ->   `group_id` varchar(128) NOT NULL COMMENT 'group_id',
+    ->   `app_name` varchar(128) DEFAULT NULL COMMENT 'app_name',
+    ->   `content` longtext NOT NULL COMMENT 'content',
+    ->   `beta_ips` varchar(1024) DEFAULT NULL COMMENT 'betaIps',
+    ->   `md5` varchar(32) DEFAULT NULL COMMENT 'md5',
+    ->   `gmt_create` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    ->   `gmt_modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '修改时间',
+    ->   `src_user` text COMMENT 'source user',
+    ->   `src_ip` varchar(50) DEFAULT NULL COMMENT 'source ip',
+    ->   `tenant_id` varchar(128) DEFAULT '' COMMENT '租户字段',
+    ->   PRIMARY KEY (`id`),
+    ->   UNIQUE KEY `uk_configinfobeta_datagrouptenant` (`data_id`,`group_id`,`tenant_id`)
+    -> ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='config_info_beta';
+Query OK, 0 rows affected, 3 warnings (0.02 sec)
+
+mysql>
+mysql> /******************************************/
+mysql> /*   数据库全名 = nacos_config   */
+mysql> /*   表名称 = config_info_tag   */
+mysql> /******************************************/
+mysql> CREATE TABLE `config_info_tag` (
+    ->   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+    ->   `data_id` varchar(255) NOT NULL COMMENT 'data_id',
+    ->   `group_id` varchar(128) NOT NULL COMMENT 'group_id',
+    ->   `tenant_id` varchar(128) DEFAULT '' COMMENT 'tenant_id',
+    ->   `tag_id` varchar(128) NOT NULL COMMENT 'tag_id',
+    ->   `app_name` varchar(128) DEFAULT NULL COMMENT 'app_name',
+    ->   `content` longtext NOT NULL COMMENT 'content',
+    ->   `md5` varchar(32) DEFAULT NULL COMMENT 'md5',
+    ->   `gmt_create` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    ->   `gmt_modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '修改时间',
+    ->   `src_user` text COMMENT 'source user',
+    ->   `src_ip` varchar(50) DEFAULT NULL COMMENT 'source ip',
+    ->   PRIMARY KEY (`id`),
+    ->   UNIQUE KEY `uk_configinfotag_datagrouptenanttag` (`data_id`,`group_id`,`tenant_id`,`tag_id`)
+    -> ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='config_info_tag';
+Query OK, 0 rows affected, 3 warnings (0.03 sec)
+
+mysql>
+mysql> /******************************************/
+mysql> /*   数据库全名 = nacos_config   */
+mysql> /*   表名称 = config_tags_relation   */
+mysql> /******************************************/
+mysql> CREATE TABLE `config_tags_relation` (
+    ->   `id` bigint(20) NOT NULL COMMENT 'id',
+    ->   `tag_name` varchar(128) NOT NULL COMMENT 'tag_name',
+    ->   `tag_type` varchar(64) DEFAULT NULL COMMENT 'tag_type',
+    ->   `data_id` varchar(255) NOT NULL COMMENT 'data_id',
+    ->   `group_id` varchar(128) NOT NULL COMMENT 'group_id',
+    ->   `tenant_id` varchar(128) DEFAULT '' COMMENT 'tenant_id',
+    ->   `nid` bigint(20) NOT NULL AUTO_INCREMENT,
+    ->   PRIMARY KEY (`nid`),
+    ->   UNIQUE KEY `uk_configtagrelation_configidtag` (`id`,`tag_name`,`tag_type`),
+    ->   KEY `idx_tenant_id` (`tenant_id`)
+    -> ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='config_tag_relation';
+Query OK, 0 rows affected, 4 warnings (0.03 sec)
+
+mysql>
+mysql> /******************************************/
+mysql> /*   数据库全名 = nacos_config   */
+mysql> /*   表名称 = group_capacity   */
+mysql> /******************************************/
+mysql> CREATE TABLE `group_capacity` (
+    ->   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    ->   `group_id` varchar(128) NOT NULL DEFAULT '' COMMENT 'Group ID，空字符表示整个集群',
+    ->   `quota` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '配额，0表示使用默认值',
+    ->   `usage` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '使用量',
+    ->   `max_size` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '单个配置大小上限，单位为字节，0表示使用默认值',
+    ->   `max_aggr_count` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '聚合子配置最大个数，，0表示使用默认值',
+    ->   `max_aggr_size` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '单个聚合数据的子配置大小上限，单位为字节，0表示使用默认值',
+    ->   `max_history_count` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '最大变更历史数量',
+    ->   `gmt_create` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    ->   `gmt_modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '修改时间',
+    ->   PRIMARY KEY (`id`),
+    ->   UNIQUE KEY `uk_group_id` (`group_id`)
+    -> ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='集群、各Group容量信息表';
+Query OK, 0 rows affected, 9 warnings (0.02 sec)
+
+mysql>
+mysql> /******************************************/
+mysql> /*   数据库全名 = nacos_config   */
+mysql> /*   表名称 = his_config_info   */
+mysql> /******************************************/
+mysql> CREATE TABLE `his_config_info` (
+    ->   `id` bigint(64) unsigned NOT NULL,
+    ->   `nid` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+    ->   `data_id` varchar(255) NOT NULL,
+    ->   `group_id` varchar(128) NOT NULL,
+    ->   `app_name` varchar(128) DEFAULT NULL COMMENT 'app_name',
+    ->   `content` longtext NOT NULL,
+    ->   `md5` varchar(32) DEFAULT NULL,
+    ->   `gmt_create` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ->   `gmt_modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ->   `src_user` text,
+    ->   `src_ip` varchar(50) DEFAULT NULL,
+    ->   `op_type` char(10) DEFAULT NULL,
+    ->   `tenant_id` varchar(128) DEFAULT '' COMMENT '租户字段',
+    ->   PRIMARY KEY (`nid`),
+    ->   KEY `idx_gmt_create` (`gmt_create`),
+    ->   KEY `idx_gmt_modified` (`gmt_modified`),
+    ->   KEY `idx_did` (`data_id`)
+    -> ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='多租户改造';
+Query OK, 0 rows affected, 4 warnings (0.03 sec)
+
+mysql>
+mysql>
+mysql> /******************************************/
+mysql> /*   数据库全名 = nacos_config   */
+mysql> /*   表名称 = tenant_capacity   */
+mysql> /******************************************/
+mysql> CREATE TABLE `tenant_capacity` (
+    ->   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    ->   `tenant_id` varchar(128) NOT NULL DEFAULT '' COMMENT 'Tenant ID',
+    ->   `quota` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '配额，0表示使用默认值',
+    ->   `usage` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '使用量',
+    ->   `max_size` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '单个配置大小上限，单位为字节，0表示使用默认值',
+    ->   `max_aggr_count` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '聚合子配置最大个数',
+    ->   `max_aggr_size` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '单个聚合数据的子配置大小上限，单位为字节，0表示使用默认值',
+    ->   `max_history_count` int(10) unsigned NOT NULL DEFAULT '0' COMMENT '最大变更历史数量',
+    ->   `gmt_create` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    ->   `gmt_modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '修改时间',
+    ->   PRIMARY KEY (`id`),
+    ->   UNIQUE KEY `uk_tenant_id` (`tenant_id`)
+    -> ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='租户容量信息表';
+Query OK, 0 rows affected, 9 warnings (0.03 sec)
+
+mysql>
+mysql>
+mysql> CREATE TABLE `tenant_info` (
+    ->   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'id',
+    ->   `kp` varchar(128) NOT NULL COMMENT 'kp',
+    ->   `tenant_id` varchar(128) default '' COMMENT 'tenant_id',
+    ->   `tenant_name` varchar(128) default '' COMMENT 'tenant_name',
+    ->   `tenant_desc` varchar(256) DEFAULT NULL COMMENT 'tenant_desc',
+    ->   `create_source` varchar(32) DEFAULT NULL COMMENT 'create_source',
+    ->   `gmt_create` bigint(20) NOT NULL COMMENT '创建时间',
+    ->   `gmt_modified` bigint(20) NOT NULL COMMENT '修改时间',
+    ->   PRIMARY KEY (`id`),
+    ->   UNIQUE KEY `uk_tenant_info_kptenantid` (`kp`,`tenant_id`),
+    ->   KEY `idx_tenant_id` (`tenant_id`)
+    -> ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='tenant_info';
+Query OK, 0 rows affected, 5 warnings (0.03 sec)
+
+mysql>
+mysql> CREATE TABLE `users` (
+    -> `username` varchar(50) NOT NULL PRIMARY KEY,
+    -> `password` varchar(500) NOT NULL,
+    -> `enabled` boolean NOT NULL
+    -> );
+Query OK, 0 rows affected (0.01 sec)
+
+mysql>
+mysql> CREATE TABLE `roles` (
+    -> `username` varchar(50) NOT NULL,
+    -> `role` varchar(50) NOT NULL,
+    -> UNIQUE INDEX `idx_user_role` (`username` ASC, `role` ASC) USING BTREE
+    -> );
+Query OK, 0 rows affected (0.01 sec)
+
+mysql>
+mysql> CREATE TABLE `permissions` (
+    ->     `role` varchar(50) NOT NULL,
+    ->     `resource` varchar(255) NOT NULL,
+    ->     `action` varchar(8) NOT NULL,
+    ->     UNIQUE INDEX `uk_role_permission` (`role`,`resource`,`action`) USING BTREE
+    -> );
+Query OK, 0 rows affected (0.01 sec)
+
+mysql>
+mysql> INSERT INTO users (username, password, enabled) VALUES ('nacos', '$2a$10$EuWPZHzz32dJN7jexM34MOeYirDdFAZm2kuWj7VEOJhhZkDrxfvUu', TRUE);
+Query OK, 1 row affected (0.01 sec)
+
+mysql>
+mysql> INSERT INTO roles (username, role) VALUES ('nacos', 'ROLE_ADMIN');
+Query OK, 1 row affected (0.00 sec)
+
+mysql>
+```
+
+
+
+
+
+3. 查看表
+
+
+
+```sh
+mysql> show tables;
++----------------------+
+| Tables_in_nacos      |
++----------------------+
+| config_info          |
+| config_info_aggr     |
+| config_info_beta     |
+| config_info_tag      |
+| config_tags_relation |
+| group_capacity       |
+| his_config_info      |
+| permissions          |
+| roles                |
+| tenant_capacity      |
+| tenant_info          |
+| users                |
++----------------------+
+12 rows in set (0.01 sec)
+
+mysql>
+```
+
+
+
+
+
+4. 复制原来单机环境的nacos文件夹，更改名称为nacos1，放入naocs-cluster文件夹里
+
+
+
+```sh
+PS H:\opensoft> ls
+
+
+    目录: H:\opensoft
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----          2022/5/5     18:34                apache-jmeter-5.4.3
+d-----          2022/6/2     13:25                cerebro-0.9.4
+d-----         2022/5/26     20:37                elasticsearch-analysis-ik-8.2.0
+d-----          2022/6/1     23:19                elasticsearch-cluster
+d-----          2022/5/3     10:55                kibana-8.1.3
+d-----         2022/5/30     23:02                logstash-8.1.3
+d-----         2022/6/17     20:49                mycat
+d-----         2022/6/15     12:23                mycat-1.6
+d-----         2022/7/16     13:35                nacos
+d-----          2022/5/6     23:16                pvzpak-master.git
+
+
+PS H:\opensoft> ls
+
+
+    目录: H:\opensoft
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----          2022/5/5     18:34                apache-jmeter-5.4.3
+d-----          2022/6/2     13:25                cerebro-0.9.4
+d-----         2022/5/26     20:37                elasticsearch-analysis-ik-8.2.0
+d-----          2022/6/1     23:19                elasticsearch-cluster
+d-----          2022/5/3     10:55                kibana-8.1.3
+d-----         2022/5/30     23:02                logstash-8.1.3
+d-----         2022/6/17     20:49                mycat
+d-----         2022/6/15     12:23                mycat-1.6
+d-----         2022/7/16     13:35                nacos
+d-----         2022/7/16     13:34                naocs-cluster
+d-----          2022/5/6     23:16                pvzpak-master.git
+
+
+PS H:\opensoft> cd .\naocs-cluster\
+PS H:\opensoft\naocs-cluster> ls
+
+
+    目录: H:\opensoft\naocs-cluster
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----         2022/1/27     11:01                nacos1
+
+
+PS H:\opensoft\naocs-cluster> cd .\nacos1\
+PS H:\opensoft\naocs-cluster\nacos1> ls
+
+
+    目录: H:\opensoft\naocs-cluster\nacos1
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----         2022/1/27     11:01                bin
+d-----         2022/1/27     10:43                conf
+d-----         2022/1/27     11:01                target
+------         2021/3/30     14:26          16583 LICENSE
+------         2021/3/30     14:26           1305 NOTICE
+
+
+PS H:\opensoft\naocs-cluster\nacos1>
+```
+
+
+
+
+
+
+
+5. 更改nacos1配置文件名称
+
+
+
+进入nacos1的conf目录，修改配置文件cluster.conf.example，重命名为cluster.conf
+
+
+
+```sh
+PS H:\opensoft\naocs-cluster\nacos1> cd .\conf\
+PS H:\opensoft\naocs-cluster\nacos1\conf> ls
+
+
+    目录: H:\opensoft\naocs-cluster\nacos1\conf
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+------         2021/3/30     14:26           1224 1.4.0-ipv6_support-update.sql
+------         2022/1/27     10:43           7142 application.properties
+------         2022/1/27     10:43           6515 application.properties.example
+------         2022/1/27     10:43            670 cluster.conf.example
+------         2022/1/27     10:43          25710 nacos-logback.xml
+------        2021/12/20     14:16          10660 nacos-mysql.sql
+------        2021/12/20     14:16           8795 schema.sql
+
+
+PS H:\opensoft\naocs-cluster\nacos1\conf> ls
+
+
+    目录: H:\opensoft\naocs-cluster\nacos1\conf
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+------         2021/3/30     14:26           1224 1.4.0-ipv6_support-update.sql
+------         2022/1/27     10:43           7142 application.properties
+------         2022/1/27     10:43           6515 application.properties.example
+-a----         2022/1/27     10:43            670 cluster.conf
+------         2022/1/27     10:43          25710 nacos-logback.xml
+------        2021/12/20     14:16          10660 nacos-mysql.sql
+------        2021/12/20     14:16           8795 schema.sql
+
+
+PS H:\opensoft\naocs-cluster\nacos1\conf>
+```
+
+
+
+
+
+6. 更改配置内容
+
+更改cluster.conf的内容
+
+添加一下内容：
+
+```sh
+127.0.0.1:8851
+127.0.0.1:8852
+127.0.0.1:8853
+```
+
+
+
+全部内容：
+
+```sh
+PS H:\opensoft\naocs-cluster\nacos1\conf> cat .\cluster.conf
+#
+# Copyright 1999-2018 Alibaba Group Holding Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+#it is ip
+#example
+#192.168.16.101:8847
+#192.168.16.102
+#192.168.16.103
+
+127.0.0.1:8851
+127.0.0.1:8852
+127.0.0.1:8853
+
+
+PS H:\opensoft\naocs-cluster\nacos1\conf>
+```
+
+
+
+
+
+7. 添加数据库配置
+
+修改application.properties文件，添加数据库配置
+
+
+
+```properties
+spring.datasource.platform=mysql
+
+db.num=1
+
+db.url.0=jdbc:mysql://127.0.0.1:3306/nacos?characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useUnicode=true&useSSL=false&serverTimezone=UTC
+db.user.0=root
+db.password.0=20010713
+```
+
+
+
+记得更改用户名和密码
+
+
+
+```sh
+PS H:\opensoft\naocs-cluster\nacos1\conf> cat .\application.properties
+
+#*************** Spring Boot Related Configurations ***************#
+### Default web context path:
+server.servlet.contextPath=/nacos
+### Default web server port:
+server.port=8848
+
+#*************** Network Related Configurations ***************#
+### If prefer hostname over ip for Nacos server addresses in cluster.conf:
+# nacos.inetutils.prefer-hostname-over-ip=false
+
+### Specify local server's IP:
+# nacos.inetutils.ip-address=
+
+
+#*************** Config Module Related Configurations ***************#
+### If use MySQL as datasource:
+# spring.datasource.platform=mysql
+
+### Count of DB:
+# db.num=1
+
+### Connect URL of DB:
+# db.url.0=jdbc:mysql://127.0.0.1:3306/nacos?characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useUnicode=true&useSSL=false&serverTimezone=UTC
+# db.user.0=nacos
+# db.password.0=nacos
+
+### Connection pool configuration: hikariCP
+db.pool.config.connectionTimeout=30000
+db.pool.config.validationTimeout=10000
+db.pool.config.maximumPoolSize=20
+db.pool.config.minimumIdle=2
+
+#*************** Naming Module Related Configurations ***************#
+### Data dispatch task execution period in milliseconds:
+# nacos.naming.distro.taskDispatchPeriod=200
+
+### Data count of batch sync task:
+# nacos.naming.distro.batchSyncKeyCount=1000
+
+### Retry delay in milliseconds if sync task failed:
+# nacos.naming.distro.syncRetryDelay=5000
+
+### If enable data warmup. If set to false, the server would accept request without local data preparation:
+# nacos.naming.data.warmup=true
+
+### If enable the instance auto expiration, kind like of health check of instance:
+# nacos.naming.expireInstance=true
+
+nacos.naming.empty-service.auto-clean=true
+nacos.naming.empty-service.clean.initial-delay-ms=50000
+nacos.naming.empty-service.clean.period-time-ms=30000
+
+
+#*************** CMDB Module Related Configurations ***************#
+### The interval to dump external CMDB in seconds:
+# nacos.cmdb.dumpTaskInterval=3600
+
+### The interval of polling data change event in seconds:
+# nacos.cmdb.eventTaskInterval=10
+
+### The interval of loading labels in seconds:
+# nacos.cmdb.labelTaskInterval=300
+
+### If turn on data loading task:
+# nacos.cmdb.loadDataAtStart=false
+
+
+#*************** Metrics Related Configurations ***************#
+### Metrics for prometheus
+#management.endpoints.web.exposure.include=*
+
+### Metrics for elastic search
+management.metrics.export.elastic.enabled=false
+#management.metrics.export.elastic.host=http://localhost:9200
+
+### Metrics for influx
+management.metrics.export.influx.enabled=false
+#management.metrics.export.influx.db=springboot
+#management.metrics.export.influx.uri=http://localhost:8086
+#management.metrics.export.influx.auto-create-db=true
+#management.metrics.export.influx.consistency=one
+#management.metrics.export.influx.compressed=true
+
+
+#*************** Access Log Related Configurations ***************#
+### If turn on the access log:
+server.tomcat.accesslog.enabled=true
+
+### The access log pattern:
+server.tomcat.accesslog.pattern=%h %l %u %t "%r" %s %b %D %{User-Agent}i %{Request-Source}i
+
+### The directory of access log:
+server.tomcat.basedir=
+
+
+#*************** Access Control Related Configurations ***************#
+### If enable spring security, this option is deprecated in 1.2.0:
+#spring.security.enabled=false
+
+### The ignore urls of auth, is deprecated in 1.2.0:
+nacos.security.ignore.urls=/,/error,/**/*.css,/**/*.js,/**/*.html,/**/*.map,/**/*.svg,/**/*.png,/**/*.ico,/console-ui/public/**,/v1/auth/**,/v1/console/health/**,/actuator/**,/v1/console/server/**
+
+### The auth system to use, currently only 'nacos' is supported:
+nacos.core.auth.system.type=nacos
+
+### If turn on auth system:
+nacos.core.auth.enabled=false
+
+### The token expiration in seconds:
+nacos.core.auth.default.token.expire.seconds=18000
+
+### The default token:
+nacos.core.auth.default.token.secret.key=SecretKey012345678901234567890123456789012345678901234567890123456789
+
+### Turn on/off caching of auth information. By turning on this switch, the update of auth information would have a 15 seconds delay.
+nacos.core.auth.caching.enabled=true
+
+### Since 1.4.1, Turn on/off white auth for user-agent: nacos-server, only for upgrade from old version.
+nacos.core.auth.enable.userAgentAuthWhite=true
+
+### Since 1.4.1, worked when nacos.core.auth.enabled=true and nacos.core.auth.enable.userAgentAuthWhite=false.
+### The two properties is the white list for auth and used by identity the request from other server.
+nacos.core.auth.server.identity.key=
+nacos.core.auth.server.identity.value=
+
+#*************** Istio Related Configurations ***************#
+### If turn on the MCP server:
+nacos.istio.mcp.server.enabled=false
+
+
+
+###*************** Add from 1.3.0 ***************###
+
+
+#*************** Core Related Configurations ***************#
+
+### set the WorkerID manually
+# nacos.core.snowflake.worker-id=
+
+### Member-MetaData
+# nacos.core.member.meta.site=
+# nacos.core.member.meta.adweight=
+# nacos.core.member.meta.weight=
+
+### MemberLookup
+### Addressing pattern category, If set, the priority is highest
+# nacos.core.member.lookup.type=[file,address-server]
+## Set the cluster list with a configuration file or command-line argument
+# nacos.member.list=192.168.16.101:8847?raft_port=8807,192.168.16.101?raft_port=8808,192.168.16.101:8849?raft_port=8809
+## for AddressServerMemberLookup
+# Maximum number of retries to query the address server upon initialization
+# nacos.core.address-server.retry=5
+## Server domain name address of [address-server] mode
+# address.server.domain=jmenv.tbsite.net
+## Server port of [address-server] mode
+# address.server.port=8080
+## Request address of [address-server] mode
+# address.server.url=/nacos/serverlist
+
+#*************** JRaft Related Configurations ***************#
+
+### Sets the Raft cluster election timeout, default value is 5 second
+# nacos.core.protocol.raft.data.election_timeout_ms=5000
+### Sets the amount of time the Raft snapshot will execute periodically, default is 30 minute
+# nacos.core.protocol.raft.data.snapshot_interval_secs=30
+### raft internal worker threads
+# nacos.core.protocol.raft.data.core_thread_num=8
+### Number of threads required for raft business request processing
+# nacos.core.protocol.raft.data.cli_service_thread_num=4
+### raft linear read strategy. Safe linear reads are used by default, that is, the Leader tenure is confirmed by heartbeat
+# nacos.core.protocol.raft.data.read_index_type=ReadOnlySafe
+### rpc request timeout, default 5 seconds
+# nacos.core.protocol.raft.data.rpc_request_timeout_ms=5000
+
+
+spring.datasource.platform=mysql
+
+db.num=1
+
+db.url.0=jdbc:mysql://127.0.0.1:3306/nacos?characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useUnicode=true&useSSL=false&serverTimezone=UTC
+db.user.0=root
+db.password.0=20010713
+PS H:\opensoft\naocs-cluster\nacos1\conf>
+```
+
+
+
+
+
+8. 复制文件夹
+
+将nacos文件夹再复制三份，分别命名为：nacos2和nacos3
+
+
+
+```sh
+PS H:\opensoft\naocs-cluster> ls
+
+
+    目录: H:\opensoft\naocs-cluster
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----         2022/1/27     11:01                nacos1
+
+
+PS H:\opensoft\naocs-cluster> ls
+
+
+    目录: H:\opensoft\naocs-cluster
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----         2022/1/27     11:01                nacos1
+d-----         2022/7/16     13:47                nacos2
+d-----         2022/7/16     13:47                nacos3
+
+
+PS H:\opensoft\naocs-cluster>
+```
+
+
+
+
+
+9. 分别更改端口号
+
+
+
+然后分别修改三个文件夹中的application.properties，
+
+nacos1:
+
+```properties
+server.port=8851
+```
+
+nacos2:
+
+```properties
+server.port=8852
+```
+
+nacos3:
+
+```properties
+server.port=8853
+```
+
+
+
+
+
+9. 启动
+
+
+
+然后分别启动三个nacos节点：
+
+```
+startup.cmd
+```
+
+
+
+
+
+nacos1：
+
+```sh
+PS H:\opensoft\naocs-cluster\nacos1\bin> .\startup.cmd
+"nacos is starting with cluster"
+
+         ,--.
+       ,--.'|
+   ,--,:  : |                                           Nacos 1.4.3
+,`--.'`|  ' :                       ,---.               Running in cluster mode, All function modules
+|   :  :  | |                      '   ,'\   .--.--.    Port: 8851
+:   |   \ | :  ,--.--.     ,---.  /   /   | /  /    '   Pid: 19400
+|   : '  '; | /       \   /     \.   ; ,. :|  :  /`./   Console: http://192.168.202.1:8851/nacos/index.html
+'   ' ;.    ;.--.  .-. | /    / ''   | |: :|  :  ;_
+|   | | \   | \__\/: . ..    ' / '   | .; : \  \    `.      https://nacos.io
+'   : |  ; .' ," .--.; |'   ; :__|   :    |  `----.   \
+|   | '`--'  /  /  ,.  |'   | '.'|\   \  /  /  /`--'  /
+'   : |     ;  :   .'   \   :    : `----'  '--'.     /
+;   |.'     |  ,     .-./\   \  /            `--'---'
+'---'        `--`---'     `----'
+
+2022-07-16 14:26:53,087 INFO The server IP list of Nacos is [127.0.0.1:8851, 127.0.0.1:8852, 127.0.0.1:8853]
+
+2022-07-16 14:26:54,095 INFO Nacos is starting...
+
+2022-07-16 14:26:55,107 INFO Nacos is starting...
+
+2022-07-16 14:26:56,121 INFO Nacos is starting...
+
+2022-07-16 14:26:57,127 INFO Nacos is starting...
+
+2022-07-16 14:26:58,137 INFO Nacos is starting...
+
+2022-07-16 14:26:59,149 INFO Nacos is starting...
+
+2022-07-16 14:27:00,154 INFO Nacos is starting...
+
+2022-07-16 14:27:00,401 INFO Nacos started successfully in cluster mode. use external storage
+
+```
+
+
+
+
+
+naocs2：
+
+```sh
+PS H:\opensoft\naocs-cluster\nacos2\bin> .\startup.cmd
+"nacos is starting with cluster"
+
+         ,--.
+       ,--.'|
+   ,--,:  : |                                           Nacos 1.4.3
+,`--.'`|  ' :                       ,---.               Running in cluster mode, All function modules
+|   :  :  | |                      '   ,'\   .--.--.    Port: 8852
+:   |   \ | :  ,--.--.     ,---.  /   /   | /  /    '   Pid: 8204
+|   : '  '; | /       \   /     \.   ; ,. :|  :  /`./   Console: http://192.168.202.1:8852/nacos/index.html
+'   ' ;.    ;.--.  .-. | /    / ''   | |: :|  :  ;_
+|   | | \   | \__\/: . ..    ' / '   | .; : \  \    `.      https://nacos.io
+'   : |  ; .' ," .--.; |'   ; :__|   :    |  `----.   \
+|   | '`--'  /  /  ,.  |'   | '.'|\   \  /  /  /`--'  /
+'   : |     ;  :   .'   \   :    : `----'  '--'.     /
+;   |.'     |  ,     .-./\   \  /            `--'---'
+'---'        `--`---'     `----'
+
+2022-07-16 14:27:05,943 INFO The server IP list of Nacos is [127.0.0.1:8851, 127.0.0.1:8852, 127.0.0.1:8853]
+
+2022-07-16 14:27:06,947 INFO Nacos is starting...
+
+2022-07-16 14:27:07,954 INFO Nacos is starting...
+
+2022-07-16 14:27:08,959 INFO Nacos is starting...
+
+2022-07-16 14:27:09,960 INFO Nacos is starting...
+
+2022-07-16 14:27:10,966 INFO Nacos is starting...
+
+2022-07-16 14:27:11,967 INFO Nacos is starting...
+
+2022-07-16 14:27:12,976 INFO Nacos is starting...
+
+2022-07-16 14:27:13,167 INFO Nacos started successfully in cluster mode. use external storage
+
+
+```
+
+
+
+
+
+nacos3：
+
+```sh
+PS H:\opensoft\naocs-cluster\nacos3\bin> .\startup.cmd
+"nacos is starting with cluster"
+
+         ,--.
+       ,--.'|
+   ,--,:  : |                                           Nacos 1.4.3
+,`--.'`|  ' :                       ,---.               Running in cluster mode, All function modules
+|   :  :  | |                      '   ,'\   .--.--.    Port: 8853
+:   |   \ | :  ,--.--.     ,---.  /   /   | /  /    '   Pid: 17852
+|   : '  '; | /       \   /     \.   ; ,. :|  :  /`./   Console: http://192.168.202.1:8853/nacos/index.html
+'   ' ;.    ;.--.  .-. | /    / ''   | |: :|  :  ;_
+|   | | \   | \__\/: . ..    ' / '   | .; : \  \    `.      https://nacos.io
+'   : |  ; .' ," .--.; |'   ; :__|   :    |  `----.   \
+|   | '`--'  /  /  ,.  |'   | '.'|\   \  /  /  /`--'  /
+'   : |     ;  :   .'   \   :    : `----'  '--'.     /
+;   |.'     |  ,     .-./\   \  /            `--'---'
+'---'        `--`---'     `----'
+
+2022-07-16 14:27:19,011 INFO The server IP list of Nacos is [127.0.0.1:8851, 127.0.0.1:8852, 127.0.0.1:8853]
+
+2022-07-16 14:27:20,024 INFO Nacos is starting...
+
+2022-07-16 14:27:21,034 INFO Nacos is starting...
+
+2022-07-16 14:27:22,044 INFO Nacos is starting...
+
+2022-07-16 14:27:23,054 INFO Nacos is starting...
+
+2022-07-16 14:27:24,068 INFO Nacos is starting...
+
+2022-07-16 14:27:25,075 INFO Nacos is starting...
+
+2022-07-16 14:27:26,088 INFO Nacos is starting...
+
+2022-07-16 14:27:26,581 INFO Nacos started successfully in cluster mode. use external storage
+
+```
+
+
+
+
+
+10. 解压nginx
+
+
+
+```sh
+PS H:\opensoft> ls
+
+
+    目录: H:\opensoft
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----          2022/5/5     18:34                apache-jmeter-5.4.3
+d-----          2022/6/2     13:25                cerebro-0.9.4
+d-----         2022/5/26     20:37                elasticsearch-analysis-ik-8.2.0
+d-----          2022/6/1     23:19                elasticsearch-cluster
+d-----          2022/5/3     10:55                kibana-8.1.3
+d-----         2022/5/30     23:02                logstash-8.1.3
+d-----         2022/6/17     20:49                mycat
+d-----         2022/6/15     12:23                mycat-1.6
+d-----         2022/7/16     13:35                nacos
+d-----         2022/7/16     13:47                naocs-cluster
+d-----          2022/5/6     23:16                pvzpak-master.git
+-a----         2022/5/12     20:27        1751096 nginx-1.21.6.zip
+
+
+PS H:\opensoft> ls
+
+
+    目录: H:\opensoft
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----          2022/5/5     18:34                apache-jmeter-5.4.3
+d-----          2022/6/2     13:25                cerebro-0.9.4
+d-----         2022/5/26     20:37                elasticsearch-analysis-ik-8.2.0
+d-----          2022/6/1     23:19                elasticsearch-cluster
+d-----          2022/5/3     10:55                kibana-8.1.3
+d-----         2022/5/30     23:02                logstash-8.1.3
+d-----         2022/6/17     20:49                mycat
+d-----         2022/6/15     12:23                mycat-1.6
+d-----         2022/7/16     13:35                nacos
+d-----         2022/7/16     13:47                naocs-cluster
+d-----         2022/1/25     23:10                nginx-1.21.6
+d-----          2022/5/6     23:16                pvzpak-master.git
+-a----         2022/5/12     20:27        1751096 nginx-1.21.6.zip
+
+
+PS H:\opensoft> ls .\nginx-1.21.6\
+
+
+    目录: H:\opensoft\nginx-1.21.6
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----         2022/1/25     23:10                conf
+d-----         2022/1/25     23:09                contrib
+d-----         2022/1/25     23:10                docs
+d-----         2022/1/25     23:09                html
+d-----         2022/1/25     23:10                logs
+d-----         2022/1/25     23:10                temp
+------         2022/1/25     23:09        3787264 nginx.exe
+
+
+PS H:\opensoft>
+```
+
+
+
+
+
+11. 修改配置文件
+
+
+
+修改conf/nginx.conf文件
+
+
+
+```nginx
+
+worker_processes  1;
+
+
+
+events {
+    worker_connections  1024;
+}
+
+
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+
+    sendfile        on;
+
+    keepalive_timeout  65;
+
+
+     upstream nacos-cluster {
+	server 127.0.0.1:8851;
+	server 127.0.0.1:8852;
+	server 127.0.0.1:8853;
+      }
+
+
+    server {
+       listen       8848;
+    server_name  localhost;
+
+    location /nacos {
+        proxy_pass http://nacos-cluster;
+          }
+
+    }
+}
+
+```
+
+
+
+
+
+```sh
+PS H:\opensoft\nginx-1.21.6\conf> ls
+
+
+    目录: H:\opensoft\nginx-1.21.6\conf
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+------         2022/1/25     23:10           1103 fastcgi.conf
+------         2022/1/25     23:10           1032 fastcgi_params
+------         2022/1/25     23:10           2946 koi-utf
+------         2022/1/25     23:10           2326 koi-win
+------         2022/1/25     23:10           5448 mime.types
+-a----         2022/7/16     14:07            504 nginx.conf
+------         2022/1/25     23:10            653 scgi_params
+------         2022/1/25     23:10            681 uwsgi_params
+------         2022/1/25     23:10           3736 win-utf
+
+
+PS H:\opensoft\nginx-1.21.6\conf> cat .\nginx.conf
+
+worker_processes  1;
+
+
+
+events {
+    worker_connections  1024;
+}
+
+
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+
+    sendfile        on;
+
+    keepalive_timeout  65;
+
+
+     upstream nacos-cluster {
+        server 127.0.0.1:8851;
+        server 127.0.0.1:8852;
+        server 127.0.0.1:8853;
+      }
+
+
+    server {
+       listen       8848;
+    server_name  localhost;
+
+    location /nacos {
+        proxy_pass http://nacos-cluster;
+          }
+
+    }
+}
+PS H:\opensoft\nginx-1.21.6\conf>
+```
+
+
+
+
+
+12. 启动nginx
+
+
+
+前台启动：
+
+```sh
+.\nginx.exe
+```
+
+
+
+后台启动：
+
+```sh
+start .\nginx.exe
+```
+
+
+
+
+
+```sh
+PS H:\opensoft\nginx-1.21.6> .\nginx.exe
+```
+
+
+
+![image-20220716141206687](img/image-20220716141206687.png)
+
+
+
+
+
+
+
+13. 访问测试
+
+
+
+http://localhost:8848/
+
+
+
+成功访问
+
+
+
+![image-20220716142901278](img/image-20220716142901278.png)
+
+
+
+![image-20220716142929957](img/image-20220716142929957.png)
+
+
+
+
+
+14. application.yml文件配置
+
+
+
+```yaml
+spring:
+  cloud:
+    nacos:
+      server-addr: localhost:8848 # Nacos地址
+```
+
+
+
+
+
+
+
+### 一键启动脚本
+
+在naocs-cluster目录新建一个名字为一键运行.bat的文件，输入以下命令：
+
+```sh
+cd ./nacos1/bin/
+start "nacos1-8851" startup.cmd
+cd ./../../
+cd ./nacos2/bin/
+start "nacos2-8852" startup.cmd
+cd ./../../
+cd ./nacos3/bin/
+start "nacos3-8853" startup.cmd
+cd ./../../
+cd ./../
+cd ./nginx-1.21.6/
+start "nginx" nginx.exe
+```
+
+
+
+
+
+```sh
+PS H:\opensoft\naocs-cluster> ls
+
+
+    目录: H:\opensoft\naocs-cluster
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----         2022/7/16     13:50                nacos1
+d-----         2022/7/16     13:51                nacos2
+d-----         2022/7/16     13:51                nacos3
+-a----         2022/7/16     14:43            245 一键运行.bat
+
+
+PS H:\opensoft\naocs-cluster> cat .\一键运行.bat
+cd ./nacos1/bin/
+start "nacos1-8851" startup.cmd
+cd ./../../
+cd ./nacos2/bin/
+start "nacos2-8852" startup.cmd
+cd ./../../
+cd ./nacos3/bin/
+start "nacos3-8853" startup.cmd
+cd ./../../
+cd ./../
+cd ./nginx-1.21.6/
+start "nginx" nginx.exe
+PS H:\opensoft\naocs-cluster>
+```
+
+
+
+
+
+
+
+### 优化
+
+- 实际部署时，需要给做反向代理的nginx服务器设置一个域名，这样后续如果有服务器迁移nacos的客户端也无需更改配置
+
+- Nacos的各个节点应该部署到多个不同服务器，做好容灾和隔离
+
+
+
+schema.sql：
+
+```sql
+
+CREATE SCHEMA nacos AUTHORIZATION nacos;
+
+CREATE TABLE config_info (
+  id bigint NOT NULL generated by default as identity,
+  data_id varchar(255) NOT NULL,
+  group_id varchar(128) NOT NULL,
+  tenant_id varchar(128) default '',
+  app_name varchar(128),
+  content CLOB,
+  md5 varchar(32) DEFAULT NULL,
+  gmt_create timestamp NOT NULL DEFAULT '2010-05-05 00:00:00',
+  gmt_modified timestamp NOT NULL DEFAULT '2010-05-05 00:00:00',
+  src_user varchar(128) DEFAULT NULL,
+  src_ip varchar(50) DEFAULT NULL,
+  c_desc varchar(256) DEFAULT NULL,
+  c_use varchar(64) DEFAULT NULL,
+  effect varchar(64) DEFAULT NULL,
+  type varchar(64) DEFAULT NULL,
+  c_schema LONG VARCHAR DEFAULT NULL,
+  constraint configinfo_id_key PRIMARY KEY (id),
+  constraint uk_configinfo_datagrouptenant UNIQUE (data_id,group_id,tenant_id));
+
+CREATE INDEX configinfo_dataid_key_idx ON config_info(data_id);
+CREATE INDEX configinfo_groupid_key_idx ON config_info(group_id);
+CREATE INDEX configinfo_dataid_group_key_idx ON config_info(data_id, group_id);
+
+CREATE TABLE his_config_info (
+  id bigint NOT NULL,
+  nid bigint NOT NULL generated by default as identity,
+  data_id varchar(255) NOT NULL,
+  group_id varchar(128) NOT NULL,
+  tenant_id varchar(128) default '',
+  app_name varchar(128),
+  content CLOB,
+  md5 varchar(32) DEFAULT NULL,
+  gmt_create timestamp NOT NULL DEFAULT '2010-05-05 00:00:00.000',
+  gmt_modified timestamp NOT NULL DEFAULT '2010-05-05 00:00:00.000',
+  src_user varchar(128),
+  src_ip varchar(50) DEFAULT NULL,
+  op_type char(10) DEFAULT NULL,
+  constraint hisconfiginfo_nid_key PRIMARY KEY (nid));
+
+CREATE INDEX hisconfiginfo_dataid_key_idx ON his_config_info(data_id);
+CREATE INDEX hisconfiginfo_gmt_create_idx ON his_config_info(gmt_create);
+CREATE INDEX hisconfiginfo_gmt_modified_idx ON his_config_info(gmt_modified);
+
+
+CREATE TABLE config_info_beta (
+  id bigint NOT NULL generated by default as identity,
+  data_id varchar(255) NOT NULL,
+  group_id varchar(128) NOT NULL,
+  tenant_id varchar(128) default '',
+  app_name varchar(128),
+  content CLOB,
+  beta_ips varchar(1024),
+  md5 varchar(32) DEFAULT NULL,
+  gmt_create timestamp NOT NULL DEFAULT '2010-05-05 00:00:00',
+  gmt_modified timestamp NOT NULL DEFAULT '2010-05-05 00:00:00',
+  src_user varchar(128),
+  src_ip varchar(50) DEFAULT NULL,
+  constraint configinfobeta_id_key PRIMARY KEY (id),
+  constraint uk_configinfobeta_datagrouptenant UNIQUE (data_id,group_id,tenant_id));
+
+CREATE TABLE config_info_tag (
+  id bigint NOT NULL generated by default as identity,
+  data_id varchar(255) NOT NULL,
+  group_id varchar(128) NOT NULL,
+  tenant_id varchar(128) default '',
+  tag_id varchar(128) NOT NULL,
+  app_name varchar(128),
+  content CLOB,
+  md5 varchar(32) DEFAULT NULL,
+  gmt_create timestamp NOT NULL DEFAULT '2010-05-05 00:00:00',
+  gmt_modified timestamp NOT NULL DEFAULT '2010-05-05 00:00:00',
+  src_user varchar(128),
+  src_ip varchar(50) DEFAULT NULL,
+  constraint configinfotag_id_key PRIMARY KEY (id),
+  constraint uk_configinfotag_datagrouptenanttag UNIQUE (data_id,group_id,tenant_id,tag_id));
+
+CREATE TABLE config_info_aggr (
+  id bigint NOT NULL generated by default as identity,
+  data_id varchar(255) NOT NULL,
+  group_id varchar(128) NOT NULL,
+  tenant_id varchar(128) default '',
+  datum_id varchar(255) NOT NULL,
+  app_name varchar(128),
+  content CLOB,
+  gmt_modified timestamp NOT NULL DEFAULT '2010-05-05 00:00:00',
+  constraint configinfoaggr_id_key PRIMARY KEY (id),
+  constraint uk_configinfoaggr_datagrouptenantdatum UNIQUE (data_id,group_id,tenant_id,datum_id));
+
+CREATE TABLE app_list (
+ id bigint NOT NULL generated by default as identity,
+ app_name varchar(128) NOT NULL,
+ is_dynamic_collect_disabled smallint DEFAULT 0,
+ last_sub_info_collected_time timestamp DEFAULT '1970-01-01 08:00:00.0',
+ sub_info_lock_owner varchar(128),
+ sub_info_lock_time timestamp DEFAULT '1970-01-01 08:00:00.0',
+ constraint applist_id_key PRIMARY KEY (id),
+ constraint uk_appname UNIQUE (app_name));
+
+CREATE TABLE app_configdata_relation_subs (
+  id bigint NOT NULL generated by default as identity,
+  app_name varchar(128) NOT NULL,
+  data_id varchar(255) NOT NULL,
+  group_id varchar(128) NOT NULL,
+  gmt_modified timestamp DEFAULT '2010-05-05 00:00:00',
+  constraint configdatarelationsubs_id_key PRIMARY KEY (id),
+  constraint uk_app_sub_config_datagroup UNIQUE (app_name, data_id, group_id));
+
+
+CREATE TABLE app_configdata_relation_pubs (
+  id bigint NOT NULL generated by default as identity,
+  app_name varchar(128) NOT NULL,
+  data_id varchar(255) NOT NULL,
+  group_id varchar(128) NOT NULL,
+  gmt_modified timestamp DEFAULT '2010-05-05 00:00:00',
+  constraint configdatarelationpubs_id_key PRIMARY KEY (id),
+  constraint uk_app_pub_config_datagroup UNIQUE (app_name, data_id, group_id));
+
+CREATE TABLE config_tags_relation (
+  id bigint NOT NULL,
+  tag_name varchar(128) NOT NULL,
+  tag_type varchar(64) DEFAULT NULL,
+  data_id varchar(255) NOT NULL,
+  group_id varchar(128) NOT NULL,
+  tenant_id varchar(128) DEFAULT '',
+  nid bigint NOT NULL generated by default as identity,
+  constraint config_tags_id_key PRIMARY KEY (nid),
+  constraint uk_configtagrelation_configidtag UNIQUE (id, tag_name, tag_type));
+
+CREATE INDEX config_tags_tenant_id_idx ON config_tags_relation(tenant_id);
+
+CREATE TABLE group_capacity (
+  id bigint NOT NULL generated by default as identity,
+  group_id varchar(128) DEFAULT '',
+  quota int DEFAULT 0,
+  usage int DEFAULT 0,
+  max_size int DEFAULT 0,
+  max_aggr_count int DEFAULT 0,
+  max_aggr_size int DEFAULT 0,
+  max_history_count int DEFAULT 0,
+  gmt_create timestamp DEFAULT '2010-05-05 00:00:00',
+  gmt_modified timestamp DEFAULT '2010-05-05 00:00:00',
+  constraint group_capacity_id_key PRIMARY KEY (id),
+  constraint uk_group_id UNIQUE (group_id));
+
+CREATE TABLE tenant_capacity (
+  id bigint NOT NULL generated by default as identity,
+  tenant_id varchar(128) DEFAULT '',
+  quota int DEFAULT 0,
+  usage int DEFAULT 0,
+  max_size int DEFAULT 0,
+  max_aggr_count int DEFAULT 0,
+  max_aggr_size int DEFAULT 0,
+  max_history_count int DEFAULT 0,
+  gmt_create timestamp DEFAULT '2010-05-05 00:00:00',
+  gmt_modified timestamp DEFAULT '2010-05-05 00:00:00',
+  constraint tenant_capacity_id_key PRIMARY KEY (id),
+  constraint uk_tenant_id UNIQUE (tenant_id));
+
+CREATE TABLE tenant_info (
+  id bigint NOT NULL generated by default as identity,
+  kp varchar(128) NOT NULL,
+  tenant_id varchar(128)  DEFAULT '',
+  tenant_name varchar(128)  DEFAULT '',
+  tenant_desc varchar(256)  DEFAULT NULL,
+  create_source varchar(32) DEFAULT NULL,
+  gmt_create bigint NOT NULL,
+  gmt_modified bigint NOT NULL,
+  constraint tenant_info_id_key PRIMARY KEY (id),
+  constraint uk_tenant_info_kptenantid UNIQUE (kp,tenant_id));
+CREATE INDEX tenant_info_tenant_id_idx ON tenant_info(tenant_id);
+
+CREATE TABLE users (
+	username varchar(50) NOT NULL PRIMARY KEY,
+	password varchar(500) NOT NULL,
+	enabled boolean NOT NULL DEFAULT true
+);
+
+CREATE TABLE roles (
+	username varchar(50) NOT NULL,
+	role varchar(50) NOT NULL,
+	constraint uk_username_role UNIQUE (username,role)
+);
+
+CREATE TABLE permissions (
+    role varchar(50) NOT NULL,
+    resource varchar(512) NOT NULL,
+    action varchar(8) NOT NULL,
+    constraint uk_role_permission UNIQUE (role,resource,action)
+);
+
+INSERT INTO users (username, password, enabled) VALUES ('nacos', '$2a$10$EuWPZHzz32dJN7jexM34MOeYirDdFAZm2kuWj7VEOJhhZkDrxfvUu', TRUE);
+
+INSERT INTO roles (username, role) VALUES ('nacos', 'ROLE_ADMIN');
+
+
+/******************************************/
+/*   ipv6 support   */
+/******************************************/
+ALTER TABLE `config_info_tag`
+MODIFY COLUMN `src_ip` varchar(50) CHARACTER SET utf8 COLLATE utf8_bin NULL DEFAULT NULL COMMENT 'source ip' AFTER `src_user`;
+
+ALTER TABLE `his_config_info`
+MODIFY COLUMN `src_ip` varchar(50) CHARACTER SET utf8 COLLATE utf8_bin NULL DEFAULT NULL AFTER `src_user`;
+
+ALTER TABLE `config_info`
+MODIFY COLUMN `src_ip` varchar(50) CHARACTER SET utf8 COLLATE utf8_bin NULL DEFAULT NULL COMMENT 'source ip' AFTER `src_user`;
+
+ALTER TABLE `config_info_beta`
+MODIFY COLUMN `src_ip` varchar(50) CHARACTER SET utf8 COLLATE utf8_bin NULL DEFAULT NULL COMMENT 'source ip' AFTER `src_user`;
+```
+
+
+
+
+
+
+
+
+
+
+
+# http客户端Feign
 
