@@ -7296,7 +7296,464 @@ age：17
 
 ## 多环境配置共享
 
+微服务启动时会从nacos读取多个配置文件：
+
+* [spring.application.name]-[spring.profiles.active].yaml，例如：userservice-dev.yaml
+* [spring.application.name].yaml，例如：userservice.yaml
+
+无论profile如何变化，[spring.application.name].yaml这个文件一定会加载，因此多环境共享配置可以写入这个文件
 
 
 
+### 优先级
+
+**服务名称-profile.yaml  > 服务名称.yaml  >  本地配置**
+
+
+
+
+
+### 测试优先级
+
+#### 1. 启动项目
+
+
+
+![image-20220716123342019](img/image-20220716123342019.png)
+
+
+
+
+
+
+
+#### 2. 访问
+
+
+
+http://localhost:8082/test
+
+
+
+结果：
+
+```json
+{"id":124,"name":"李四","sex":"女","age":17}
+```
+
+
+
+![image-20220716123445538](img/image-20220716123445538.png)
+
+
+
+
+
+#### 3. 添加配置
+
+
+
+![image-20220716123522982](img/image-20220716123522982.png)
+
+
+
+![image-20220716123535463](img/image-20220716123535463.png)
+
+
+
+
+
+#### 4. 填充信息
+
+
+
+userservice.yml：
+
+```yaml
+configTests:
+  id: 58
+  name: "李四"
+  sex: "女"
+  age: 19
+```
+
+
+
+
+
+![image-20220716123813934](img/image-20220716123813934.png)
+
+
+
+#### 5. 发布
+
+
+
+![image-20220716123901934](img/image-20220716123901934.png)
+
+
+
+#### 6. 访问
+
+
+
+http://localhost:8082/test
+
+
+
+结果：
+
+```json
+{"id":124,"name":"李四","sex":"女","age":17}
+```
+
+
+
+数据无变化
+
+服务名称-profile.yaml  > 服务名称.yaml
+
+
+
+#### 7. 更改userservice-dev.yml配置
+
+
+
+删除年龄信息，更改id信息
+
+```yaml
+configTests:
+  id: 1248
+  name: "李四"
+  sex: "女"
+```
+
+
+
+![image-20220716124102886](img/image-20220716124102886.png)
+
+
+
+#### 8. 发布
+
+
+
+![image-20220716124140121](img/image-20220716124140121.png)
+
+
+
+
+
+![image-20220716124156669](img/image-20220716124156669.png)
+
+
+
+
+
+#### 9. 访问
+
+
+
+http://localhost:8082/test
+
+
+
+结果：
+
+```json
+{"id":1248,"name":"李四","sex":"女","age":19}
+```
+
+
+
+年龄字段使用了服务名称.yaml的配置，id变化了，证明服务名称.yaml的配置生效
+
+服务名称-profile.yaml  > 服务名称.yaml
+
+
+
+
+
+#### 10. 在本地文件中添加配置
+
+
+
+```yaml
+configTests:
+  id: 555
+  name: "李四"
+  sex: "女"
+  age: 21
+```
+
+
+
+全部：
+
+```yaml
+# user 业务 配置文件
+
+
+spring:
+
+
+  # 配置数据源
+  datasource:
+
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/cloud_user
+      username: root
+      password: 20010713
+
+
+
+#eureka:
+#  client:
+#    service-url:
+#      defaultZone: http://127.0.0.1:10080/eureka/
+
+
+  cloud:
+    nacos:
+      discovery:
+        # 集群名称
+        cluster-name: HZ
+
+  #--server.port=8083
+  #--spring.cloud.nacos.discovery.cluster-name=SH
+
+# 开启debug模式，输出调试信息，常用于检查系统运行状况
+#debug: true
+
+# 设置日志级别，root表示根节点，即整体应用日志级别
+logging:
+  # 日志输出到文件的文件名
+  file:
+    name: user_server.log
+  # 设置日志组
+  group:
+    # 自定义组名，设置当前组中所包含的包
+    mao_pro: mao
+  level:
+    root: info
+    # 为对应组设置日志级别
+    mao_pro: debug
+    # 日志输出格式
+  # pattern:
+  # console: "%d %clr(%p) --- [%16t] %clr(%-40.40c){cyan} : %m %n"
+
+
+
+server:
+  port: 8082
+
+configTests:
+  id: 555
+  name: "李四"
+  sex: "女"
+  age: 21
+
+mybatis:
+  type-aliases-package: mao.user_service
+  configuration:
+    map-underscore-to-camel-case: true
+```
+
+
+
+
+
+#### 11. 重启服务
+
+
+
+```sh
+ .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::        (v2.3.9.RELEASE)
+
+2022-07-16 12:50:06.408  WARN 9476 --- [           main] c.a.c.n.c.NacosPropertySourceBuilder     : Ignore the empty nacos configuration and get it based on dataId[userservice] & group[DEFAULT_GROUP]
+2022-07-16 12:50:06.420  INFO 9476 --- [           main] b.c.PropertySourceBootstrapConfiguration : Located property source: [BootstrapPropertySource {name='bootstrapProperties-userservice-dev.yml,DEFAULT_GROUP'}, BootstrapPropertySource {name='bootstrapProperties-userservice.yml,DEFAULT_GROUP'}, BootstrapPropertySource {name='bootstrapProperties-userservice,DEFAULT_GROUP'}]
+2022-07-16 12:50:06.457  INFO 9476 --- [           main] mao.user_service.UserServiceApplication  : The following profiles are active: dev
+2022-07-16 12:50:06.902  INFO 9476 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=dd649085-a05d-328d-98bd-abc6b15d3551
+2022-07-16 12:50:07.100  INFO 9476 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8082 (http)
+2022-07-16 12:50:07.107  INFO 9476 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-07-16 12:50:07.107  INFO 9476 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.43]
+2022-07-16 12:50:07.207  INFO 9476 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-07-16 12:50:07.207  INFO 9476 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 740 ms
+2022-07-16 12:50:07.293  INFO 9476 --- [           main] c.a.d.s.b.a.DruidDataSourceAutoConfigure : Init DruidDataSource
+2022-07-16 12:50:07.382  INFO 9476 --- [           main] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+2022-07-16 12:50:07.434  WARN 9476 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-16 12:50:07.435  INFO 9476 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-16 12:50:07.437  WARN 9476 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-16 12:50:07.437  INFO 9476 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-16 12:50:07.547  INFO 9476 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-16 12:50:07.752  INFO 9476 --- [           main] o.s.s.c.ThreadPoolTaskScheduler          : Initializing ExecutorService 'Nacos-Watch-Task-Scheduler'
+2022-07-16 12:50:08.001  INFO 9476 --- [           main] com.alibaba.nacos.client.naming          : initializer namespace from System Property :null
+2022-07-16 12:50:08.002  INFO 9476 --- [           main] com.alibaba.nacos.client.naming          : initializer namespace from System Environment :null
+2022-07-16 12:50:08.002  INFO 9476 --- [           main] com.alibaba.nacos.client.naming          : initializer namespace from System Property :null
+2022-07-16 12:50:08.102  INFO 9476 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8082 (http) with context path ''
+2022-07-16 12:50:08.105  INFO 9476 --- [           main] com.alibaba.nacos.client.naming          : [BEAT] adding beat: BeatInfo{port=8082, ip='192.168.202.1', weight=1.0, serviceName='DEFAULT_GROUP@@userservice', cluster='HZ', metadata={preserved.register.source=SPRING_CLOUD}, scheduled=false, period=5000, stopped=false} to beat map.
+2022-07-16 12:50:08.106  INFO 9476 --- [           main] com.alibaba.nacos.client.naming          : [REGISTER-SERVICE] public registering service DEFAULT_GROUP@@userservice with instance: Instance{instanceId='null', ip='192.168.202.1', port=8082, weight=1.0, healthy=true, enabled=true, ephemeral=true, clusterName='HZ', serviceName='null', metadata={preserved.register.source=SPRING_CLOUD}}
+2022-07-16 12:50:08.110  INFO 9476 --- [           main] c.a.c.n.registry.NacosServiceRegistry    : nacos registry, DEFAULT_GROUP userservice 192.168.202.1:8082 register finished
+2022-07-16 12:50:08.217  INFO 9476 --- [           main] mao.user_service.UserServiceApplication  : Started UserServiceApplication in 2.701 seconds (JVM running for 3.279)
+2022-07-16 12:50:08.220  INFO 9476 --- [           main] c.a.n.client.config.impl.ClientWorker    : [fixed-localhost_8848] [subscribe] userservice+DEFAULT_GROUP
+2022-07-16 12:50:08.221  INFO 9476 --- [           main] c.a.nacos.client.config.impl.CacheData   : [fixed-localhost_8848] [add-listener] ok, tenant=, dataId=userservice, group=DEFAULT_GROUP, cnt=1
+2022-07-16 12:50:08.225  INFO 9476 --- [           main] c.a.n.client.config.impl.ClientWorker    : [fixed-localhost_8848] [subscribe] userservice-dev.yml+DEFAULT_GROUP
+2022-07-16 12:50:08.225  INFO 9476 --- [           main] c.a.nacos.client.config.impl.CacheData   : [fixed-localhost_8848] [add-listener] ok, tenant=, dataId=userservice-dev.yml, group=DEFAULT_GROUP, cnt=1
+2022-07-16 12:50:08.230  INFO 9476 --- [           main] c.a.n.client.config.impl.ClientWorker    : [fixed-localhost_8848] [subscribe] userservice.yml+DEFAULT_GROUP
+2022-07-16 12:50:08.230  INFO 9476 --- [           main] c.a.nacos.client.config.impl.CacheData   : [fixed-localhost_8848] [add-listener] ok, tenant=, dataId=userservice.yml, group=DEFAULT_GROUP, cnt=1
+2022-07-16 12:50:09.079  INFO 9476 --- [.naming.updater] com.alibaba.nacos.client.naming          : new ips(1) service: DEFAULT_GROUP@@userservice@@HZ -> [{"instanceId":"192.168.202.1#8082#HZ#DEFAULT_GROUP@@userservice","ip":"192.168.202.1","port":8082,"weight":1.0,"healthy":true,"enabled":true,"ephemeral":true,"clusterName":"HZ","serviceName":"DEFAULT_GROUP@@userservice","metadata":{"preserved.register.source":"SPRING_CLOUD"},"ipDeleteTimeout":30000,"instanceHeartBeatInterval":5000,"instanceHeartBeatTimeOut":15000}]
+2022-07-16 12:50:09.086  INFO 9476 --- [.naming.updater] com.alibaba.nacos.client.naming          : current ips:(1) service: DEFAULT_GROUP@@userservice@@HZ -> [{"instanceId":"192.168.202.1#8082#HZ#DEFAULT_GROUP@@userservice","ip":"192.168.202.1","port":8082,"weight":1.0,"healthy":true,"enabled":true,"ephemeral":true,"clusterName":"HZ","serviceName":"DEFAULT_GROUP@@userservice","metadata":{"preserved.register.source":"SPRING_CLOUD"},"ipDeleteTimeout":30000,"instanceHeartBeatInterval":5000,"instanceHeartBeatTimeOut":15000}]
+2022-07-16 12:50:09.117  INFO 9476 --- [g.push.receiver] com.alibaba.nacos.client.naming          : received push data: {"type":"dom","data":"{\"hosts\":[{\"ip\":\"192.168.202.1\",\"port\":8082,\"valid\":true,\"healthy\":true,\"marked\":false,\"instanceId\":\"192.168.202.1#8082#HZ#DEFAULT_GROUP@@userservice\",\"metadata\":{\"preserved.register.source\":\"SPRING_CLOUD\"},\"enabled\":true,\"weight\":1.0,\"clusterName\":\"HZ\",\"serviceName\":\"DEFAULT_GROUP@@userservice\",\"ephemeral\":true}],\"dom\":\"DEFAULT_GROUP@@userservice\",\"name\":\"DEFAULT_GROUP@@userservice\",\"cacheMillis\":10000,\"lastRefTime\":1657947009116,\"checksum\":\"893e42166ce00e13b64fddd90f4b07c5\",\"useSpecifiedURL\":false,\"clusters\":\"HZ\",\"env\":\"\",\"metadata\":{}}","lastRefTime":61170601953100} from /172.31.16.1
+```
+
+
+
+
+
+#### 12. 访问
+
+http://localhost:8082/test
+
+
+
+结果：
+
+```json
+{"id":1248,"name":"李四","sex":"女","age":19}
+```
+
+
+
+结果无变化
+
+服务名称.yaml  >  本地配置
+
+
+
+#### 13. 更改userservice.yml配置
+
+
+
+删除年龄字段
+
+```yaml
+configTests:
+  id: 58
+  name: "李四"
+  sex: "女"
+```
+
+
+
+![image-20220716125315531](img/image-20220716125315531.png)
+
+
+
+#### 14. 发布
+
+
+
+![image-20220716125337812](img/image-20220716125337812.png)
+
+
+
+
+
+![image-20220716125346938](img/image-20220716125346938.png)
+
+
+
+
+
+#### 15. 访问
+
+
+
+http://localhost:8082/test
+
+
+
+结果：
+
+```json
+{"id":1248,"name":"李四","sex":"女","age":21}
+```
+
+
+
+年龄变成了21，证明本地配置生效
+
+
+
+服务名称.yaml  >  本地配置
+
+
+
+#### 16. 日志
+
+
+
+```sh
+2022-07-16 12:51:38.643  INFO 9476 --- [nio-8082-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2022-07-16 12:51:38.644  INFO 9476 --- [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2022-07-16 12:51:38.647  INFO 9476 --- [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 3 ms
+2022-07-16 12:51:38.664  INFO 9476 --- [nio-8082-exec-1] m.u.controller.TestController            : id：1248
+name：李四
+sex：女
+age：19
+
+2022-07-16 12:53:36.350  INFO 9476 --- [-localhost_8848] c.a.n.client.config.impl.ClientWorker    : [fixed-localhost_8848] [polling-resp] config changed. dataId=userservice.yml, group=DEFAULT_GROUP
+2022-07-16 12:53:36.351  INFO 9476 --- [-localhost_8848] c.a.n.client.config.impl.ClientWorker    : get changedGroupKeys:[userservice.yml+DEFAULT_GROUP]
+2022-07-16 12:53:36.358  INFO 9476 --- [-localhost_8848] c.a.n.client.config.impl.ClientWorker    : [fixed-localhost_8848] [data-received] dataId=userservice.yml, group=DEFAULT_GROUP, tenant=null, md5=142ab11196dfae5ca32afe3f20f3196a, content=configTests:
+  id: 58
+  name: "李四"
+  sex: "女", type=yaml
+2022-07-16 12:53:36.359  INFO 9476 --- [-localhost_8848] c.a.nacos.client.config.impl.CacheData   : [fixed-localhost_8848] [notify-context] dataId=userservice.yml, group=DEFAULT_GROUP, md5=142ab11196dfae5ca32afe3f20f3196a
+2022-07-16 12:53:36.636  WARN 9476 --- [-localhost_8848] c.a.c.n.c.NacosPropertySourceBuilder     : Ignore the empty nacos configuration and get it based on dataId[userservice] & group[DEFAULT_GROUP]
+2022-07-16 12:53:36.643  INFO 9476 --- [-localhost_8848] b.c.PropertySourceBootstrapConfiguration : Located property source: [BootstrapPropertySource {name='bootstrapProperties-userservice-dev.yml,DEFAULT_GROUP'}, BootstrapPropertySource {name='bootstrapProperties-userservice.yml,DEFAULT_GROUP'}, BootstrapPropertySource {name='bootstrapProperties-userservice,DEFAULT_GROUP'}]
+2022-07-16 12:53:36.651  INFO 9476 --- [-localhost_8848] o.s.boot.SpringApplication               : The following profiles are active: dev
+2022-07-16 12:53:36.657  INFO 9476 --- [-localhost_8848] o.s.boot.SpringApplication               : Started application in 0.295 seconds (JVM running for 211.719)
+2022-07-16 12:53:36.729  INFO 9476 --- [-localhost_8848] o.s.c.e.event.RefreshEventListener       : Refresh keys changed: [configTests.age]
+2022-07-16 12:53:36.729  INFO 9476 --- [-localhost_8848] c.a.nacos.client.config.impl.CacheData   : [fixed-localhost_8848] [notify-ok] dataId=userservice.yml, group=DEFAULT_GROUP, md5=142ab11196dfae5ca32afe3f20f3196a, listener=com.alibaba.cloud.nacos.refresh.NacosContextRefresher$1@7b45640c 
+2022-07-16 12:53:36.729  INFO 9476 --- [-localhost_8848] c.a.nacos.client.config.impl.CacheData   : [fixed-localhost_8848] [notify-listener] time cost=370ms in ClientWorker, dataId=userservice.yml, group=DEFAULT_GROUP, md5=142ab11196dfae5ca32afe3f20f3196a, listener=com.alibaba.cloud.nacos.refresh.NacosContextRefresher$1@7b45640c 
+2022-07-16 12:54:16.362  INFO 9476 --- [nio-8082-exec-4] m.u.controller.TestController            : id：1248
+name：李四
+sex：女
+age：21
+```
+
+
+
+
+
+**服务名称-profile.yaml  > 服务名称.yaml  >  本地配置**
+
+
+
+
+
+
+
+## Nacos集群
+
+
+
+### 集群架构
+
+
+
+![image-20220716130418534](img/image-20220716130418534.png)
+
+
+
+
+
+### 步骤
 
