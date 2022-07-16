@@ -9518,3 +9518,429 @@ MODIFY COLUMN `src_ip` varchar(50) CHARACTER SET utf8 COLLATE utf8_bin NULL DEFA
 
 # http客户端Feign
 
+## 存在的问题
+
+
+
+```java
+@Service
+public class OrderService
+{
+    @Autowired
+    private OrderMapper orderMapper;
+
+    @Autowired
+    private RestTemplate restTemplate;
+
+    /**
+     * 获取订单数据
+     *
+     * @param orderId 订单的id
+     * @return Order
+     */
+    public Order queryOrderById(Long orderId)
+    {
+        // 根据orderId获取订单数据
+        Order order = orderMapper.findById(orderId);
+        //获得用户的id
+        Long userId = order.getUserId();
+        //发起远程调用
+        //url
+        String url = "http://userservice/user/" + userId;
+        User user = restTemplate.getForObject(url, User.class);
+        //放入order里
+        order.setUser(user);
+        //返回数据
+        return order;
+    }
+}
+```
+
+
+
+* 代码可读性差，编程体验不统一
+* 参数复杂URL难以维护
+
+
+
+
+
+## Feign的介绍
+
+Feign是一个声明式的http客户端
+
+作用就是帮助我们优雅的实现http请求的发送
+
+
+
+官方地址：https://github.com/OpenFeign/feign
+
+
+
+
+
+## 步骤
+
+
+
+### 1. 引入依赖
+
+
+
+创建新项目或者使用之前的项目
+
+
+
+在order_service的pom文件中导入依赖：
+
+```xml
+<!--feign 依赖-->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+```
+
+
+
+
+
+全部：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>mao</groupId>
+        <artifactId>spring_cloud_demo</artifactId>
+        <version>0.0.1</version>
+        <relativePath>../pom.xml</relativePath> <!-- lookup parent from repository -->
+    </parent>
+
+    <artifactId>order_service</artifactId>
+    <version>0.0.1</version>
+    <name>order_service</name>
+    <description>order_service</description>
+
+    <properties>
+        <java.version>11</java.version>
+    </properties>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!--mysql依赖 spring-boot-->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+        </dependency>
+
+        <!--spring-boot druid连接池依赖-->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid-spring-boot-starter</artifactId>
+        </dependency>
+
+        <!--spring-boot mybatis依赖-->
+        <dependency>
+            <groupId>org.mybatis.spring.boot</groupId>
+            <artifactId>mybatis-spring-boot-starter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!--eureka-client 依赖-->
+        <!--<dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+        </dependency>-->
+
+        <!-- nacos 客户端依赖 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+
+        <!--feign 依赖-->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
+```
+
+
+
+
+
+### 2. 开启Feign的功能
+
+
+
+在order_service的启动类添加注解开启Feign的功能
+
+
+
+```java
+package mao.order_service;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.openfeign.EnableFeignClients;
+
+@SpringBootApplication
+@EnableFeignClients
+public class OrderServiceApplication
+{
+
+    public static void main(String[] args)
+    {
+        SpringApplication.run(OrderServiceApplication.class, args);
+    }
+
+}
+```
+
+
+
+
+
+### 3. 编写Feign客户端
+
+
+
+创建UserClient接口
+
+
+
+```java
+package mao.order_service.feign;
+
+import mao.order_service.entity.User;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+
+/**
+ * Project name(项目名称)：spring_cloud_demo_Feign
+ * Package(包名): mao.order_service.feign
+ * Interface(接口名): UserClient
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/16
+ * Time(创建时间)： 21:29
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+@FeignClient(value = "userservice",path = "/user")
+public interface UserClient
+{
+    @GetMapping("/{id}")
+    User queryById(@PathVariable("id") Long id);
+}
+```
+
+
+
+主要是基于SpringMVC的注解来声明远程调用的信息，比如：
+
+* 服务名称：userservice
+* 请求方式：GET
+* 请求路径：/user/{id}
+* 请求参数：Long id
+* 返回值类型：User
+
+
+
+
+
+### 4. 用Feign客户端代替RestTemplate
+
+
+
+```java
+package mao.order_service.service;
+
+import mao.order_service.entity.Order;
+import mao.order_service.entity.User;
+import mao.order_service.feign.UserClient;
+import mao.order_service.mapper.OrderMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+/**
+ * Project name(项目名称)：spring_cloud_demo
+ * Package(包名): mao.order_service.service
+ * Class(类名): OrderService
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/9
+ * Time(创建时间)： 13:57
+ * Version(版本): 1.0
+ * Description(描述)： OrderService
+ */
+
+@Service
+public class OrderService
+{
+    @Autowired
+    private OrderMapper orderMapper;
+
+    @Autowired
+    private RestTemplate restTemplate;
+
+    @Autowired
+    private UserClient userClient;
+
+    /**
+     * 获取订单数据
+     *
+     * @param orderId 订单的id
+     * @return Order
+     */
+    public Order queryOrderById(Long orderId)
+    {
+        // 根据orderId获取订单数据
+        Order order = orderMapper.findById(orderId);
+        //获得用户的id
+        Long userId = order.getUserId();
+        //发起远程调用
+        //url
+        //String url = "http://userservice/user/" + userId;
+        //User user = restTemplate.getForObject(url, User.class);
+        //使用feign发起远程调用
+        User user = userClient.queryById(userId);
+        //放入order里
+        order.setUser(user);
+        //返回数据
+        return order;
+    }
+}
+```
+
+
+
+
+
+### 5. 运行项目
+
+
+
+![image-20220716214544843](img/image-20220716214544843.png)
+
+
+
+### 6. 发起请求
+
+http://localhost:8081/order/101
+
+
+
+结果：
+
+```json
+{"id":101,"price":699900,"name":"Apple 苹果 iPhone 12 ","num":1,"userId":1,"user":{"id":1,"username":"柳岩","address":"湖南省衡阳市"}}
+```
+
+
+
+http://localhost:8081/order/102
+
+
+
+结果：
+
+```json
+{"id":102,"price":209900,"name":"雅迪 yadea 新国标电动车","num":1,"userId":2,"user":{"id":2,"username":"文二狗","address":"陕西省西安市"}}
+```
+
+
+
+
+
+### 7. 查看日志
+
+
+
+```sh
+OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::        (v2.3.9.RELEASE)
+
+2022-07-16 21:41:56.414  INFO 3048 --- [           main] m.order_service.OrderServiceApplication  : No active profile set, falling back to default profiles: default
+2022-07-16 21:41:56.872  INFO 3048 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=c3d7e897-58b0-323d-a519-1730826476f5
+2022-07-16 21:41:57.076  INFO 3048 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8081 (http)
+2022-07-16 21:41:57.083  INFO 3048 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-07-16 21:41:57.083  INFO 3048 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.43]
+2022-07-16 21:41:57.193  INFO 3048 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-07-16 21:41:57.193  INFO 3048 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 765 ms
+2022-07-16 21:41:57.275  INFO 3048 --- [           main] c.a.d.s.b.a.DruidDataSourceAutoConfigure : Init DruidDataSource
+2022-07-16 21:41:57.361  INFO 3048 --- [           main] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+2022-07-16 21:41:57.647  WARN 3048 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-16 21:41:57.647  INFO 3048 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-16 21:41:57.650  WARN 3048 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-16 21:41:57.650  INFO 3048 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-16 21:41:57.728  INFO 3048 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-16 21:41:57.791  INFO 3048 --- [           main] o.s.s.c.ThreadPoolTaskScheduler          : Initializing ExecutorService 'Nacos-Watch-Task-Scheduler'
+2022-07-16 21:41:58.159  INFO 3048 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8081 (http) with context path ''
+2022-07-16 21:41:58.188  INFO 3048 --- [           main] c.a.c.n.registry.NacosServiceRegistry    : nacos registry, DEFAULT_GROUP orderservice 192.168.202.1:8081 register finished
+2022-07-16 21:41:58.298  INFO 3048 --- [           main] m.order_service.OrderServiceApplication  : Started OrderServiceApplication in 2.625 seconds (JVM running for 3.171)
+2022-07-16 21:41:58.518  INFO 3048 --- [           main] c.netflix.loadbalancer.BaseLoadBalancer  : Client: userservice instantiated a LoadBalancer: DynamicServerListLoadBalancer:{NFLoadBalancer:name=userservice,current list of Servers=[],Load balancer stats=Zone stats: {},Server stats: []}ServerList:null
+2022-07-16 21:41:58.530  INFO 3048 --- [           main] c.n.l.DynamicServerListLoadBalancer      : Using serverListUpdater PollingServerListUpdater
+2022-07-16 21:41:58.561  INFO 3048 --- [           main] c.n.l.DynamicServerListLoadBalancer      : DynamicServerListLoadBalancer for client userservice initialized: DynamicServerListLoadBalancer:{NFLoadBalancer:name=userservice,current list of Servers=[192.168.202.1:8082],Load balancer stats=Zone stats: {unknown=[Zone:unknown;	Instance count:1;	Active connections count: 0;	Circuit breaker tripped count: 0;	Active connections per server: 0.0;]
+},Server stats: [[Server:192.168.202.1:8082;	Zone:UNKNOWN;	Total Requests:0;	Successive connection failure:0;	Total blackout seconds:0;	Last connection made:Thu Jan 01 08:00:00 CST 1970;	First connection made: Thu Jan 01 08:00:00 CST 1970;	Active Connections:0;	total failure count in last (1000) msecs:0;	average resp time:0.0;	90 percentile resp time:0.0;	95 percentile resp time:0.0;	min resp time:0.0;	max resp time:0.0;	stddev resp time:0.0]
+]}ServerList:com.alibaba.cloud.nacos.ribbon.NacosServerList@14dbfdb1
+2022-07-16 21:45:14.779  INFO 3048 --- [nio-8081-exec-2] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2022-07-16 21:45:14.780  INFO 3048 --- [nio-8081-exec-2] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2022-07-16 21:45:14.784  INFO 3048 --- [nio-8081-exec-2] o.s.web.servlet.DispatcherServlet        : Completed initialization in 4 ms
+2022-07-16 21:45:15.027 DEBUG 3048 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-16 21:45:15.044 DEBUG 3048 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-16 21:45:15.068 DEBUG 3048 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-16 21:46:32.733  WARN 3048 --- [nio-8081-exec-4] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/cloud_order, version : 1.2.8, lastPacketReceivedIdleMillis : 77669
+2022-07-16 21:46:32.754 DEBUG 3048 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-16 21:46:32.754 DEBUG 3048 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : ==> Parameters: 102(Long)
+2022-07-16 21:46:32.755 DEBUG 3048 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+```
+
+
+
+
+
+
+
+## 自定义Feign配置
+
