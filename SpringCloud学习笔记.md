@@ -10600,13 +10600,13 @@ https://github.com/maomao124/spring_cloud_demo_Feign.git
 
 
 
-1. 创建项目
+#### 1. 创建项目
 
 使用原来的项目或者创建一个新的项目然后复制粘贴
 
 
 
-2. 创建feign_api模块
+#### 2. 创建feign_api模块
 
 创建一个module，命名为feign_api，项目为maven项目
 
@@ -10626,7 +10626,7 @@ https://github.com/maomao124/spring_cloud_demo_Feign.git
 
 
 
-3. 编写pom文件
+#### 3. 编写pom文件
 
 
 
@@ -10679,13 +10679,13 @@ https://github.com/maomao124/spring_cloud_demo_Feign.git
 
 
 
-4. 创建软件包
+#### 4. 创建软件包
 
 ![image-20220717212242320](img/image-20220717212242320.png)
 
 
 
-5. 复制类到此模块
+#### 5. 复制类到此模块
 
 
 
@@ -10701,7 +10701,7 @@ https://github.com/maomao124/spring_cloud_demo_Feign.git
 
 
 
-6. 引入此依赖
+#### 6. 引入此依赖
 
 在order_service中引入feign_api的依赖
 
@@ -10823,7 +10823,7 @@ https://github.com/maomao124/spring_cloud_demo_Feign.git
 
 
 
-7. 删除order_service中的UserClient、User
+#### 7. 删除order_service中的UserClient、User
 
 
 
@@ -10831,7 +10831,7 @@ https://github.com/maomao124/spring_cloud_demo_Feign.git
 
 
 
-8. 执行mvn install
+#### 8. 执行mvn install
 
 
 
@@ -10883,7 +10883,7 @@ https://github.com/maomao124/spring_cloud_demo_Feign.git
 
 
 
-9. 整理import
+#### 9. 整理import
 
 
 
@@ -11160,7 +11160,7 @@ userClient扫描不到
 
 
 
-10. 配置spring扫描
+#### 10. 配置spring扫描
 
 
 
@@ -11246,7 +11246,7 @@ public class OrderServiceApplication
 
 
 
-11. 启动
+#### 11. 启动
 
 
 
@@ -11294,7 +11294,7 @@ OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were depre
 
 
 
-12. 访问
+#### 12. 访问
 
 
 
@@ -11312,7 +11312,7 @@ http://localhost:8081/order/101
 
 
 
-13. 查看控制台
+#### 13. 查看控制台
 
 
 
@@ -11342,3 +11342,24 @@ http://localhost:8081/order/101
 
 
 运行正常
+
+
+
+
+
+### 项目地址
+
+https://github.com/maomao124/spring_cloud_demo_Feign_unified_interface.git
+
+
+
+
+
+
+
+
+
+
+
+# 统一网关Gateway
+
