@@ -11152,6 +11152,12 @@ public class OrderService
 
 
 
+![image-20220717214359567](img/image-20220717214359567.png)
+
+
+
+userClient扫描不到
+
 
 
 10. 配置spring扫描
@@ -11164,3 +11170,175 @@ public class OrderService
 
 方式一：指定FeignClient所在包
 
+```java
+@EnableFeignClients(basePackages = "mao.feign.feign")
+```
+
+
+
+```java
+package mao.order_service;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.openfeign.EnableFeignClients;
+
+@SpringBootApplication
+@EnableFeignClients(basePackages = "mao.feign.feign")
+public class OrderServiceApplication
+{
+
+    public static void main(String[] args)
+    {
+        SpringApplication.run(OrderServiceApplication.class, args);
+    }
+
+}
+```
+
+
+
+![image-20220717214445544](img/image-20220717214445544.png)
+
+
+
+
+
+方式二：指定FeignClient字节码
+
+
+
+```java
+@EnableFeignClients(clients = {UserClient.class})
+```
+
+
+
+```java
+package mao.order_service;
+
+import mao.feign.feign.UserClient;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.openfeign.EnableFeignClients;
+
+@SpringBootApplication
+//@EnableFeignClients(basePackages = "mao.feign.feign")
+@EnableFeignClients(basePackageClasses = {UserClient.class})
+public class OrderServiceApplication
+{
+
+    public static void main(String[] args)
+    {
+        SpringApplication.run(OrderServiceApplication.class, args);
+    }
+
+}
+```
+
+
+
+
+
+![image-20220717214649724](img/image-20220717214649724.png)
+
+
+
+
+
+11. 启动
+
+
+
+![image-20220717215814176](img/image-20220717215814176.png)
+
+
+
+```sh
+OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::        (v2.3.9.RELEASE)
+
+2022-07-17 21:57:19.757  INFO 17012 --- [           main] m.order_service.OrderServiceApplication  : No active profile set, falling back to default profiles: default
+2022-07-17 21:57:20.233  INFO 17012 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=832e6f6d-61e4-3a8e-b7e1-d4bdded1e193
+2022-07-17 21:57:20.440  INFO 17012 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8081 (http)
+2022-07-17 21:57:20.447  INFO 17012 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-07-17 21:57:20.447  INFO 17012 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.43]
+2022-07-17 21:57:20.554  INFO 17012 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-07-17 21:57:20.555  INFO 17012 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 784 ms
+2022-07-17 21:57:20.636  INFO 17012 --- [           main] c.a.d.s.b.a.DruidDataSourceAutoConfigure : Init DruidDataSource
+2022-07-17 21:57:20.721  INFO 17012 --- [           main] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+2022-07-17 21:57:21.124  WARN 17012 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-17 21:57:21.124  INFO 17012 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-17 21:57:21.127  WARN 17012 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-17 21:57:21.127  INFO 17012 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-17 21:57:21.203  INFO 17012 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-17 21:57:21.269  INFO 17012 --- [           main] o.s.s.c.ThreadPoolTaskScheduler          : Initializing ExecutorService 'Nacos-Watch-Task-Scheduler'
+2022-07-17 21:57:21.612  INFO 17012 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8081 (http) with context path ''
+2022-07-17 21:57:21.622  INFO 17012 --- [           main] c.a.c.n.registry.NacosServiceRegistry    : nacos registry, DEFAULT_GROUP orderservice 192.168.202.1:8081 register finished
+2022-07-17 21:57:21.728  INFO 17012 --- [           main] m.order_service.OrderServiceApplication  : Started OrderServiceApplication in 2.763 seconds (JVM running for 3.285)
+2022-07-17 21:57:21.827  INFO 17012 --- [           main] c.netflix.loadbalancer.BaseLoadBalancer  : Client: userservice instantiated a LoadBalancer: DynamicServerListLoadBalancer:{NFLoadBalancer:name=userservice,current list of Servers=[],Load balancer stats=Zone stats: {},Server stats: []}ServerList:null
+2022-07-17 21:57:21.837  INFO 17012 --- [           main] c.n.l.DynamicServerListLoadBalancer      : Using serverListUpdater PollingServerListUpdater
+2022-07-17 21:57:21.864  INFO 17012 --- [           main] c.n.l.DynamicServerListLoadBalancer      : DynamicServerListLoadBalancer for client userservice initialized: DynamicServerListLoadBalancer:{NFLoadBalancer:name=userservice,current list of Servers=[192.168.202.1:8082],Load balancer stats=Zone stats: {unknown=[Zone:unknown;	Instance count:1;	Active connections count: 0;	Circuit breaker tripped count: 0;	Active connections per server: 0.0;]
+},Server stats: [[Server:192.168.202.1:8082;	Zone:UNKNOWN;	Total Requests:0;	Successive connection failure:0;	Total blackout seconds:0;	Last connection made:Thu Jan 01 08:00:00 CST 1970;	First connection made: Thu Jan 01 08:00:00 CST 1970;	Active Connections:0;	total failure count in last (1000) msecs:0;	average resp time:0.0;	90 percentile resp time:0.0;	95 percentile resp time:0.0;	min resp time:0.0;	max resp time:0.0;	stddev resp time:0.0]
+]}ServerList:com.alibaba.cloud.nacos.ribbon.NacosServerList@238ad211
+```
+
+
+
+
+
+12. 访问
+
+
+
+http://localhost:8081/order/101
+
+
+
+结果：
+
+```json
+{"id":101,"price":699900,"name":"Apple 苹果 iPhone 12 ","num":1,"userId":1,"user":{"id":1,"username":"柳岩","address":"湖南省衡阳市"}}
+```
+
+
+
+
+
+13. 查看控制台
+
+
+
+```sh
+2022-07-17 21:57:21.864  INFO 17012 --- [           main] c.n.l.DynamicServerListLoadBalancer      : DynamicServerListLoadBalancer for client userservice initialized: DynamicServerListLoadBalancer:{NFLoadBalancer:name=userservice,current list of Servers=[192.168.202.1:8082],Load balancer stats=Zone stats: {unknown=[Zone:unknown;	Instance count:1;	Active connections count: 0;	Circuit breaker tripped count: 0;	Active connections per server: 0.0;]
+},Server stats: [[Server:192.168.202.1:8082;	Zone:UNKNOWN;	Total Requests:0;	Successive connection failure:0;	Total blackout seconds:0;	Last connection made:Thu Jan 01 08:00:00 CST 1970;	First connection made: Thu Jan 01 08:00:00 CST 1970;	Active Connections:0;	total failure count in last (1000) msecs:0;	average resp time:0.0;	90 percentile resp time:0.0;	95 percentile resp time:0.0;	min resp time:0.0;	max resp time:0.0;	stddev resp time:0.0]
+]}ServerList:com.alibaba.cloud.nacos.ribbon.NacosServerList@238ad211
+2022-07-17 21:58:52.303  INFO 17012 --- [nio-8081-exec-8] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2022-07-17 21:58:52.304  INFO 17012 --- [nio-8081-exec-8] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2022-07-17 21:58:52.309  INFO 17012 --- [nio-8081-exec-8] o.s.web.servlet.DispatcherServlet        : Completed initialization in 5 ms
+2022-07-17 21:58:52.500 DEBUG 17012 --- [nio-8081-exec-8] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-17 21:58:52.516 DEBUG 17012 --- [nio-8081-exec-8] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-17 21:58:52.534 DEBUG 17012 --- [nio-8081-exec-8] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-17 21:58:52.537 DEBUG 17012 --- [nio-8081-exec-8] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/1 HTTP/1.1
+2022-07-17 21:58:52.538 DEBUG 17012 --- [nio-8081-exec-8] mao.feign.feign.UserClient               : [UserClient#queryById] ---> END HTTP (0-byte body)
+2022-07-17 21:58:52.908 DEBUG 17012 --- [nio-8081-exec-8] mao.feign.feign.UserClient               : [UserClient#queryById] <--- HTTP/1.1 200  (369ms)
+2022-07-17 21:58:52.909 DEBUG 17012 --- [nio-8081-exec-8] mao.feign.feign.UserClient               : [UserClient#queryById] connection: keep-alive
+2022-07-17 21:58:52.909 DEBUG 17012 --- [nio-8081-exec-8] mao.feign.feign.UserClient               : [UserClient#queryById] content-type: application/json
+2022-07-17 21:58:52.909 DEBUG 17012 --- [nio-8081-exec-8] mao.feign.feign.UserClient               : [UserClient#queryById] date: Sun, 17 Jul 2022 13:58:52 GMT
+2022-07-17 21:58:52.909 DEBUG 17012 --- [nio-8081-exec-8] mao.feign.feign.UserClient               : [UserClient#queryById] keep-alive: timeout=60
+2022-07-17 21:58:52.909 DEBUG 17012 --- [nio-8081-exec-8] mao.feign.feign.UserClient               : [UserClient#queryById] transfer-encoding: chunked
+2022-07-17 21:58:52.909 DEBUG 17012 --- [nio-8081-exec-8] mao.feign.feign.UserClient               : [UserClient#queryById] 
+2022-07-17 21:58:52.910 DEBUG 17012 --- [nio-8081-exec-8] mao.feign.feign.UserClient               : [UserClient#queryById] {"id":1,"username":"柳岩","address":"湖南省衡阳市"}
+2022-07-17 21:58:52.910 DEBUG 17012 --- [nio-8081-exec-8] mao.feign.feign.UserClient               : [UserClient#queryById] <--- END HTTP (59-byte body)
+```
+
+
+
+运行正常
