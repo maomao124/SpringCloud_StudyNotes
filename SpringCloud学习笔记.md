@@ -11792,3 +11792,120 @@ logging:
 
 
 
+
+
+7.添加实例
+
+
+
+在idea中添加user_service的实例，设置端口号为8083
+
+
+
+![image-20220718132832771](img/image-20220718132832771.png)
+
+
+
+![image-20220718133402770](img/image-20220718133402770.png)
+
+
+
+![image-20220718132915965](img/image-20220718132915965.png
+
+
+
+![image-20220718132943101](img/image-20220718132943101.png)
+
+
+
+
+
+
+
+8. 启动
+
+
+
+gateway：
+
+```sh
+OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::        (v2.3.9.RELEASE)
+
+2022-07-18 13:35:18.938  INFO 19636 --- [           main] mao.gateway.GatewayApplication           : No active profile set, falling back to default profiles: default
+2022-07-18 13:35:19.334  INFO 19636 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=f8de00e7-3996-3e2d-bee9-fbe46dd649a0
+2022-07-18 13:35:19.347  INFO 19636 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'org.springframework.cloud.client.loadbalancer.reactive.LoadBalancerBeanPostProcessorAutoConfiguration' of type [org.springframework.cloud.client.loadbalancer.reactive.LoadBalancerBeanPostProcessorAutoConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-18 13:35:19.349  INFO 19636 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'org.springframework.cloud.client.loadbalancer.reactive.LoadBalancerBeanPostProcessorAutoConfiguration$ReactiveLoadBalancerConfig' of type [org.springframework.cloud.client.loadbalancer.reactive.LoadBalancerBeanPostProcessorAutoConfiguration$ReactiveLoadBalancerConfig] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-18 13:35:19.352  INFO 19636 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'deferringLoadBalancerExchangeFilterFunction' of type [org.springframework.cloud.client.loadbalancer.reactive.DeferringLoadBalancerExchangeFilterFunction] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-18 13:35:19.435  WARN 19636 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-18 13:35:19.435  INFO 19636 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-18 13:35:19.437  WARN 19636 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-18 13:35:19.438  INFO 19636 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-18 13:35:19.977  INFO 19636 --- [           main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [After]
+2022-07-18 13:35:19.977  INFO 19636 --- [           main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Before]
+2022-07-18 13:35:19.977  INFO 19636 --- [           main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Between]
+2022-07-18 13:35:19.977  INFO 19636 --- [           main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Cookie]
+2022-07-18 13:35:19.977  INFO 19636 --- [           main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Header]
+2022-07-18 13:35:19.977  INFO 19636 --- [           main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Host]
+2022-07-18 13:35:19.977  INFO 19636 --- [           main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Method]
+2022-07-18 13:35:19.978  INFO 19636 --- [           main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Path]
+2022-07-18 13:35:19.978  INFO 19636 --- [           main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Query]
+2022-07-18 13:35:19.978  INFO 19636 --- [           main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [ReadBody]
+2022-07-18 13:35:19.978  INFO 19636 --- [           main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [RemoteAddr]
+2022-07-18 13:35:19.978  INFO 19636 --- [           main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [Weight]
+2022-07-18 13:35:19.978  INFO 19636 --- [           main] o.s.c.g.r.RouteDefinitionRouteLocator    : Loaded RoutePredicateFactory [CloudFoundryRouteService]
+2022-07-18 13:35:20.083  INFO 19636 --- [           main] o.s.s.c.ThreadPoolTaskScheduler          : Initializing ExecutorService 'Nacos-Watch-Task-Scheduler'
+2022-07-18 13:35:20.532  INFO 19636 --- [           main] o.s.b.web.embedded.netty.NettyWebServer  : Netty started on port(s): 10010
+2022-07-18 13:35:20.733  INFO 19636 --- [           main] c.a.c.n.registry.NacosServiceRegistry    : nacos registry, DEFAULT_GROUP gateway 192.168.202.1:10010 register finished
+2022-07-18 13:35:20.747  INFO 19636 --- [           main] mao.gateway.GatewayApplication           : Started GatewayApplication in 2.588 seconds (JVM running for 3.109)
+```
+
+
+
+
+
+![image-20220718133621703](img/image-20220718133621703.png)
+
+
+
+
+
+
+
+9. 发起请求
+
+
+
+http://localhost:10010/user/1
+
+
+
+结果：
+
+```json
+{"id":1,"username":"柳岩","address":"湖南省衡阳市"}
+```
+
+
+
+http://localhost:10010/user/2
+
+
+
+结果：
+
+```json
+{"id":2,"username":"文二狗","address":"陕西省西安市"}
+```
+
+
+
+
+
