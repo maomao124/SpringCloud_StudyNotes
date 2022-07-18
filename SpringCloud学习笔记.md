@@ -11794,6 +11794,15 @@ logging:
 
 
 
+网关路由可以配置的内容包括：
+
+* 路由id：路由唯一标示
+* uri：路由目的地，支持lb和http两种
+* predicates：路由断言，判断请求是否符合要求，符合则转发到路由目的地
+* filters：路由过滤器，处理请求或响应
+
+
+
 ### 7.添加实例
 
 
@@ -11916,4 +11925,622 @@ http://localhost:10010/user/2
 
 
 ## 路由断言工厂
+
+
+
+我们在配置文件中写的断言规则只是字符串，这些字符串会被Predicate Factory读取并处理，转变为路由判断的条件
+
+例如Path=/user/**是按照路径匹配，这个规则是由org.springframework.cloud.gateway.handler.predicate.PathRoutePredicateFactory类来处理的
+
+像这样的断言工厂在SpringCloudGateway还有十几个
+
+
+
+
+
+|  **名称**  |            **说明**            |                           **示例**                           |
+| :--------: | :----------------------------: | :----------------------------------------------------------: |
+|   After    |      是某个时间点后的请求      |    -  After=2037-01-20T17:42:47.789-07:00[America/Denver]    |
+|   Before   |     是某个时间点之前的请求     |    -  Before=2031-04-13T15:14:47.433+08:00[Asia/Shanghai]    |
+|  Between   |    是某两个时间点之前的请求    | -  Between=2037-01-20T17:42:47.789-07:00[America/Denver],  2037-01-21T17:42:47.789-07:00[America/Denver] |
+|   Cookie   |     请求必须包含某些cookie     |                   - Cookie=chocolate, ch.p                   |
+|   Header   |     请求必须包含某些header     |                  - Header=X-Request-Id, \d+                  |
+|    Host    | 请求必须是访问某个host（域名） |          -  Host=**.somehost.org,**.anotherhost.org          |
+|   Method   |     请求方式必须是指定方式     |                      - Method=GET,POST                       |
+|    Path    |    请求路径必须符合指定规则    |                - Path=/red/{segment},/blue/**                |
+|   Query    |    请求参数必须包含指定参数    |             - Query=name, Jack或者-  Query=name              |
+| RemoteAddr |    请求者的ip必须是指定范围    |                 - RemoteAddr=192.168.1.1/24                  |
+|   Weight   |            权重处理            |                                                              |
+
+
+
+
+
+
+
+## 路由过滤器
+
+
+
+GatewayFilter是网关中提供的一种过滤器，可以对进入网关的请求和微服务返回的响应做处理
+
+
+
+![image-20220718141719129](img/image-20220718141719129.png)
+
+
+
+
+
+|       **名称**       |           **说明**           |
+| :------------------: | :--------------------------: |
+|   AddRequestHeader   |   给当前请求添加一个请求头   |
+| RemoveRequestHeader  |    移除请求中的一个请求头    |
+|  AddResponseHeader   |  给响应结果中添加一个响应头  |
+| RemoveResponseHeader | 从响应结果中移除有一个响应头 |
+|  RequestRateLimiter  |        限制请求的流量        |
+|         ...          |                              |
+
+
+
+
+
+
+
+
+
+## 路由过滤器实现
+
+给所有进入userservice的请求添加一个请求头
+
+
+
+实现方式：在gateway中修改application.yml文件，给userservice的路由添加过滤器
+
+
+
+```yaml
+# gateway 网关配置文件
+
+spring:
+  application:
+    name: gateway
+
+
+  cloud:
+    nacos:
+        discovery:
+          # nacos 服务端地址
+          server-addr: localhost:8848
+          # 配置集群名称，也就是机房位置
+          # cluster-name: HZ
+          # namespace: 5544c4b1-2899-4915-94af-f9940c01c2b9
+          # 是否为临时实例，true为临时实例
+          ephemeral: false
+
+    # 网关配置
+    gateway:
+      # 网关路由配置，list集合
+      routes:
+          # 路由的id，唯一
+        - id: user-service
+          # 路由的目标地址 lb就是负载均衡，后面跟服务名称
+          uri: lb://userservice
+          # 路由断言，也就是判断请求是否符合路由规则的条件，list集合
+          predicates:
+              # 按照路径匹配，只要以/user/开头就符合要求
+            - Path=/user/**
+          # 路由过滤器，list集合
+          filters:
+              # 添加请求头
+            - AddRequestHeader=key1,value1
+
+
+
+
+
+
+server:
+  port: 10010
+
+
+
+# 设置日志级别，root表示根节点，即整体应用日志级别
+logging:
+  # 日志输出到文件的文件名
+  file:
+    name: gateway.log
+  # 设置日志组
+  group:
+    # 自定义组名，设置当前组中所包含的包
+    mao_pro: mao
+  level:
+    root: info
+    # 为对应组设置日志级别
+    mao_pro: debug
+    # 日志输出格式
+  # pattern:
+  # console: "%d %clr(%p) --- [%16t] %clr(%-40.40c){cyan} : %m %n"
+```
+
+
+
+
+
+如果要对所有的路由都生效，则可以将过滤器工厂写到default下：
+
+
+
+```yaml
+# gateway 网关配置文件
+
+spring:
+  application:
+    name: gateway
+
+
+  cloud:
+    nacos:
+        discovery:
+          # nacos 服务端地址
+          server-addr: localhost:8848
+          # 配置集群名称，也就是机房位置
+          # cluster-name: HZ
+          # namespace: 5544c4b1-2899-4915-94af-f9940c01c2b9
+          # 是否为临时实例，true为临时实例
+          ephemeral: false
+
+    # 网关配置
+    gateway:
+      # 网关路由配置，list集合
+      routes:
+          # 路由的id，唯一
+        - id: user-service
+          # 路由的目标地址 lb就是负载均衡，后面跟服务名称
+          uri: lb://userservice
+          # 路由断言，也就是判断请求是否符合路由规则的条件，list集合
+          predicates:
+              # 按照路径匹配，只要以/user/开头就符合要求
+            - Path=/user/**
+          # 路由过滤器，list集合
+
+      # 默认过滤器，会对所有的路由请求都生效，list集合
+      default-filters:
+        # 添加请求头
+        - AddRequestHeader=key1,value1
+
+
+
+
+
+server:
+  port: 10010
+
+
+
+# 设置日志级别，root表示根节点，即整体应用日志级别
+logging:
+  # 日志输出到文件的文件名
+  file:
+    name: gateway.log
+  # 设置日志组
+  group:
+    # 自定义组名，设置当前组中所包含的包
+    mao_pro: mao
+  level:
+    root: info
+    # 为对应组设置日志级别
+    mao_pro: debug
+    # 日志输出格式
+  # pattern:
+  # console: "%d %clr(%p) --- [%16t] %clr(%-40.40c){cyan} : %m %n"
+```
+
+
+
+
+
+在controller中获取请求头
+
+```java
+package mao.user_service.controller;
+
+import lombok.extern.slf4j.Slf4j;
+
+import mao.user_service.entity.User;
+import mao.user_service.service.UserService;
+import org.springframework.web.bind.annotation.*;
+
+import javax.annotation.Resource;
+
+/**
+ * Project name(项目名称)：spring_cloud_demo
+ * Package(包名): mao.user_service.controller
+ * Class(类名): UserController
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/9
+ * Time(创建时间)： 13:51
+ * Version(版本): 1.0
+ * Description(描述)： UserController
+ */
+
+@Slf4j
+@RestController
+@RequestMapping("/user")
+public class UserController
+{
+    @Resource
+    private UserService userService;
+
+    /**
+     * 获取用户信息
+     *
+     * @param id 用户的id
+     * @return User
+     */
+    @GetMapping("/{id}")
+    public User queryById(@PathVariable("id") Long id, @RequestHeader("key1") String key1)
+    {
+        //log.debug("user被访问了："+id);
+        log.info("请求头key1：" + key1);
+        return userService.queryById(id);
+    }
+}
+```
+
+
+
+
+
+启动项目
+
+
+
+访问10次
+
+http://localhost:10010/user/1
+
+
+
+
+
+user_sservice1：
+
+```sh
+OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::        (v2.3.9.RELEASE)
+
+2022-07-18 18:28:16.943  WARN 11760 --- [           main] c.a.c.n.c.NacosPropertySourceBuilder     : Ignore the empty nacos configuration and get it based on dataId[userservice] & group[DEFAULT_GROUP]
+2022-07-18 18:28:16.955  INFO 11760 --- [           main] b.c.PropertySourceBootstrapConfiguration : Located property source: [BootstrapPropertySource {name='bootstrapProperties-userservice-dev.yml,DEFAULT_GROUP'}, BootstrapPropertySource {name='bootstrapProperties-userservice.yml,DEFAULT_GROUP'}, BootstrapPropertySource {name='bootstrapProperties-userservice,DEFAULT_GROUP'}]
+2022-07-18 18:28:16.998  INFO 11760 --- [           main] mao.user_service.UserServiceApplication  : The following profiles are active: dev
+2022-07-18 18:28:17.517  INFO 11760 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=dd649085-a05d-328d-98bd-abc6b15d3551
+2022-07-18 18:28:17.750  INFO 11760 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8082 (http)
+2022-07-18 18:28:17.760  INFO 11760 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-07-18 18:28:17.760  INFO 11760 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.43]
+2022-07-18 18:28:17.879  INFO 11760 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-07-18 18:28:17.879  INFO 11760 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 871 ms
+2022-07-18 18:28:17.990  INFO 11760 --- [           main] c.a.d.s.b.a.DruidDataSourceAutoConfigure : Init DruidDataSource
+2022-07-18 18:28:18.109  INFO 11760 --- [           main] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+2022-07-18 18:28:18.163  WARN 11760 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-18 18:28:18.163  INFO 11760 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-18 18:28:18.166  WARN 11760 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-18 18:28:18.166  INFO 11760 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-18 18:28:18.286  INFO 11760 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-18 18:28:18.534  INFO 11760 --- [           main] o.s.s.c.ThreadPoolTaskScheduler          : Initializing ExecutorService 'Nacos-Watch-Task-Scheduler'
+2022-07-18 18:28:18.866  INFO 11760 --- [           main] com.alibaba.nacos.client.naming          : initializer namespace from System Property :null
+2022-07-18 18:28:18.866  INFO 11760 --- [           main] com.alibaba.nacos.client.naming          : initializer namespace from System Environment :null
+2022-07-18 18:28:18.866  INFO 11760 --- [           main] com.alibaba.nacos.client.naming          : initializer namespace from System Property :null
+2022-07-18 18:28:18.979  INFO 11760 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8082 (http) with context path ''
+2022-07-18 18:28:18.983  INFO 11760 --- [           main] com.alibaba.nacos.client.naming          : [BEAT] adding beat: BeatInfo{port=8082, ip='192.168.202.1', weight=1.0, serviceName='DEFAULT_GROUP@@userservice', cluster='HZ', metadata={preserved.register.source=SPRING_CLOUD}, scheduled=false, period=5000, stopped=false} to beat map.
+2022-07-18 18:28:18.983  INFO 11760 --- [           main] com.alibaba.nacos.client.naming          : [REGISTER-SERVICE] public registering service DEFAULT_GROUP@@userservice with instance: Instance{instanceId='null', ip='192.168.202.1', port=8082, weight=1.0, healthy=true, enabled=true, ephemeral=true, clusterName='HZ', serviceName='null', metadata={preserved.register.source=SPRING_CLOUD}}
+2022-07-18 18:28:18.987  INFO 11760 --- [           main] c.a.c.n.registry.NacosServiceRegistry    : nacos registry, DEFAULT_GROUP userservice 192.168.202.1:8082 register finished
+2022-07-18 18:28:19.112  INFO 11760 --- [           main] mao.user_service.UserServiceApplication  : Started UserServiceApplication in 3.03 seconds (JVM running for 3.541)
+2022-07-18 18:28:19.115  INFO 11760 --- [           main] c.a.n.client.config.impl.ClientWorker    : [fixed-localhost_8848] [subscribe] userservice+DEFAULT_GROUP
+2022-07-18 18:28:19.116  INFO 11760 --- [           main] c.a.nacos.client.config.impl.CacheData   : [fixed-localhost_8848] [add-listener] ok, tenant=, dataId=userservice, group=DEFAULT_GROUP, cnt=1
+2022-07-18 18:28:19.118  INFO 11760 --- [           main] c.a.n.client.config.impl.ClientWorker    : [fixed-localhost_8848] [subscribe] userservice-dev.yml+DEFAULT_GROUP
+2022-07-18 18:28:19.118  INFO 11760 --- [           main] c.a.nacos.client.config.impl.CacheData   : [fixed-localhost_8848] [add-listener] ok, tenant=, dataId=userservice-dev.yml, group=DEFAULT_GROUP, cnt=1
+2022-07-18 18:28:19.119  INFO 11760 --- [           main] c.a.n.client.config.impl.ClientWorker    : [fixed-localhost_8848] [subscribe] userservice.yml+DEFAULT_GROUP
+2022-07-18 18:28:19.119  INFO 11760 --- [           main] c.a.nacos.client.config.impl.CacheData   : [fixed-localhost_8848] [add-listener] ok, tenant=, dataId=userservice.yml, group=DEFAULT_GROUP, cnt=1
+2022-07-18 18:28:19.958  INFO 11760 --- [.naming.updater] com.alibaba.nacos.client.naming          : new ips(1) service: DEFAULT_GROUP@@userservice@@HZ -> [{"instanceId":"192.168.202.1#8082#HZ#DEFAULT_GROUP@@userservice","ip":"192.168.202.1","port":8082,"weight":1.0,"healthy":true,"enabled":true,"ephemeral":true,"clusterName":"HZ","serviceName":"DEFAULT_GROUP@@userservice","metadata":{"preserved.register.source":"SPRING_CLOUD"},"ipDeleteTimeout":30000,"instanceHeartBeatInterval":5000,"instanceHeartBeatTimeOut":15000}]
+2022-07-18 18:28:19.965  INFO 11760 --- [.naming.updater] com.alibaba.nacos.client.naming          : current ips:(1) service: DEFAULT_GROUP@@userservice@@HZ -> [{"instanceId":"192.168.202.1#8082#HZ#DEFAULT_GROUP@@userservice","ip":"192.168.202.1","port":8082,"weight":1.0,"healthy":true,"enabled":true,"ephemeral":true,"clusterName":"HZ","serviceName":"DEFAULT_GROUP@@userservice","metadata":{"preserved.register.source":"SPRING_CLOUD"},"ipDeleteTimeout":30000,"instanceHeartBeatInterval":5000,"instanceHeartBeatTimeOut":15000}]
+2022-07-18 18:28:19.995  INFO 11760 --- [g.push.receiver] com.alibaba.nacos.client.naming          : received push data: {"type":"dom","data":"{\"hosts\":[{\"ip\":\"192.168.202.1\",\"port\":8082,\"valid\":true,\"healthy\":true,\"marked\":false,\"instanceId\":\"192.168.202.1#8082#HZ#DEFAULT_GROUP@@userservice\",\"metadata\":{\"preserved.register.source\":\"SPRING_CLOUD\"},\"enabled\":true,\"weight\":1.0,\"clusterName\":\"HZ\",\"serviceName\":\"DEFAULT_GROUP@@userservice\",\"ephemeral\":true}],\"dom\":\"DEFAULT_GROUP@@userservice\",\"name\":\"DEFAULT_GROUP@@userservice\",\"cacheMillis\":10000,\"lastRefTime\":1658140099994,\"checksum\":\"893e42166ce00e13b64fddd90f4b07c5\",\"useSpecifiedURL\":false,\"clusters\":\"HZ\",\"env\":\"\",\"metadata\":{}}","lastRefTime":106111960367100} from /172.31.192.1
+2022-07-18 18:28:21.883  INFO 11760 --- [g.push.receiver] com.alibaba.nacos.client.naming          : received push data: {"type":"dom","data":"{\"hosts\":[{\"ip\":\"192.168.202.1\",\"port\":8083,\"valid\":true,\"healthy\":true,\"marked\":false,\"instanceId\":\"192.168.202.1#8083#HZ#DEFAULT_GROUP@@userservice\",\"metadata\":{\"preserved.register.source\":\"SPRING_CLOUD\"},\"enabled\":true,\"weight\":1.0,\"clusterName\":\"HZ\",\"serviceName\":\"DEFAULT_GROUP@@userservice\",\"ephemeral\":true},{\"ip\":\"192.168.202.1\",\"port\":8082,\"valid\":true,\"healthy\":true,\"marked\":false,\"instanceId\":\"192.168.202.1#8082#HZ#DEFAULT_GROUP@@userservice\",\"metadata\":{\"preserved.register.source\":\"SPRING_CLOUD\"},\"enabled\":true,\"weight\":1.0,\"clusterName\":\"HZ\",\"serviceName\":\"DEFAULT_GROUP@@userservice\",\"ephemeral\":true}],\"dom\":\"DEFAULT_GROUP@@userservice\",\"name\":\"DEFAULT_GROUP@@userservice\",\"cacheMillis\":10000,\"lastRefTime\":1658140101882,\"checksum\":\"7571d154dde6b4e9abf444bceb9399c7\",\"useSpecifiedURL\":false,\"clusters\":\"HZ\",\"env\":\"\",\"metadata\":{}}","lastRefTime":106113848345200} from /172.31.192.1
+2022-07-18 18:28:21.884  INFO 11760 --- [g.push.receiver] com.alibaba.nacos.client.naming          : new ips(1) service: DEFAULT_GROUP@@userservice@@HZ -> [{"instanceId":"192.168.202.1#8083#HZ#DEFAULT_GROUP@@userservice","ip":"192.168.202.1","port":8083,"weight":1.0,"healthy":true,"enabled":true,"ephemeral":true,"clusterName":"HZ","serviceName":"DEFAULT_GROUP@@userservice","metadata":{"preserved.register.source":"SPRING_CLOUD"},"ipDeleteTimeout":30000,"instanceHeartBeatInterval":5000,"instanceHeartBeatTimeOut":15000}]
+2022-07-18 18:28:21.889  INFO 11760 --- [g.push.receiver] com.alibaba.nacos.client.naming          : current ips:(2) service: DEFAULT_GROUP@@userservice@@HZ -> [{"instanceId":"192.168.202.1#8083#HZ#DEFAULT_GROUP@@userservice","ip":"192.168.202.1","port":8083,"weight":1.0,"healthy":true,"enabled":true,"ephemeral":true,"clusterName":"HZ","serviceName":"DEFAULT_GROUP@@userservice","metadata":{"preserved.register.source":"SPRING_CLOUD"},"ipDeleteTimeout":30000,"instanceHeartBeatInterval":5000,"instanceHeartBeatTimeOut":15000},{"instanceId":"192.168.202.1#8082#HZ#DEFAULT_GROUP@@userservice","ip":"192.168.202.1","port":8082,"weight":1.0,"healthy":true,"enabled":true,"ephemeral":true,"clusterName":"HZ","serviceName":"DEFAULT_GROUP@@userservice","metadata":{"preserved.register.source":"SPRING_CLOUD"},"ipDeleteTimeout":30000,"instanceHeartBeatInterval":5000,"instanceHeartBeatTimeOut":15000}]
+2022-07-18 18:29:50.595  INFO 11760 --- [nio-8082-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2022-07-18 18:29:50.596  INFO 11760 --- [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2022-07-18 18:29:50.599  INFO 11760 --- [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 3 ms
+2022-07-18 18:29:50.620  INFO 11760 --- [nio-8082-exec-1] m.u.controller.UserController            : 请求头key1：value1
+2022-07-18 18:29:51.848  INFO 11760 --- [nio-8082-exec-2] m.u.controller.UserController            : 请求头key1：value1
+2022-07-18 18:29:52.553  INFO 11760 --- [nio-8082-exec-3] m.u.controller.UserController            : 请求头key1：value1
+2022-07-18 18:29:53.181  INFO 11760 --- [nio-8082-exec-4] m.u.controller.UserController            : 请求头key1：value1
+2022-07-18 18:29:53.829  INFO 11760 --- [nio-8082-exec-5] m.u.controller.UserController            : 请求头key1：value1
+```
+
+
+
+user_sservice2：
+
+```sh
+OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::        (v2.3.9.RELEASE)
+
+2022-07-18 18:28:19.145  WARN 13920 --- [           main] c.a.c.n.c.NacosPropertySourceBuilder     : Ignore the empty nacos configuration and get it based on dataId[userservice] & group[DEFAULT_GROUP]
+2022-07-18 18:28:19.157  INFO 13920 --- [           main] b.c.PropertySourceBootstrapConfiguration : Located property source: [BootstrapPropertySource {name='bootstrapProperties-userservice-dev.yml,DEFAULT_GROUP'}, BootstrapPropertySource {name='bootstrapProperties-userservice.yml,DEFAULT_GROUP'}, BootstrapPropertySource {name='bootstrapProperties-userservice,DEFAULT_GROUP'}]
+2022-07-18 18:28:19.193  INFO 13920 --- [           main] mao.user_service.UserServiceApplication  : The following profiles are active: dev
+2022-07-18 18:28:19.660  INFO 13920 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=dd649085-a05d-328d-98bd-abc6b15d3551
+2022-07-18 18:28:19.857  INFO 13920 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8083 (http)
+2022-07-18 18:28:19.863  INFO 13920 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-07-18 18:28:19.863  INFO 13920 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.43]
+2022-07-18 18:28:19.963  INFO 13920 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-07-18 18:28:19.963  INFO 13920 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 760 ms
+2022-07-18 18:28:20.054  INFO 13920 --- [           main] c.a.d.s.b.a.DruidDataSourceAutoConfigure : Init DruidDataSource
+2022-07-18 18:28:20.141  INFO 13920 --- [           main] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+2022-07-18 18:28:20.191  WARN 13920 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-18 18:28:20.191  INFO 13920 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-18 18:28:20.193  WARN 13920 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-18 18:28:20.193  INFO 13920 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-18 18:28:20.294  INFO 13920 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-18 18:28:20.500  INFO 13920 --- [           main] o.s.s.c.ThreadPoolTaskScheduler          : Initializing ExecutorService 'Nacos-Watch-Task-Scheduler'
+2022-07-18 18:28:20.754  INFO 13920 --- [           main] com.alibaba.nacos.client.naming          : initializer namespace from System Property :null
+2022-07-18 18:28:20.754  INFO 13920 --- [           main] com.alibaba.nacos.client.naming          : initializer namespace from System Environment :null
+2022-07-18 18:28:20.754  INFO 13920 --- [           main] com.alibaba.nacos.client.naming          : initializer namespace from System Property :null
+2022-07-18 18:28:20.829  INFO 13920 --- [           main] com.alibaba.nacos.client.naming          : new ips(1) service: DEFAULT_GROUP@@userservice@@HZ -> [{"instanceId":"192.168.202.1#8082#HZ#DEFAULT_GROUP@@userservice","ip":"192.168.202.1","port":8082,"weight":1.0,"healthy":true,"enabled":true,"ephemeral":true,"clusterName":"HZ","serviceName":"DEFAULT_GROUP@@userservice","metadata":{"preserved.register.source":"SPRING_CLOUD"},"ipDeleteTimeout":30000,"instanceHeartBeatTimeOut":15000,"instanceHeartBeatInterval":5000}]
+2022-07-18 18:28:20.835  INFO 13920 --- [           main] com.alibaba.nacos.client.naming          : current ips:(1) service: DEFAULT_GROUP@@userservice@@HZ -> [{"instanceId":"192.168.202.1#8082#HZ#DEFAULT_GROUP@@userservice","ip":"192.168.202.1","port":8082,"weight":1.0,"healthy":true,"enabled":true,"ephemeral":true,"clusterName":"HZ","serviceName":"DEFAULT_GROUP@@userservice","metadata":{"preserved.register.source":"SPRING_CLOUD"},"ipDeleteTimeout":30000,"instanceHeartBeatTimeOut":15000,"instanceHeartBeatInterval":5000}]
+2022-07-18 18:28:20.871  INFO 13920 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8083 (http) with context path ''
+2022-07-18 18:28:20.874  INFO 13920 --- [           main] com.alibaba.nacos.client.naming          : [BEAT] adding beat: BeatInfo{port=8083, ip='192.168.202.1', weight=1.0, serviceName='DEFAULT_GROUP@@userservice', cluster='HZ', metadata={preserved.register.source=SPRING_CLOUD}, scheduled=false, period=5000, stopped=false} to beat map.
+2022-07-18 18:28:20.875  INFO 13920 --- [           main] com.alibaba.nacos.client.naming          : [REGISTER-SERVICE] public registering service DEFAULT_GROUP@@userservice with instance: Instance{instanceId='null', ip='192.168.202.1', port=8083, weight=1.0, healthy=true, enabled=true, ephemeral=true, clusterName='HZ', serviceName='null', metadata={preserved.register.source=SPRING_CLOUD}}
+2022-07-18 18:28:20.878  INFO 13920 --- [           main] c.a.c.n.registry.NacosServiceRegistry    : nacos registry, DEFAULT_GROUP userservice 192.168.202.1:8083 register finished
+2022-07-18 18:28:20.996  INFO 13920 --- [           main] mao.user_service.UserServiceApplication  : Started UserServiceApplication in 2.821 seconds (JVM running for 3.374)
+2022-07-18 18:28:20.999  INFO 13920 --- [           main] c.a.n.client.config.impl.ClientWorker    : [fixed-localhost_8848] [subscribe] userservice+DEFAULT_GROUP
+2022-07-18 18:28:21.000  INFO 13920 --- [           main] c.a.nacos.client.config.impl.CacheData   : [fixed-localhost_8848] [add-listener] ok, tenant=, dataId=userservice, group=DEFAULT_GROUP, cnt=1
+2022-07-18 18:28:21.001  INFO 13920 --- [           main] c.a.n.client.config.impl.ClientWorker    : [fixed-localhost_8848] [subscribe] userservice-dev.yml+DEFAULT_GROUP
+2022-07-18 18:28:21.002  INFO 13920 --- [           main] c.a.nacos.client.config.impl.CacheData   : [fixed-localhost_8848] [add-listener] ok, tenant=, dataId=userservice-dev.yml, group=DEFAULT_GROUP, cnt=1
+2022-07-18 18:28:21.003  INFO 13920 --- [           main] c.a.n.client.config.impl.ClientWorker    : [fixed-localhost_8848] [subscribe] userservice.yml+DEFAULT_GROUP
+2022-07-18 18:28:21.003  INFO 13920 --- [           main] c.a.nacos.client.config.impl.CacheData   : [fixed-localhost_8848] [add-listener] ok, tenant=, dataId=userservice.yml, group=DEFAULT_GROUP, cnt=1
+2022-07-18 18:28:21.856  INFO 13920 --- [.naming.updater] com.alibaba.nacos.client.naming          : new ips(1) service: DEFAULT_GROUP@@userservice@@HZ -> [{"instanceId":"192.168.202.1#8083#HZ#DEFAULT_GROUP@@userservice","ip":"192.168.202.1","port":8083,"weight":1.0,"healthy":true,"enabled":true,"ephemeral":true,"clusterName":"HZ","serviceName":"DEFAULT_GROUP@@userservice","metadata":{"preserved.register.source":"SPRING_CLOUD"},"ipDeleteTimeout":30000,"instanceHeartBeatTimeOut":15000,"instanceHeartBeatInterval":5000}]
+2022-07-18 18:28:21.860  INFO 13920 --- [.naming.updater] com.alibaba.nacos.client.naming          : current ips:(2) service: DEFAULT_GROUP@@userservice@@HZ -> [{"instanceId":"192.168.202.1#8083#HZ#DEFAULT_GROUP@@userservice","ip":"192.168.202.1","port":8083,"weight":1.0,"healthy":true,"enabled":true,"ephemeral":true,"clusterName":"HZ","serviceName":"DEFAULT_GROUP@@userservice","metadata":{"preserved.register.source":"SPRING_CLOUD"},"ipDeleteTimeout":30000,"instanceHeartBeatTimeOut":15000,"instanceHeartBeatInterval":5000},{"instanceId":"192.168.202.1#8082#HZ#DEFAULT_GROUP@@userservice","ip":"192.168.202.1","port":8082,"weight":1.0,"healthy":true,"enabled":true,"ephemeral":true,"clusterName":"HZ","serviceName":"DEFAULT_GROUP@@userservice","metadata":{"preserved.register.source":"SPRING_CLOUD"},"ipDeleteTimeout":30000,"instanceHeartBeatTimeOut":15000,"instanceHeartBeatInterval":5000}]
+2022-07-18 18:28:21.883  INFO 13920 --- [g.push.receiver] com.alibaba.nacos.client.naming          : received push data: {"type":"dom","data":"{\"hosts\":[{\"ip\":\"192.168.202.1\",\"port\":8083,\"valid\":true,\"healthy\":true,\"marked\":false,\"instanceId\":\"192.168.202.1#8083#HZ#DEFAULT_GROUP@@userservice\",\"metadata\":{\"preserved.register.source\":\"SPRING_CLOUD\"},\"enabled\":true,\"weight\":1.0,\"clusterName\":\"HZ\",\"serviceName\":\"DEFAULT_GROUP@@userservice\",\"ephemeral\":true},{\"ip\":\"192.168.202.1\",\"port\":8082,\"valid\":true,\"healthy\":true,\"marked\":false,\"instanceId\":\"192.168.202.1#8082#HZ#DEFAULT_GROUP@@userservice\",\"metadata\":{\"preserved.register.source\":\"SPRING_CLOUD\"},\"enabled\":true,\"weight\":1.0,\"clusterName\":\"HZ\",\"serviceName\":\"DEFAULT_GROUP@@userservice\",\"ephemeral\":true}],\"dom\":\"DEFAULT_GROUP@@userservice\",\"name\":\"DEFAULT_GROUP@@userservice\",\"cacheMillis\":10000,\"lastRefTime\":1658140101882,\"checksum\":\"7571d154dde6b4e9abf444bceb9399c7\",\"useSpecifiedURL\":false,\"clusters\":\"HZ\",\"env\":\"\",\"metadata\":{}}","lastRefTime":106113848345200} from /172.31.192.1
+2022-07-18 18:29:19.307  INFO 13920 --- [nio-8083-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2022-07-18 18:29:19.307  INFO 13920 --- [nio-8083-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2022-07-18 18:29:19.311  INFO 13920 --- [nio-8083-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 4 ms
+2022-07-18 18:29:19.332  INFO 13920 --- [nio-8083-exec-1] m.u.controller.UserController            : 请求头key1：value1
+2022-07-18 18:29:51.372  INFO 13920 --- [nio-8083-exec-2] m.u.controller.UserController            : 请求头key1：value1
+2022-07-18 18:29:52.200  INFO 13920 --- [nio-8083-exec-3] m.u.controller.UserController            : 请求头key1：value1
+2022-07-18 18:29:52.862  INFO 13920 --- [nio-8083-exec-4] m.u.controller.UserController            : 请求头key1：value1
+2022-07-18 18:29:53.502  INFO 13920 --- [nio-8083-exec-5] m.u.controller.UserController            : 请求头key1：value1
+```
+
+
+
+
+
+
+
+## 全局过滤器
+
+
+
+全局过滤器的作用也是处理一切进入网关的请求和微服务响应，与GatewayFilter的作用一样。 区别在于GatewayFilter通过配置定义，处理逻辑是固定的。而GlobalFilter的逻辑需要自己写代码实现。 定义方式是实现GlobalFilter接口。
+
+
+
+```java
+public interface GlobalFilter 
+{
+  /**
+  * 处理当前请求，有必要的话通过{@link GatewayFilterChain}将请求交给下一个过滤器处理
+  *
+  * @param exchange 请求上下文，里面可以获取Request、Response等信息
+  * @param chain 用来把请求委托给下一个过滤器
+  * @return {@code Mono<Void>} 返回标示当前过滤器业务结束
+  */
+  Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain);
+}
+```
+
+
+
+
+
+## 全局过滤器实现
+
+定义全局过滤器，拦截请求，判断请求的参数是否满足下面条件：
+
+* 参数中是否有authorization，没有就拦截
+* authorization参数值是否为admin，不是就拦截
+
+
+
+1. 创建类
+
+在网关子工程中创建一个类，名称为AuthorizationGlobalFilter
+
+
+
+```java
+package mao.gateway.filter;
+
+import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.cloud.gateway.filter.GlobalFilter;
+import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
+
+/**
+ * Project name(项目名称)：spring_cloud_demo_Gateway
+ * Package(包名): mao.gateway.filter
+ * Class(类名): AuthorizationGlobalFilter
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/18
+ * Time(创建时间)： 18:38
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class AuthorizationGlobalFilter implements GlobalFilter
+{
+
+    @Override
+    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain)
+    {
+        return null;
+    }
+}
+```
+
+
+
+
+
+2. 编写业务代码
+
+
+
+```java
+package mao.gateway.filter;
+
+import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.cloud.gateway.filter.GlobalFilter;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Component;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
+
+/**
+ * Project name(项目名称)：spring_cloud_demo_Gateway
+ * Package(包名): mao.gateway.filter
+ * Class(类名): AuthorizationGlobalFilter
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/18
+ * Time(创建时间)： 18:38
+ * Version(版本): 1.0
+ * Description(描述)： 全局过滤器
+ */
+
+//@Order(1)
+@Component
+public class AuthorizationGlobalFilter implements GlobalFilter , Ordered
+{
+
+    /**
+     * 过滤器方法
+     * @param exchange 请求上下文，里面可以获取Request、Response等信息
+     * @param chain 用来把请求委托给下一个过滤器
+     * @return 返回标示当前过滤器业务结束
+     */
+    @Override
+    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain)
+    {
+        //获取请求参数
+        MultiValueMap<String, String> queryParams = exchange.getRequest().getQueryParams();
+        //获取authorization的值
+        String authorization = queryParams.getFirst("authorization");
+        //判断是否为空
+        if (authorization == null || authorization.equals(""))
+        {
+            //空，拦截
+            //状态码403
+            exchange.getResponse().setStatusCode(HttpStatus.FORBIDDEN);
+            //结束
+            return exchange.getResponse().setComplete();
+        }
+        //判断是否为admin
+        if (!authorization.equals("admin"))
+        {
+            //拦截
+            //状态码403
+            exchange.getResponse().setStatusCode(HttpStatus.FORBIDDEN);
+            //结束
+            return exchange.getResponse().setComplete();
+        }
+        //放行
+        return chain.filter(exchange);
+    }
+
+    /**
+     * 用于设置优先级别，值越大过滤器越后执行，还可以使用注解@Order(1)
+     * @return 优先级
+     */
+    @Override
+    public int getOrder()
+    {
+        return 1;
+    }
+}
+```
+
+
+
+
+
+3. 启动项目
+
+
+
+![image-20220718185302868](img/image-20220718185302868.png)
+
+
+
+4. 访问
+
+
+
+http://localhost:10010/user/1
+
+
+
+![image-20220718185403439](img/image-20220718185403439.png)
+
+
+
+http://localhost:10010/user/1?authorization=123
+
+
+
+![image-20220718185508794](img/image-20220718185508794.png)
+
+
+
+
+
+http://localhost:10010/user/1?authorization=admin
+
+![image-20220718185534110](img/image-20220718185534110.png)
+
+
+
+http://localhost:10010/user/1?authorization1=admin
+
+![image-20220718185609314](img/image-20220718185609314.png)
+
+
+
+
+
+
+
+## 过滤器执行顺序
 
