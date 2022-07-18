@@ -11400,13 +11400,13 @@ Zuul是基于Servlet的实现，属于阻塞式编程。而SpringCloudGateway则
 
 
 
-1. 创建项目
+### 1. 创建项目
 
 使用原来的项目或者创建新项目然后复制原来的项目内容到新项目
 
 
 
-2. 创建新模块
+### 2. 创建新模块
 
 
 
@@ -11428,7 +11428,7 @@ gateway
 
 
 
-3. 修改依赖
+### 3. 修改依赖
 
 
 
@@ -11600,7 +11600,7 @@ gateway的pom文件：
 
 
 
-4. 导入相关依赖
+### 4. 导入相关依赖
 
 在gateway中导入相关的依赖
 
@@ -11703,7 +11703,7 @@ Spring MVC found on classpath, which is incompatible with Spring Cloud Gateway a
 
 
 
-5. 更改配置文件名称
+### 5. 更改配置文件名称
 
 
 
@@ -11727,7 +11727,7 @@ Spring MVC found on classpath, which is incompatible with Spring Cloud Gateway a
 
 
 
-6. 编写配置
+### 6. 编写配置
 
 
 
@@ -11794,7 +11794,7 @@ logging:
 
 
 
-7.添加实例
+### 7.添加实例
 
 
 
@@ -11822,7 +11822,7 @@ logging:
 
 
 
-8. 启动
+### 8. 启动
 
 
 
@@ -11879,7 +11879,7 @@ OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were depre
 
 
 
-9. 发起请求
+### 9. 发起请求
 
 
 
@@ -11908,4 +11908,12 @@ http://localhost:10010/user/2
 
 
 
+
+
+
+
+
+
+
+## 路由断言工厂
 
