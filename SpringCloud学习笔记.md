@@ -12368,7 +12368,7 @@ public interface GlobalFilter
 
 
 
-1. 创建类
+### 1. 创建类
 
 在网关子工程中创建一个类，名称为AuthorizationGlobalFilter
 
@@ -12410,7 +12410,7 @@ public class AuthorizationGlobalFilter implements GlobalFilter
 
 
 
-2. 编写业务代码
+### 2. 编写业务代码
 
 
 
@@ -12496,7 +12496,7 @@ public class AuthorizationGlobalFilter implements GlobalFilter , Ordered
 
 
 
-3. 启动项目
+### 3. 启动项目
 
 
 
@@ -12504,7 +12504,7 @@ public class AuthorizationGlobalFilter implements GlobalFilter , Ordered
 
 
 
-4. 访问
+### 4. 访问
 
 
 
@@ -12543,4 +12543,1106 @@ http://localhost:10010/user/1?authorization1=admin
 
 
 ## 过滤器执行顺序
+
+
+
+* 每一个过滤器都必须指定一个int类型的order值，order值越小，优先级越高，执行顺序越靠前。
+* GlobalFilter通过实现Ordered接口，或者添加@Order注解来指定order值，由我们自己指定
+* 路由过滤器和defaultFilter的order由Spring指定，默认是按照声明顺序从1递增
+* 当过滤器的order值一样时，会按照 defaultFilter > 路由过滤器 > GlobalFilter的顺序执行
+
+
+
+
+
+## 跨域问题
+
+跨域：域名不一致就是跨域
+
+* 域名不同
+* 域名相同，端口不同
+
+跨域问题：浏览器禁止请求的发起者与服务端发生跨域ajax请求，请求被浏览器拦截的问题
+
+
+
+网关处理跨域采用的同样是CORS方案，并且只需要简单配置即可实现：
+
+
+
+```yaml
+# gateway 网关配置文件
+
+spring:
+  application:
+    name: gateway
+
+
+  cloud:
+    nacos:
+        discovery:
+          # nacos 服务端地址
+          server-addr: localhost:8848
+          # 配置集群名称，也就是机房位置
+          # cluster-name: HZ
+          # namespace: 5544c4b1-2899-4915-94af-f9940c01c2b9
+          # 是否为临时实例，true为临时实例
+          ephemeral: false
+
+    # 网关配置
+    gateway:
+      # 网关路由配置，list集合
+      routes:
+          # 路由的id，唯一
+        - id: user-service
+          # 路由的目标地址 lb就是负载均衡，后面跟服务名称
+          uri: lb://userservice
+          # 路由断言，也就是判断请求是否符合路由规则的条件，list集合
+          predicates:
+              # 按照路径匹配，只要以/user开头就符合要求
+            - Path=/user/**
+          # 路由过滤器，list集合
+          filters:
+              # 添加请求头
+            #- AddRequestHeader=key1,value1
+
+      # 默认过滤器，会对所有的路由请求都生效，list集合
+      default-filters:
+        # 添加请求头
+        - AddRequestHeader=key1,value1
+
+
+      # 全局的跨域处理
+      globalcors:
+        # 解决options请求被拦截问题
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
+          '[/**]':
+            # 允许哪些网站的跨域请求
+            allowedOrigins:
+              - "http://localhost:8080"
+              - "http://localhost:8082"
+            # 允许的跨域ajax的请求方式
+            allowedMethods:
+              - "GET"
+              - "POST"
+              - "DELETE"
+              - "PUT"
+              - "OPTIONS"
+            # 允许在请求中携带的头信息
+            allowedHeaders: "*"
+            # 是否允许携带cookie
+            allowCredentials: true
+            # 这次跨域检测的有效期
+            maxAge: 30000
+
+
+
+
+
+
+
+server:
+  port: 10010
+
+
+
+# 设置日志级别，root表示根节点，即整体应用日志级别
+logging:
+  # 日志输出到文件的文件名
+  file:
+    name: gateway.log
+  # 设置日志组
+  group:
+    # 自定义组名，设置当前组中所包含的包
+    mao_pro: mao
+  level:
+    root: info
+    # 为对应组设置日志级别
+    mao_pro: debug
+    # 日志输出格式
+  # pattern:
+  # console: "%d %clr(%p) --- [%16t] %clr(%-40.40c){cyan} : %m %n"
+```
+
+
+
+
+
+
+
+## 验证跨域问题
+
+1. 创建新模块
+
+
+
+名字为ajax
+
+
+
+![image-20220718191939865](img/image-20220718191939865.png)
+
+
+
+
+
+![image-20220718192005058](img/image-20220718192005058.png)
+
+
+
+
+
+2. 整理pom文件
+
+
+
+设置为此项目为spring_cloud_demo的子工程
+
+
+
+spring_cloud_demo：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <!--
+      -maven项目核心配置文件-
+    Project name(项目名称)：spring_cloud_demo_Gateway
+    Author(作者）: mao
+    Author QQ：1296193245
+    GitHub：https://github.com/maomao124/
+    Date(创建日期)： 2022/7/18
+    Time(创建时间)： 12:41
+    -->
+    <groupId>mao</groupId>
+    <artifactId>spring_cloud_demo</artifactId>
+    <packaging>pom</packaging>
+    <version>0.0.1</version>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>2.3.9.RELEASE</version>
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <java.version>11</java.version>
+    </properties>
+
+    <modules>
+        <module>user_service</module>
+        <module>order_service</module>
+        <module>eureka_server</module>
+        <module>feign_api</module>
+        <module>gateway</module>
+        <module>ajax</module>
+    </modules>
+
+
+    <dependencyManagement>
+        <dependencies>
+            <!--spring-cloud项目依赖-->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>Hoxton.SR10</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!--spring-boot druid连接池依赖-->
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>druid-spring-boot-starter</artifactId>
+                <version>1.2.8</version>
+            </dependency>
+
+            <!--mysql依赖 spring-boot-->
+            <dependency>
+                <groupId>mysql</groupId>
+                <artifactId>mysql-connector-java</artifactId>
+                <version>8.0.27</version>
+                <scope>runtime</scope>
+            </dependency>
+
+            <!--spring-boot mybatis依赖-->
+            <dependency>
+                <groupId>org.mybatis.spring.boot</groupId>
+                <artifactId>mybatis-spring-boot-starter</artifactId>
+                <version>2.2.2</version>
+            </dependency>
+
+            <!--spring-cloud-alilbaba管理依赖-->
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-alibaba-dependencies</artifactId>
+                <version>2.2.6.RELEASE</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+        </dependencies>
+    </dependencyManagement>
+
+
+    <dependencies>
+        <!--spring-boot lombok-->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.20</version>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
+
+</project>
+```
+
+
+
+
+
+ajax：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+
+    <parent>
+        <groupId>mao</groupId>
+        <artifactId>spring_cloud_demo</artifactId>
+        <version>0.0.1</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+
+    <artifactId>ajax</artifactId>
+    <version>0.0.1</version>
+    <name>ajax</name>
+    <description>ajax</description>
+
+
+    <properties>
+        <java.version>11</java.version>
+    </properties>
+
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
+```
+
+
+
+
+
+3. 更改配置文件格式
+
+
+
+更改为yml格式
+
+
+
+![image-20220718192429939](img/image-20220718192429939.png)
+
+
+
+
+
+4. 编写配置
+
+
+
+```yaml
+server:
+  port: 8093
+```
+
+
+
+
+
+5. 编写前端代码
+
+
+
+![image-20220718192639675](img/image-20220718192639675.png)
+
+
+
+![image-20220718195317215](img/image-20220718195317215.png)
+
+
+
+```html
+<!DOCTYPE html>
+
+<!--
+Project name(项目名称)：spring_cloud_demo_Gateway
+  File name(文件名): index
+  Authors(作者）: mao
+  Author QQ：1296193245
+  GitHub：https://github.com/maomao124/
+  Date(创建日期)： 2022/7/18
+  Time(创建时间)： 19:26
+  Description(描述)： 无
+-->
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>网关跨域问题测试</title>
+    <style>
+        body {
+            background-color: skyblue;
+            font-size: 1.4em;
+        }
+
+        #button {
+            width: 235px;
+            height: 50px;
+            background-color: orchid;
+        }
+
+        #textarea {
+            width: 700px;
+            height: 100px;
+            background-color: lightblue;
+            color: slateblue;
+            font-size: 1.4em;
+
+        }
+
+        #number {
+            font-size: 1.4em;
+            background-color: pink;
+        }
+    </style>
+</head>
+<body>
+
+<br>
+<label>请求的ID
+    <input id="number" type="number" min="0" max="100" step="1" value="1">
+</label>
+<br>
+<br>
+
+<button id="button" onclick="get()">点击发送ajax请求</button>
+
+<br>
+<br>
+<br>
+
+<label for="textarea">响应结果:<br></label><textarea id="textarea">无</textarea>
+
+</body>
+
+<script>
+
+    var textarea = document.getElementById("textarea")
+    var number = document.getElementById("number")
+
+    function get()
+    {
+        console.log("发起ajax请求")
+
+        //XMLHttpRequest对象
+        let xhr;
+        //是否正在发送请求
+        let isSending = false;
+
+        //如果正在发送请求
+        if (isSending === true)
+        {
+            //取消正在发送的请求
+            xhr.abort();
+        }
+
+        //发起异步请求
+        xhr = new XMLHttpRequest();
+        //设置响应信息为json
+        xhr.responseType = "json";
+        //超时设置，单位为毫秒
+        xhr.timeout = 5000;
+        //超时的回调函数
+        xhr.ontimeout = function ()
+        {
+            alert("请求超时，请稍后再试！");
+        }
+        //初始化，设置请求方式和url
+        xhr.open("get", "http://localhost:10010/user/"+number.value+"?authorization=admin");
+        //设置状态为正在发送
+        isSending = true;
+        //发送异步请求
+        xhr.send();
+
+        xhr.onreadystatechange = function ()
+        {
+            //状态为4时处理
+            if (xhr.readyState === 4)
+            {
+                //落在200-300之间处理
+                if (xhr.status >= 200 && xhr.status < 300)
+                {
+                    //将状态设置成false
+                    isSending = false;
+                    console.log(xhr.response);
+                    textarea.innerHTML = JSON.stringify(xhr.response);
+
+                }
+                else
+                {
+                    alert("出现异常！状态码：" + xhr.status);
+                }
+            }
+        }
+    }
+
+    function ajaxByAxios()
+    {
+        //axios发起ajax请求
+        axios({
+            //请求的方式：
+            method: "get",
+            //请求的url:
+            url: "http://localhost:10010/user/1?authorization=admin",
+            //url参数：
+            params:
+                {},
+            //头信息：
+            headers:
+                {},
+            //请求体参数：
+            data:
+                {},
+        }).then(response =>
+        {
+            console.log(response);
+
+        }).catch(error =>
+        {
+            //console.log(error);
+            alert("网络异常！");
+        })
+    }
+
+    function ajaxByJQuery()
+    {
+
+        //发起ajax请求
+        $.ajax(
+            {
+                //请求的url：
+                url: "http://localhost:10010/user/1?authorization=admin",
+                //参数：
+                data:
+                    {},
+                //请求类型：
+                type: "get",
+                //响应的数据类型：
+                dataType: "json",
+                //请求成功的回调函数：
+                success: function (data)
+                {
+                    console.log(data);
+
+                },
+                //请求失败的回调函数：
+                error: function ()
+                {
+                    alert("网络错误！请稍后再试！");
+                },
+                //设置超时时间：
+                timeout: 2000,
+                //头信息：
+                headers:
+                    {},
+            }
+        )
+    }
+
+
+</script>
+</html>
+```
+
+
+
+
+
+![image-20220718201933514](img/image-20220718201933514.png)
+
+
+
+
+
+6. 更改配置
+
+
+
+端口号设置成8093，网关需要放行
+
+
+
+网关配置：
+
+```yaml
+# gateway 网关配置文件
+
+spring:
+  application:
+    name: gateway
+
+
+  cloud:
+    nacos:
+        discovery:
+          # nacos 服务端地址
+          server-addr: localhost:8848
+          # 配置集群名称，也就是机房位置
+          # cluster-name: HZ
+          # namespace: 5544c4b1-2899-4915-94af-f9940c01c2b9
+          # 是否为临时实例，true为临时实例
+          ephemeral: false
+
+    # 网关配置
+    gateway:
+      # 网关路由配置，list集合
+      routes:
+          # 路由的id，唯一
+        - id: user-service
+          # 路由的目标地址 lb就是负载均衡，后面跟服务名称
+          uri: lb://userservice
+          # 路由断言，也就是判断请求是否符合路由规则的条件，list集合
+          predicates:
+              # 按照路径匹配，只要以/user开头就符合要求
+            - Path=/user/**
+          # 路由过滤器，list集合
+          filters:
+              # 添加请求头
+            #- AddRequestHeader=key1,value1
+
+      # 默认过滤器，会对所有的路由请求都生效，list集合
+      default-filters:
+        # 添加请求头
+        - AddRequestHeader=key1,value1
+
+
+      # 全局的跨域处理
+      globalcors:
+        # 解决options请求被拦截问题
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
+          '[/**]':
+            # 允许哪些网站的跨域请求
+            allowedOrigins:
+              - "http://localhost:8080"
+              - "http://localhost:8082"
+              - "http://localhost:8093"
+            # 允许的跨域ajax的请求方式
+            allowedMethods:
+              - "GET"
+              - "POST"
+              - "DELETE"
+              - "PUT"
+              - "OPTIONS"
+            # 允许在请求中携带的头信息
+            allowedHeaders: "*"
+            # 是否允许携带cookie
+            allowCredentials: true
+            # 这次跨域检测的有效期
+            maxAge: 30000
+
+
+
+
+
+
+
+server:
+  port: 10010
+
+
+
+# 设置日志级别，root表示根节点，即整体应用日志级别
+logging:
+  # 日志输出到文件的文件名
+  file:
+    name: gateway.log
+  # 设置日志组
+  group:
+    # 自定义组名，设置当前组中所包含的包
+    mao_pro: mao
+  level:
+    root: info
+    # 为对应组设置日志级别
+    mao_pro: debug
+    # 日志输出格式
+  # pattern:
+  # console: "%d %clr(%p) --- [%16t] %clr(%-40.40c){cyan} : %m %n"
+```
+
+
+
+重启网关
+
+
+
+7. 启动
+
+
+
+![image-20220718195256443](img/image-20220718195256443.png)
+
+
+
+
+
+8. 访问8093
+
+
+
+http://localhost:8093/
+
+
+
+
+
+![image-20220718200847635](img/image-20220718200847635.png)
+
+
+
+
+
+
+
+9. 发起ajax请求
+
+
+
+![image-20220718200945029](img/image-20220718200945029.png)
+
+
+
+
+
+能正常访问
+
+
+
+10. 修改网关配置
+
+
+
+取消get请求的访问
+
+
+
+```yaml
+# gateway 网关配置文件
+
+spring:
+  application:
+    name: gateway
+
+
+  cloud:
+    nacos:
+        discovery:
+          # nacos 服务端地址
+          server-addr: localhost:8848
+          # 配置集群名称，也就是机房位置
+          # cluster-name: HZ
+          # namespace: 5544c4b1-2899-4915-94af-f9940c01c2b9
+          # 是否为临时实例，true为临时实例
+          ephemeral: false
+
+    # 网关配置
+    gateway:
+      # 网关路由配置，list集合
+      routes:
+          # 路由的id，唯一
+        - id: user-service
+          # 路由的目标地址 lb就是负载均衡，后面跟服务名称
+          uri: lb://userservice
+          # 路由断言，也就是判断请求是否符合路由规则的条件，list集合
+          predicates:
+              # 按照路径匹配，只要以/user开头就符合要求
+            - Path=/user/**
+          # 路由过滤器，list集合
+          filters:
+              # 添加请求头
+            #- AddRequestHeader=key1,value1
+
+      # 默认过滤器，会对所有的路由请求都生效，list集合
+      default-filters:
+        # 添加请求头
+        - AddRequestHeader=key1,value1
+
+
+      # 全局的跨域处理
+      globalcors:
+        # 解决options请求被拦截问题
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
+          '[/**]':
+            # 允许哪些网站的跨域请求
+            allowedOrigins:
+              - "http://localhost:8080"
+              - "http://localhost:8082"
+              - "http://localhost:8093"
+            # 允许的跨域ajax的请求方式
+            allowedMethods:
+              #- "GET"
+              - "POST"
+              - "DELETE"
+              - "PUT"
+              - "OPTIONS"
+            # 允许在请求中携带的头信息
+            allowedHeaders: "*"
+            # 是否允许携带cookie
+            allowCredentials: true
+            # 这次跨域检测的有效期
+            maxAge: 30000
+
+
+
+
+
+
+
+server:
+  port: 10010
+
+
+
+# 设置日志级别，root表示根节点，即整体应用日志级别
+logging:
+  # 日志输出到文件的文件名
+  file:
+    name: gateway.log
+  # 设置日志组
+  group:
+    # 自定义组名，设置当前组中所包含的包
+    mao_pro: mao
+  level:
+    root: info
+    # 为对应组设置日志级别
+    mao_pro: debug
+    # 日志输出格式
+  # pattern:
+  # console: "%d %clr(%p) --- [%16t] %clr(%-40.40c){cyan} : %m %n"
+```
+
+
+
+
+
+11. 重启网关
+
+
+
+12. 访问
+
+http://localhost:8093/
+
+
+
+13. 发起ajax请求
+
+
+
+![image-20220718201306412](img/image-20220718201306412.png)
+
+
+
+无法正常访问
+
+
+
+14. 再次更改网关配置
+
+
+
+打开get请求的访问
+
+取消此ip和端口号的访问
+
+
+
+```yaml
+# gateway 网关配置文件
+
+spring:
+  application:
+    name: gateway
+
+
+  cloud:
+    nacos:
+        discovery:
+          # nacos 服务端地址
+          server-addr: localhost:8848
+          # 配置集群名称，也就是机房位置
+          # cluster-name: HZ
+          # namespace: 5544c4b1-2899-4915-94af-f9940c01c2b9
+          # 是否为临时实例，true为临时实例
+          ephemeral: false
+
+    # 网关配置
+    gateway:
+      # 网关路由配置，list集合
+      routes:
+          # 路由的id，唯一
+        - id: user-service
+          # 路由的目标地址 lb就是负载均衡，后面跟服务名称
+          uri: lb://userservice
+          # 路由断言，也就是判断请求是否符合路由规则的条件，list集合
+          predicates:
+              # 按照路径匹配，只要以/user开头就符合要求
+            - Path=/user/**
+          # 路由过滤器，list集合
+          filters:
+              # 添加请求头
+            #- AddRequestHeader=key1,value1
+
+      # 默认过滤器，会对所有的路由请求都生效，list集合
+      default-filters:
+        # 添加请求头
+        - AddRequestHeader=key1,value1
+
+
+      # 全局的跨域处理
+      globalcors:
+        # 解决options请求被拦截问题
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
+          '[/**]':
+            # 允许哪些网站的跨域请求
+            allowedOrigins:
+              - "http://localhost:8080"
+              - "http://localhost:8082"
+              #- "http://localhost:8093"
+            # 允许的跨域ajax的请求方式
+            allowedMethods:
+              - "GET"
+              - "POST"
+              - "DELETE"
+              - "PUT"
+              - "OPTIONS"
+            # 允许在请求中携带的头信息
+            allowedHeaders: "*"
+            # 是否允许携带cookie
+            allowCredentials: true
+            # 这次跨域检测的有效期
+            maxAge: 30000
+
+
+
+
+
+
+
+server:
+  port: 10010
+
+
+
+# 设置日志级别，root表示根节点，即整体应用日志级别
+logging:
+  # 日志输出到文件的文件名
+  file:
+    name: gateway.log
+  # 设置日志组
+  group:
+    # 自定义组名，设置当前组中所包含的包
+    mao_pro: mao
+  level:
+    root: info
+    # 为对应组设置日志级别
+    mao_pro: debug
+    # 日志输出格式
+  # pattern:
+  # console: "%d %clr(%p) --- [%16t] %clr(%-40.40c){cyan} : %m %n"
+```
+
+
+
+15. 重启网关
+
+
+
+16. 访问
+
+http://localhost:8093/
+
+
+
+17. 发起ajax请求
+
+
+
+![image-20220718201618817](img/image-20220718201618817.png)
+
+
+
+
+
+不能访问
+
+
+
+18. 调回初始状态，重启网关
+
+
+
+```yaml
+# gateway 网关配置文件
+
+spring:
+  application:
+    name: gateway
+
+
+  cloud:
+    nacos:
+        discovery:
+          # nacos 服务端地址
+          server-addr: localhost:8848
+          # 配置集群名称，也就是机房位置
+          # cluster-name: HZ
+          # namespace: 5544c4b1-2899-4915-94af-f9940c01c2b9
+          # 是否为临时实例，true为临时实例
+          ephemeral: false
+
+    # 网关配置
+    gateway:
+      # 网关路由配置，list集合
+      routes:
+          # 路由的id，唯一
+        - id: user-service
+          # 路由的目标地址 lb就是负载均衡，后面跟服务名称
+          uri: lb://userservice
+          # 路由断言，也就是判断请求是否符合路由规则的条件，list集合
+          predicates:
+              # 按照路径匹配，只要以/user开头就符合要求
+            - Path=/user/**
+          # 路由过滤器，list集合
+          filters:
+              # 添加请求头
+            #- AddRequestHeader=key1,value1
+
+      # 默认过滤器，会对所有的路由请求都生效，list集合
+      default-filters:
+        # 添加请求头
+        - AddRequestHeader=key1,value1
+
+
+      # 全局的跨域处理
+      globalcors:
+        # 解决options请求被拦截问题
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
+          '[/**]':
+            # 允许哪些网站的跨域请求
+            allowedOrigins:
+              - "http://localhost:8080"
+              - "http://localhost:8082"
+              - "http://localhost:8093"
+            # 允许的跨域ajax的请求方式
+            allowedMethods:
+              - "GET"
+              - "POST"
+              - "DELETE"
+              - "PUT"
+              - "OPTIONS"
+            # 允许在请求中携带的头信息
+            allowedHeaders: "*"
+            # 是否允许携带cookie
+            allowCredentials: true
+            # 这次跨域检测的有效期
+            maxAge: 30000
+
+
+
+
+
+
+
+server:
+  port: 10010
+
+
+
+# 设置日志级别，root表示根节点，即整体应用日志级别
+logging:
+  # 日志输出到文件的文件名
+  file:
+    name: gateway.log
+  # 设置日志组
+  group:
+    # 自定义组名，设置当前组中所包含的包
+    mao_pro: mao
+  level:
+    root: info
+    # 为对应组设置日志级别
+    mao_pro: debug
+    # 日志输出格式
+  # pattern:
+  # console: "%d %clr(%p) --- [%16t] %clr(%-40.40c){cyan} : %m %n"
+```
+
+
+
+
+
+19. 访问
+
+
+
+http://localhost:8093/
+
+
+
+20. 发起ajax请求
+
+
+
+![image-20220718201854007](img/image-20220718201854007.png)
+
+
+
+可以正常访问
+
+
+
+
 
