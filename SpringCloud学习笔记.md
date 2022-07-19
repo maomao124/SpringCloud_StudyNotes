@@ -13732,9 +13732,577 @@ https://github.com/maomao124?tab=repositories&q=Elasticsearch&type=&language=&so
 
 
 
+
+
+
+
 # 微服务保护Sentinel
 
 
 
+## 雪崩问题
 
+微服务调用链路中的某个服务故障，引起整个链路中的所有微服务都不可用，这就是雪崩。
+
+
+
+解决雪崩问题的常见方式有四种：
+
+* 超时处理：设定超时时间，请求超过一定时间没有响应就返回错误信息，不会无休止等待
+* 舱壁模式：限定每个业务能使用的线程数，避免耗尽整个tomcat的资源，因此也叫线程隔离。
+* 熔断降级：由**断路器**统计业务执行的异常比例，如果超出阈值则会**熔断**该业务，拦截访问该业务的一切请求。
+* 流量控制：限制业务访问的QPS，避免服务因流量的突增而故障。
+
+
+
+超时处理：
+
+![image-20220719125919734](img/image-20220719125919734.png)
+
+
+
+舱壁模式：
+
+![image-20220719130018626](img/image-20220719130018626.png)
+
+
+
+熔断降级：
+
+![image-20220719130100294](img/image-20220719130100294.png)
+
+
+
+![image-20220719130112643](img/image-20220719130112643.png)
+
+
+
+
+
+## 服务保护技术
+
+
+
+|                |                  **Sentinel**                  |          **Hystrix**          |
+| :------------: | :--------------------------------------------: | :---------------------------: |
+|    隔离策略    |                   信号量隔离                   |     线程池隔离/信号量隔离     |
+|  熔断降级策略  |            基于慢调用比例或异常比例            |         基于失败比率          |
+|  实时指标实现  |                    滑动窗口                    |    滑动窗口（基于 RxJava）    |
+|    规则配置    |                 支持多种数据源                 |        支持多种数据源         |
+|     扩展性     |                   多个扩展点                   |          插件的形式           |
+| 基于注解的支持 |                      支持                      |             支持              |
+|      限流      |        基于 QPS，支持基于调用关系的限流        |          有限的支持           |
+|    流量整形    |            支持慢启动、匀速排队模式            |            不支持             |
+| 系统自适应保护 |                      支持                      |            不支持             |
+|     控制台     | 开箱即用，可配置规则、查看秒级监控、机器发现等 |            不完善             |
+| 常见框架的适配 |     Servlet、Spring Cloud、Dubbo、gRPC  等     | Servlet、Spring Cloud Netflix |
+
+
+
+
+
+## Sentinel是什么
+
+Sentinel是阿里巴巴开源的一款微服务流量控制组件。
+
+Sentinel 是面向分布式、多语言异构化服务架构的流量治理组件，主要以流量为切入点，从流量控制、流量路由、熔断降级、系统自适应保护等多个维度来帮助用户保障微服务的稳定性。
+
+官网地址：https://sentinelguard.io/zh-cn/index.html
+
+
+
+
+
+
+
+## 特点
+
+* **丰富的应用场景**：Sentinel 承接了阿里巴巴近 10 年的双十一大促流量的核心场景，例如秒杀（即突发流量控制在系统容量可以承受的范围）、消息削峰填谷、集群流量控制、实时熔断下游不可用应用等。
+
+* **完备的实时监控**：Sentinel 同时提供实时的监控功能。您可以在控制台中看到接入应用的单台机器秒级数据，甚至 500 台以下规模的集群的汇总运行情况。
+
+* **广泛的开源生态**：Sentinel 提供开箱即用的与其它开源框架/库的整合模块，例如与 Spring Cloud、Dubbo、gRPC 的整合。您只需要引入相应的依赖并进行简单的配置即可快速地接入 Sentinel。
+
+* **完善的** **SPI** **扩展点**：Sentinel 提供简单易用、完善的 SPI 扩展接口。您可以通过实现扩展接口来快速地定制逻辑。例如定制规则管理、适配动态数据源等。
+
+
+
+
+
+
+
+## 安装Sentinel控制台
+
+
+
+下载
+
+https://github.com/alibaba/Sentinel/releases
+
+
+
+运行命令：
+
+```sh
+java -jar xxx.jar
+```
+
+
+
+|            **配置项**            | **默认值** |  **说明**  |
+| :------------------------------: | :--------: | :--------: |
+|           server.port            |    8080    |  服务端口  |
+| sentinel.dashboard.auth.username |  sentinel  | 默认用户名 |
+| sentinel.dashboard.auth.password |  sentinel  |  默认密码  |
+
+
+
+
+
+
+
+启动：
+
+```sh
+INFO: Sentinel log output type is: file
+INFO: Sentinel log charset is: utf-8
+INFO: Sentinel log base directory is: C:\Users\mao\logs\csp\
+INFO: Sentinel log name use pid is: false
+INFO: Sentinel log level is: INFO
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::               (v2.5.12)
+
+2022-07-19 13:23:56.904  INFO 1308 --- [           main] c.a.c.s.dashboard.DashboardApplication   : Starting DashboardApplication using Java 16.0.2 on mao with PID 1308 (C:\Users\mao\Desktop\sentinel-dashboard-1.8.4.jar started by mao in C:\Users\mao\Desktop)
+2022-07-19 13:23:56.907  INFO 1308 --- [           main] c.a.c.s.dashboard.DashboardApplication   : No active profile set, falling back to 1 default profile: "default"
+2022-07-19 13:23:58.076  INFO 1308 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8080 (http)
+2022-07-19 13:23:58.086  INFO 1308 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-07-19 13:23:58.087  INFO 1308 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.60]
+2022-07-19 13:23:58.175  INFO 1308 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-07-19 13:23:58.175  INFO 1308 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1209 ms
+2022-07-19 13:23:58.242  INFO 1308 --- [           main] c.a.c.s.dashboard.config.WebConfig       : Sentinel servlet CommonFilter registered
+2022-07-19 13:23:58.934  INFO 1308 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8080 (http) with context path ''
+2022-07-19 13:23:58.945  INFO 1308 --- [           main] c.a.c.s.dashboard.DashboardApplication   : Started DashboardApplication in 2.508 seconds (JVM running for 2.991)
+```
+
+
+
+
+
+如果需要修改配置，可以打开jar包修改application.properties
+
+```properties
+#spring settings
+spring.http.encoding.force=true
+spring.http.encoding.charset=UTF-8
+spring.http.encoding.enabled=true
+
+#cookie name setting
+server.servlet.session.cookie.name=sentinel_dashboard_cookie
+
+#logging settings
+logging.level.org.springframework.web=INFO
+logging.file=${user.home}/logs/csp/sentinel-dashboard.log
+logging.pattern.file= %d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n
+#logging.pattern.console= %d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n
+
+#auth settings
+auth.filter.exclude-urls=/,/auth/login,/auth/logout,/registry/machine,/version
+auth.filter.exclude-url-suffixes=htm,html,js,css,map,ico,ttf,woff,png
+# If auth.enabled=false, Sentinel console disable login
+auth.username=sentinel
+auth.password=sentinel
+
+# Inject the dashboard version. It's required to enable
+# filtering in pom.xml for this resource file.
+sentinel.dashboard.version=1.8.4
+
+server.port=8099
+```
+
+
+
+
+
+访问
+
+
+
+![image-20220719133024017](img/image-20220719133024017.png)
+
+
+
+![image-20220719133043143](img/image-20220719133043143.png)
+
+
+
+
+
+
+
+
+
+## 微服务整合Sentinel
+
+
+
+### 1. 创建项目
+
+使用原来的项目或者创建新项目然后复制原来的项目内容到新项目
+
+
+
+2. 导入依赖
+
+在order_service导入Sentinel的依赖
+
+
+
+```xml
+        <!--sentinel 依赖-->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-sentinel</artifactId>
+        </dependency>
+```
+
+
+
+
+
+全部：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>mao</groupId>
+        <artifactId>spring_cloud_demo</artifactId>
+        <version>0.0.1</version>
+        <relativePath>../pom.xml</relativePath> <!-- lookup parent from repository -->
+    </parent>
+
+    <artifactId>order_service</artifactId>
+    <version>0.0.1</version>
+    <name>order_service</name>
+    <description>order_service</description>
+
+    <properties>
+        <java.version>11</java.version>
+    </properties>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!--mysql依赖 spring-boot-->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+        </dependency>
+
+        <!--spring-boot druid连接池依赖-->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid-spring-boot-starter</artifactId>
+        </dependency>
+
+        <!--spring-boot mybatis依赖-->
+        <dependency>
+            <groupId>org.mybatis.spring.boot</groupId>
+            <artifactId>mybatis-spring-boot-starter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!--eureka-client 依赖-->
+        <!--<dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+        </dependency>-->
+
+        <!-- nacos 客户端依赖 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+
+        <!--feign 依赖-->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+
+        <!--httpClient的依赖 主要用于feign连接池-->
+        <dependency>
+            <groupId>io.github.openfeign</groupId>
+            <artifactId>feign-httpclient</artifactId>
+        </dependency>
+
+        <!--feign_api 依赖-->
+        <dependency>
+            <groupId>mao</groupId>
+            <artifactId>feign_api</artifactId>
+            <version>0.0.1</version>
+        </dependency>
+
+        <!--sentinel 依赖-->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-sentinel</artifactId>
+        </dependency>
+
+
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
+```
+
+
+
+
+
+
+
+3. 编写配置
+
+
+
+配置sentinel控制台地址
+
+
+
+```yaml
+# order 业务 配置文件
+
+spring:
+
+
+  # 配置数据源
+  datasource:
+
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/cloud_order
+      username: root
+      password: 20010713
+
+
+
+
+  application:
+    name: orderservice
+
+#eureka:
+#  client:
+#    service-url:
+#      defaultZone: http://127.0.0.1:10080/eureka/
+
+
+  cloud:
+    nacos:
+      discovery:
+        # nacos 服务端地址
+        server-addr: localhost:8848
+        # 配置集群名称，也就是机房位置
+        cluster-name: HZ
+        # namespace: 5544c4b1-2899-4915-94af-f9940c01c2b9
+        # 是否为临时实例，true为临时实例
+        ephemeral: false
+
+
+
+    sentinel:
+      transport:
+        dashboard: localhost:8099
+
+
+
+# 负载均衡
+#userservice:
+#  ribbon:
+#    # 负载均衡规则
+#    NFLoadBalancerRuleClassName: com.alibaba.cloud.nacos.ribbon.NacosRule
+
+
+
+# 开启debug模式，输出调试信息，常用于检查系统运行状况
+#debug: true
+
+# 设置日志级别，root表示根节点，即整体应用日志级别
+logging:
+ # 日志输出到文件的文件名
+  file:
+     name: order_server.log
+  # 设置日志组
+  group:
+  # 自定义组名，设置当前组中所包含的包
+    mao_pro: mao
+  level:
+    root: info
+    # 为对应组设置日志级别
+    mao_pro: debug
+    # 日志输出格式
+# pattern:
+  # console: "%d %clr(%p) --- [%16t] %clr(%-40.40c){cyan} : %m %n"
+
+
+# 配置负载均衡规则
+#userservice:
+#  ribbon:
+#    NFLoadBalancerRuleClassName: com.netflix.loadbalancer.RandomRule
+
+
+ribbon:
+  eager-load:
+    # 开启饥饿加载
+    enabled: true
+    # 指定对 userservice 这个服务饥饿加载
+    clients: userservice
+
+
+server:
+  port: 8081
+
+
+mybatis:
+  type-aliases-package: mao.order_service
+  configuration:
+    map-underscore-to-camel-case: true
+
+
+
+feign:
+  # 配置连接池
+  httpclient:
+    # 开启feign对HttpClient的支持
+    enabled: true
+    # 最大的连接数
+    max-connections: 200
+    # 每个路径的最大连接数
+    max-connections-per-route: 50
+
+  client:
+    config:
+      # default是全局配置，如果是写服务名称，则是针对某个微服务的配置
+      default:
+         #日志级别，包含四种不同的级别：NONE、BASIC、HEADERS、FULL
+        loggerLevel: FULL
+        # 连接超时时间
+        #connectTimeout:
+        # 响应结果的解析器，http远程调用的结果做解析，例如解析json字符串为java对象
+        #decoder:
+        # 请求参数编码，将请求参数编码，便于通过http请求发送
+        #encoder:
+        # 支持的注解格式，默认是SpringMVC的注解
+        #contract:
+        # 失败重试机制，请求失败的重试机制，默认是没有，不过会使用Ribbon的重试
+        #retryer:
+```
+
+
+
+
+
+4. 启动
+
+
+
+```sh
+PS H:\opensoft\nacos\bin> ./startup.cmd -m standalone
+"nacos is starting with standalone"
+
+         ,--.
+       ,--.'|
+   ,--,:  : |                                           Nacos 1.4.3
+,`--.'`|  ' :                       ,---.               Running in stand alone mode, All function modules
+|   :  :  | |                      '   ,'\   .--.--.    Port: 8848
+:   |   \ | :  ,--.--.     ,---.  /   /   | /  /    '   Pid: 14216
+|   : '  '; | /       \   /     \.   ; ,. :|  :  /`./   Console: http://192.168.202.1:8848/nacos/index.html
+'   ' ;.    ;.--.  .-. | /    / ''   | |: :|  :  ;_
+|   | | \   | \__\/: . ..    ' / '   | .; : \  \    `.      https://nacos.io
+'   : |  ; .' ," .--.; |'   ; :__|   :    |  `----.   \
+|   | '`--'  /  /  ,.  |'   | '.'|\   \  /  /  /`--'  /
+'   : |     ;  :   .'   \   :    : `----'  '--'.     /
+;   |.'     |  ,     .-./\   \  /            `--'---'
+'---'        `--`---'     `----'
+
+2022-07-19 13:48:09,789 INFO Bean 'org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler@21d8bcbe' of type [org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+
+2022-07-19 13:48:09,794 INFO Bean 'methodSecurityMetadataSource' of type [org.springframework.security.access.method.DelegatingMethodSecurityMetadataSource] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+
+2022-07-19 13:48:10,291 INFO Tomcat initialized with port(s): 8848 (http)
+
+2022-07-19 13:48:10,695 INFO Root WebApplicationContext: initialization completed in 3395 ms
+
+2022-07-19 13:48:15,516 INFO Initializing ExecutorService 'applicationTaskExecutor'
+
+2022-07-19 13:48:15,707 INFO Adding welcome page: class path resource [static/index.html]
+
+2022-07-19 13:48:16,128 INFO Creating filter chain: Ant [pattern='/**'], []
+
+2022-07-19 13:48:16,161 INFO Creating filter chain: any request, [org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@7bd96822, org.springframework.security.web.context.SecurityContextPersistenceFilter@2dbfcf7, org.springframework.security.web.header.HeaderWriterFilter@3178219a, org.springframework.security.web.csrf.CsrfFilter@3c66b7d8, org.springframework.security.web.authentication.logout.LogoutFilter@1b13467c, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@38cedb7d, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@3f598450, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@64dae3b7, org.springframework.security.web.session.SessionManagementFilter@56e9a474, org.springframework.security.web.access.ExceptionTranslationFilter@48a663e9]
+
+2022-07-19 13:48:16,261 INFO Initializing ExecutorService 'taskScheduler'
+
+2022-07-19 13:48:16,290 INFO Exposing 2 endpoint(s) beneath base path '/actuator'
+
+2022-07-19 13:48:16,431 INFO Tomcat started on port(s): 8848 (http) with context path '/nacos'
+
+2022-07-19 13:48:16,438 INFO Nacos started successfully in stand alone mode. use embedded storage
+```
+
+
+
+```sh
+INFO: Sentinel log output type is: file
+INFO: Sentinel log charset is: utf-8
+INFO: Sentinel log base directory is: C:\Users\mao\logs\csp\
+INFO: Sentinel log name use pid is: false
+INFO: Sentinel log level is: INFO
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::               (v2.5.12)
+
+2022-07-19 13:47:45.524  INFO 13608 --- [           main] c.a.c.s.dashboard.DashboardApplication   : Starting DashboardApplication using Java 16.0.2 on mao with PID 13608 (H:\opensoft\Sentinel\sentinel-dashboard-1.8.4.jar started by mao in H:\opensoft\Sentinel)
+2022-07-19 13:47:45.528  INFO 13608 --- [           main] c.a.c.s.dashboard.DashboardApplication   : No active profile set, falling back to 1 default profile: "default"
+2022-07-19 13:47:46.697  INFO 13608 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8099 (http)
+2022-07-19 13:47:46.708  INFO 13608 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-07-19 13:47:46.709  INFO 13608 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.60]
+2022-07-19 13:47:46.800  INFO 13608 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-07-19 13:47:46.801  INFO 13608 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1200 ms
+2022-07-19 13:47:46.870  INFO 13608 --- [           main] c.a.c.s.dashboard.config.WebConfig       : Sentinel servlet CommonFilter registered
+2022-07-19 13:47:47.522  INFO 13608 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8099 (http) with context path ''
+2022-07-19 13:47:47.534  INFO 13608 --- [           main] c.a.c.s.dashboard.DashboardApplication   : Started DashboardApplication in 2.442 seconds (JVM running for 2.878)
+```
 
