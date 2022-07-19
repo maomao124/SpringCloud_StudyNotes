@@ -15041,3 +15041,606 @@ public class OrderController
 
 ### 流控模式-链路
 
+链路模式：只针对从指定链路访问到本资源的请求做统计，判断是否超过阈值。
+
+例如有两条请求链路：
+
+* /test1  ->  /common
+* /test2  ->  /common
+
+
+
+如果只希望统计从/test2进入到/common的请求，则可以这样配置：
+
+
+
+![image-20220719205130357](img/image-20220719205130357.png)
+
+
+
+
+
+
+
+### 链路模式测试
+
+需求：有查询订单和创建订单业务，两者都需要查询商品。针对从查询订单进入到查询商品的请求统计，并设置限流。
+
+
+
+在OrderService中添加一个queryGoods方法，不用实现业务
+
+
+
+```java
+package mao.order_service.service;
+
+import mao.feign.entity.User;
+import mao.feign.feign.UserClient;
+import mao.order_service.entity.Order;
+
+import mao.order_service.mapper.OrderMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+/**
+ * Project name(项目名称)：spring_cloud_demo
+ * Package(包名): mao.order_service.service
+ * Class(类名): OrderService
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/9
+ * Time(创建时间)： 13:57
+ * Version(版本): 1.0
+ * Description(描述)： OrderService
+ */
+
+@Service
+public class OrderService
+{
+    @Autowired
+    private OrderMapper orderMapper;
+
+    @Autowired
+    private RestTemplate restTemplate;
+
+    @Autowired
+    private UserClient userClient;
+
+    /**
+     * 获取订单数据
+     *
+     * @param orderId 订单的id
+     * @return Order
+     */
+    public Order queryOrderById(Long orderId)
+    {
+        // 根据orderId获取订单数据
+        Order order = orderMapper.findById(orderId);
+        //获得用户的id
+        Long userId = order.getUserId();
+        //发起远程调用
+        //url
+        //String url = "http://userservice/user/" + userId;
+        //User user = restTemplate.getForObject(url, User.class);
+        //使用feign发起远程调用
+        User user = userClient.queryById(userId);
+        //放入order里
+        order.setUser(user);
+        //返回数据
+        return order;
+    }
+
+    /**
+     * 模拟查询商品业务
+     *
+     * @return goods
+     */
+    public String queryGoods()
+    {
+        return "goods";
+    }
+}
+```
+
+
+
+
+
+在OrderController中，改造/order/query端点，调用OrderService中的queryGoods方法
+
+
+
+```java
+package mao.order_service.controller;
+
+import mao.order_service.entity.Order;
+import mao.order_service.service.OrderService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * Project name(项目名称)：spring_cloud_demo
+ * Package(包名): mao.order_service.controller
+ * Class(类名): OrderController
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/9
+ * Time(创建时间)： 13:59
+ * Version(版本): 1.0
+ * Description(描述)： OrderController
+ */
+
+@RestController
+@RequestMapping("order")
+public class OrderController
+{
+    @Autowired
+    private OrderService orderService;
+
+
+    /**
+     * 获取订单数据
+     *
+     * @param orderId 订单的id
+     * @return Order
+     */
+    @GetMapping("{orderId}")
+    public Order queryOrderByUserId(@PathVariable("orderId") Long orderId)
+    {
+        return orderService.queryOrderById(orderId);
+    }
+
+    /**
+     * 模拟查询订单
+     *
+     * @return query
+     */
+    @GetMapping("/query")
+    public String query()
+    {
+        //return "query";
+        return "query" + orderService.queryGoods();
+    }
+
+    /**
+     * 模拟
+     *
+     * @return update
+     */
+    @GetMapping("/update")
+    public String update()
+    {
+        return "update";
+    }
+}
+```
+
+
+
+
+
+在OrderController中添加一个/order/save的端点，调用OrderService的queryGoods方法
+
+
+
+```java
+package mao.order_service.controller;
+
+import mao.order_service.entity.Order;
+import mao.order_service.service.OrderService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * Project name(项目名称)：spring_cloud_demo
+ * Package(包名): mao.order_service.controller
+ * Class(类名): OrderController
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/9
+ * Time(创建时间)： 13:59
+ * Version(版本): 1.0
+ * Description(描述)： OrderController
+ */
+
+@RestController
+@RequestMapping("order")
+public class OrderController
+{
+    @Autowired
+    private OrderService orderService;
+
+
+    /**
+     * 获取订单数据
+     *
+     * @param orderId 订单的id
+     * @return Order
+     */
+    @GetMapping("{orderId}")
+    public Order queryOrderByUserId(@PathVariable("orderId") Long orderId)
+    {
+        return orderService.queryOrderById(orderId);
+    }
+
+    /**
+     * 模拟查询订单
+     *
+     * @return query
+     */
+    @GetMapping("/query")
+    public String query()
+    {
+        //return "query";
+        return "query" + orderService.queryGoods();
+    }
+
+    /**
+     * 模拟
+     *
+     * @return update
+     */
+    @GetMapping("/update")
+    public String update()
+    {
+        return "update";
+    }
+
+    /**
+     * 模拟创建订单
+     *
+     * @return save
+     */
+    @GetMapping("/save")
+    public String save()
+    {
+        return "save" + orderService.queryGoods();
+    }
+}
+```
+
+
+
+
+
+Sentinel默认只标记Controller中的方法为资源，如果要标记其它方法，需要利用@SentinelResource注解
+
+
+
+```java
+package mao.order_service.service;
+
+import com.alibaba.csp.sentinel.annotation.SentinelResource;
+import mao.feign.entity.User;
+import mao.feign.feign.UserClient;
+import mao.order_service.entity.Order;
+
+import mao.order_service.mapper.OrderMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+/**
+ * Project name(项目名称)：spring_cloud_demo
+ * Package(包名): mao.order_service.service
+ * Class(类名): OrderService
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/9
+ * Time(创建时间)： 13:57
+ * Version(版本): 1.0
+ * Description(描述)： OrderService
+ */
+
+@Service
+public class OrderService
+{
+    @Autowired
+    private OrderMapper orderMapper;
+
+    @Autowired
+    private RestTemplate restTemplate;
+
+    @Autowired
+    private UserClient userClient;
+
+    /**
+     * 获取订单数据
+     *
+     * @param orderId 订单的id
+     * @return Order
+     */
+    public Order queryOrderById(Long orderId)
+    {
+        // 根据orderId获取订单数据
+        Order order = orderMapper.findById(orderId);
+        //获得用户的id
+        Long userId = order.getUserId();
+        //发起远程调用
+        //url
+        //String url = "http://userservice/user/" + userId;
+        //User user = restTemplate.getForObject(url, User.class);
+        //使用feign发起远程调用
+        User user = userClient.queryById(userId);
+        //放入order里
+        order.setUser(user);
+        //返回数据
+        return order;
+    }
+
+    /**
+     * 模拟查询商品业务
+     *
+     * @return goods
+     */
+    @SentinelResource("goods")
+    public String queryGoods()
+    {
+        return "goods";
+    }
+}
+```
+
+
+
+
+
+Sentinel默认会将Controller方法做context整合，导致链路模式的流控失效，需要修改application.yml，添加配置：
+
+```yaml
+spring:
+  cloud:
+    sentinel:
+      # 关闭context整合
+      web-context-unify: false 
+
+```
+
+
+
+```yaml
+# order 业务 配置文件
+
+spring:
+
+
+  # 配置数据源
+  datasource:
+
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/cloud_order
+      username: root
+      password: 20010713
+
+
+
+
+  application:
+    name: orderservice
+
+#eureka:
+#  client:
+#    service-url:
+#      defaultZone: http://127.0.0.1:10080/eureka/
+
+
+  cloud:
+    nacos:
+      discovery:
+        # nacos 服务端地址
+        server-addr: localhost:8848
+        # 配置集群名称，也就是机房位置
+        cluster-name: HZ
+        # namespace: 5544c4b1-2899-4915-94af-f9940c01c2b9
+        # 是否为临时实例，true为临时实例
+        ephemeral: false
+
+
+
+    sentinel:
+      transport:
+        dashboard: localhost:8099
+      # 关闭context整合
+      web-context-unify: false
+
+
+
+# 负载均衡
+#userservice:
+#  ribbon:
+#    # 负载均衡规则
+#    NFLoadBalancerRuleClassName: com.alibaba.cloud.nacos.ribbon.NacosRule
+
+
+
+# 开启debug模式，输出调试信息，常用于检查系统运行状况
+#debug: true
+
+# 设置日志级别，root表示根节点，即整体应用日志级别
+logging:
+ # 日志输出到文件的文件名
+  file:
+     name: order_server.log
+  # 设置日志组
+  group:
+  # 自定义组名，设置当前组中所包含的包
+    mao_pro: mao
+  level:
+    root: info
+    # 为对应组设置日志级别
+    mao_pro: debug
+    # 日志输出格式
+# pattern:
+  # console: "%d %clr(%p) --- [%16t] %clr(%-40.40c){cyan} : %m %n"
+
+
+# 配置负载均衡规则
+#userservice:
+#  ribbon:
+#    NFLoadBalancerRuleClassName: com.netflix.loadbalancer.RandomRule
+
+
+ribbon:
+  eager-load:
+    # 开启饥饿加载
+    enabled: true
+    # 指定对 userservice 这个服务饥饿加载
+    clients: userservice
+
+
+server:
+  port: 8081
+
+
+mybatis:
+  type-aliases-package: mao.order_service
+  configuration:
+    map-underscore-to-camel-case: true
+
+
+
+feign:
+  # 配置连接池
+  httpclient:
+    # 开启feign对HttpClient的支持
+    enabled: true
+    # 最大的连接数
+    max-connections: 200
+    # 每个路径的最大连接数
+    max-connections-per-route: 50
+
+  client:
+    config:
+      # default是全局配置，如果是写服务名称，则是针对某个微服务的配置
+      default:
+         #日志级别，包含四种不同的级别：NONE、BASIC、HEADERS、FULL
+        loggerLevel: BASIC
+        # 连接超时时间
+        #connectTimeout:
+        # 响应结果的解析器，http远程调用的结果做解析，例如解析json字符串为java对象
+        #decoder:
+        # 请求参数编码，将请求参数编码，便于通过http请求发送
+        #encoder:
+        # 支持的注解格式，默认是SpringMVC的注解
+        #contract:
+        # 失败重试机制，请求失败的重试机制，默认是没有，不过会使用Ribbon的重试
+        #retryer:
+```
+
+
+
+
+
+
+
+
+
+重启服务
+
+
+
+访问
+
+http://localhost:8081/order/query
+
+http://localhost:8081/order/save
+
+
+
+
+
+
+
+
+
+给queryGoods设置限流规则，从/order/query进入queryGoods的方法限制QPS必须小于3
+
+
+
+![image-20220719211235035](img/image-20220719211235035.png)
+
+
+
+
+
+
+
+点击/order/query的goods
+
+
+
+![image-20220719211329766](img/image-20220719211329766.png)
+
+
+
+![image-20220719211408914](img/image-20220719211408914.png)
+
+
+
+
+
+点击新增
+
+
+
+![image-20220719211451704](img/image-20220719211451704.png)
+
+
+
+
+
+进入浏览器，输入http://localhost:8081/order/save，疯狂刷新
+
+
+
+![image-20220719211655184](img/image-20220719211655184.png)
+
+
+
+![image-20220719211707486](img/image-20220719211707486.png)
+
+
+
+无影响
+
+
+
+
+
+进入浏览器，输入http://localhost:8081/order/query，疯狂刷新
+
+
+
+![image-20220719212027128](img/image-20220719212027128.png)
+
+
+
+
+
+有影响
+
+
+
+
+
+
+
+
+
+### 流控效果
+
+
+
