@@ -14708,3 +14708,336 @@ http://localhost:8099/#/login
 
 ## 限流规则
 
+### 簇点链路
+
+簇点链路：就是项目内的调用链路，链路中被监控的每个接口就是一个资源。默认情况下sentinel会监控SpringMVC 的每一个端点（Endpoint），因此SpringMVC的每一个端点（Endpoint）就是调用链路中的一个资源。 流控、熔断等都是针对簇点链路中的资源来设置的
+
+
+
+![image-20220719195512089](img/image-20220719195512089.png)
+
+
+
+
+
+### 限制QPS
+
+
+
+点击资源/order/{orderId}后面的流控按钮，就可以弹出表单。表单中可以添加流控规则
+
+
+
+![image-20220719195638352](img/image-20220719195638352.png)
+
+
+
+
+
+限制QPS为10
+
+
+
+![image-20220719195730628](img/image-20220719195730628.png)
+
+
+
+点击新增
+
+
+
+![image-20220719195822614](img/image-20220719195822614.png)
+
+
+
+
+
+
+
+使用jmeter测试
+
+
+
+![image-20220719195943324](img/image-20220719195943324.png)
+
+
+
+![image-20220719200017392](img/image-20220719200017392.png)
+
+
+
+
+
+![image-20220719200032040](img/image-20220719200032040.png)
+
+
+
+![image-20220719200057053](img/image-20220719200057053.png)
+
+
+
+
+
+![image-20220719200116294](img/image-20220719200116294.png)
+
+
+
+
+
+点击开始
+
+
+
+![image-20220719200213536](img/image-20220719200213536.png)
+
+
+
+![image-20220719200854100](img/image-20220719200854100.png)
+
+
+
+
+
+![image-20220719200937994](img/image-20220719200937994.png)
+
+
+
+
+
+
+
+![image-20220719201030122](img/image-20220719201030122.png)
+
+
+
+
+
+![image-20220719201127693](img/image-20220719201127693.png)
+
+
+
+
+
+![image-20220719201208571](img/image-20220719201208571.png)
+
+
+
+
+
+
+
+
+
+### 流控模式
+
+在添加限流规则时，点击高级选项，可以选择三种流控模式：
+
+* 直接：统计当前资源的请求，触发阈值时对当前资源直接限流，也是默认的模式
+* 关联：统计与当前资源相关的另一个资源，触发阈值时，对当前资源限
+* 链路：统计从指定链路访问到本资源的请求，触发阈值时，对指定链路限流
+
+
+
+
+
+### 流控模式-关联
+
+使用场景：比如用户支付时需要修改订单状态，同时用户要查询订单。查询和修改操作会争抢数据库锁，产生竞争。业务需求是有限支付和更新订单的业务，因此当修改订单业务触发阈值时，需要对查询订单业务限流
+
+
+
+![image-20220719201728400](img/image-20220719201728400.png)
+
+
+
+当/write资源访问量触发阈值时，就会对/read资源限流，避免影响/write资源
+
+
+
+满足下面条件可以使用关联模式：
+
+* 两个有竞争关系的资源
+* 一个优先级较高，一个优先级较低
+
+
+
+
+
+### 关联模式测试
+
+需求：
+
+* 在OrderController新建两个端点：/order/query和/order/update，无需实现业务
+
+* 配置流控规则，当/order/ update资源被访问的QPS超过5时，对/order/query请求限流
+
+
+
+
+
+```java
+package mao.order_service.controller;
+
+import mao.order_service.entity.Order;
+import mao.order_service.service.OrderService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * Project name(项目名称)：spring_cloud_demo
+ * Package(包名): mao.order_service.controller
+ * Class(类名): OrderController
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/9
+ * Time(创建时间)： 13:59
+ * Version(版本): 1.0
+ * Description(描述)： OrderController
+ */
+
+@RestController
+@RequestMapping("order")
+public class OrderController
+{
+    @Autowired
+    private OrderService orderService;
+
+
+    /**
+     * 获取订单数据
+     *
+     * @param orderId 订单的id
+     * @return Order
+     */
+    @GetMapping("{orderId}")
+    public Order queryOrderByUserId(@PathVariable("orderId") Long orderId)
+    {
+        return orderService.queryOrderById(orderId);
+    }
+
+    @GetMapping("/query")
+    public String query()
+    {
+        return "query";
+    }
+
+    @GetMapping("/update")
+    public String update()
+    {
+        return "update";
+    }
+}
+```
+
+
+
+
+
+重启服务
+
+
+
+进入控制台
+
+![image-20220719202540402](img/image-20220719202540402.png)
+
+
+
+
+
+点击/order/query
+
+
+
+![image-20220719202652356](img/image-20220719202652356.png)
+
+
+
+点击新增
+
+
+
+![image-20220719202715530](img/image-20220719202715530.png)
+
+
+
+
+
+进入jemter
+
+对http://localhost:8081/order/query做测试
+
+
+
+![image-20220719202939273](img/image-20220719202939273.png)
+
+
+
+
+
+5秒100次请求
+
+
+
+![image-20220719203135857](img/image-20220719203135857.png)
+
+
+
+![image-20220719203220738](img/image-20220719203220738.png)
+
+
+
+对query本身无影响
+
+
+
+
+
+
+
+对http://localhost:8081/order/update做测试
+
+![image-20220719203259877](img/image-20220719203259877.png)
+
+
+
+![image-20220719203354817](img/image-20220719203354817.png)
+
+
+
+不间断
+
+
+
+![image-20220719204018483](img/image-20220719204018483.png)
+
+
+
+
+
+![image-20220719204037233](img/image-20220719204037233.png)
+
+
+
+
+
+![image-20220719204100966](img/image-20220719204100966.png)
+
+
+
+
+
+![image-20220719204207463](img/image-20220719204207463.png)
+
+
+
+
+
+
+
+### 流控模式-链路
+
