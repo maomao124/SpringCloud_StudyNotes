@@ -13957,7 +13957,7 @@ server.port=8099
 
 
 
-2. 导入依赖
+### 2. 导入依赖
 
 在order_service导入Sentinel的依赖
 
@@ -14089,7 +14089,7 @@ server.port=8099
 
 
 
-3. 编写配置
+### 3. 编写配置
 
 
 
@@ -14229,7 +14229,7 @@ feign:
 
 
 
-4. 启动
+### 4. 启动
 
 
 
@@ -14328,7 +14328,7 @@ INFO: Sentinel log level is: INFO
 
 
 
-5. 下载java8
+### 5. 下载java8
 
 有的可以跳过
 
@@ -14381,7 +14381,7 @@ PS C:\Users\mao\.jdks\corretto-1.8.0_332>
 
 
 
-6. 拷贝jre到Sentinel所在的目录
+### 6. 拷贝jre到Sentinel所在的目录
 
 
 
@@ -14423,7 +14423,7 @@ pause
 
 
 
-7. 编写脚本
+### 7. 编写脚本
 
 名字为运行.bat
 
@@ -14439,7 +14439,7 @@ pause
 
 
 
-8. 双击运行
+### 8. 双击运行
 
 
 
@@ -14552,7 +14552,7 @@ INFO: Sentinel log name use pid is: false
 
 
 
-9. 重启项目
+### 9. 重启项目
 
 
 
@@ -14562,7 +14562,7 @@ INFO: Sentinel log name use pid is: false
 
 
 
-10. 访问
+### 10. 访问
 
 
 
@@ -14672,7 +14672,7 @@ Sentinel控制台没有报错：
 
 
 
-11. 登录Sentinel控制台
+### 11. 登录Sentinel控制台
 
 
 
@@ -14701,4 +14701,10 @@ http://localhost:8099/#/login
 
 
 
+
+
+
+
+
+## 限流规则
 
