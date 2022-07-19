@@ -14306,3 +14306,399 @@ INFO: Sentinel log level is: INFO
 2022-07-19 13:47:47.534  INFO 13608 --- [           main] c.a.c.s.dashboard.DashboardApplication   : Started DashboardApplication in 2.442 seconds (JVM running for 2.878)
 ```
 
+
+
+
+
+![image-20220719143857335](img/image-20220719143857335.png)
+
+
+
+
+
+
+
+![image-20220719144845426](img/image-20220719144845426.png)
+
+
+
+**到这里我发现访问order_service服务的时候Sentinel控制台报错，去网上查找原因是因为我使用的是spring-cloud-alibaba-dependencies的2.2.6.RELEASE版本，Sentinel需要1.8.1版本，从网上下载1.8.1版本后启动就报错，查找原因是因为jdk的版本太高，导致无法启动，1.8.4版本能启动，但是不能使用。因为jdk版本问题，我需要更改环境变量的值，但是我不想更改，如果更改了环境变量，其它的大部分项目都不能运行了，因为类版本太高，要么降低Sentinel版本，要么调高spring-cloud-alibaba-dependencies版本。于是我找到了解决方案：**
+
+
+
+
+
+5. 下载java8
+
+有的可以跳过
+
+
+
+https://www.java.com/zh-CN/download/
+
+
+
+现在下载jdk8需要登录了
+
+可以从idea下载
+
+
+
+![image-20220719150821472](img/image-20220719150821472.png)
+
+
+
+
+
+
+
+```sh
+PS C:\Users\mao\.jdks\corretto-1.8.0_332> ls
+
+
+    目录: C:\Users\mao\.jdks\corretto-1.8.0_332
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----         2022/7/19     15:08                bin
+d-----         2022/7/19     15:08                demo
+d-----         2022/7/19     15:08                include
+d-----         2022/7/19     15:08                jre
+d-----         2022/7/19     15:08                lib
+d-----         2022/7/19     15:08                sample
+-a----         2022/7/19     15:08           1522 ASSEMBLY_EXCEPTION
+-a----         2022/7/19     15:08        6536378 javafx-src.zip
+-a----         2022/7/19     15:08          19274 LICENSE
+-a----         2022/7/19     15:08             94 release
+-a----         2022/7/19     15:08       51752582 src.zip
+-a----         2022/7/19     15:08         157063 THIRD_PARTY_README
+-a----         2022/7/19     15:08             11 version.txt
+
+
+PS C:\Users\mao\.jdks\corretto-1.8.0_332>
+```
+
+
+
+6. 拷贝jre到Sentinel所在的目录
+
+
+
+```sh
+PS H:\opensoft\Sentinel> ls
+
+
+    目录: H:\opensoft\Sentinel
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----         2022/7/19     15:11                jre
+d-----          2021/2/4     15:30                Sentinel-1.8.1
+-a----         2022/7/19     14:36        2317315 Sentinel-1.8.1.7z
+-a----         2022/7/19     13:32        2334227 Sentinel-1.8.4.7z
+-a----         2022/7/19     14:03       21242700 sentinel-dashboard-1.8.1.jar
+-a----         2022/7/19     13:28       22670011 sentinel-dashboard-1.8.4.jar
+-a----         2022/7/19     14:27             88 运行.bat
+
+
+PS H:\opensoft\Sentinel>
+```
+
+
+
+
+
+如果没有jre可以直接使用jdk也可以使用命令：
+
+```sh
+bin\jlink.exe --module-path jmods --add-modules java.desktop --output jre
+pause
+```
+
+
+
+
+
+
+
+7. 编写脚本
+
+名字为运行.bat
+
+内容：
+
+```sh
+%~dp0\jre\bin\java -version
+%~dp0\jre\bin\java -jar sentinel-dashboard-1.8.1.jar
+pause
+```
+
+
+
+
+
+8. 双击运行
+
+
+
+```sh
+H:\opensoft\Sentinel>H:\opensoft\Sentinel\\jre\bin\java -version
+openjdk version "1.8.0_332"
+OpenJDK Runtime Environment Corretto-8.332.08.1 (build 1.8.0_332-b08)
+OpenJDK 64-Bit Server VM Corretto-8.332.08.1 (build 25.332-b08, mixed mode)
+
+H:\opensoft\Sentinel>H:\opensoft\Sentinel\\jre\bin\java -jar sentinel-dashboard-1.8.1.jar
+INFO: Sentinel log output type is: file
+INFO: Sentinel log charset is: utf-8
+INFO: Sentinel log base directory is: C:\Users\mao\logs\csp\
+INFO: Sentinel log name use pid is: false
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::        (v2.0.5.RELEASE)
+
+2022-07-19 15:13:55.346  INFO 14852 --- [           main] c.a.c.s.dashboard.DashboardApplication   : Starting DashboardApplication on mao with PID 14852 (H:\opensoft\Sentinel\sentinel-dashboard-1.8.1.jar started by mao in H:\opensoft\Sentinel)
+2022-07-19 15:13:55.349  INFO 14852 --- [           main] c.a.c.s.dashboard.DashboardApplication   : No active profile set, falling back to default profiles: default
+2022-07-19 15:13:55.388  INFO 14852 --- [           main] ConfigServletWebServerApplicationContext : Refreshing org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext@5ecddf8f: startup date [Tue Jul 19 15:13:55 CST 2022]; root of context hierarchy
+2022-07-19 15:13:56.646  INFO 14852 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8099 (http)
+2022-07-19 15:13:56.673  INFO 14852 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-07-19 15:13:56.673  INFO 14852 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet Engine: Apache Tomcat/8.5.34
+2022-07-19 15:13:56.684  INFO 14852 --- [ost-startStop-1] o.a.catalina.core.AprLifecycleListener   : The APR based Apache Tomcat Native library which allows optimal performance in production environments was not found on the java.library.path: [H:\opensoft\Sentinel\jre\bin;C:\WINDOWS\Sun\Java\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\Users\mao\.jdks\openjdk-16.0.2\bin;C:\Program Files (x86)\VMware\VMware Workstation\bin\;C:\Program Files\Microsoft MPI\Bin\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files (x86)\Microsoft SQL Server\150\Tools\Binn\;C:\Program Files\Microsoft SQL Server\150\Tools\Binn\;C:\Program Files\Microsoft SQL Server\150\DTS\Binn\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Microsoft SQL Server\150\DTS\Binn\;C:\Program Files\Azure Data Studio\bin;C:\Program Files\MySQL\MySQL Server 8.0\bin;C:\Program Files\redis;C:\Program Files\nodejs\;C:\ProgramData\chocolatey\bin;C:\Program Files\zookeeper\bin;C:\Program Files\JetBrains\IntelliJ IDEA 2021.2.2\plugins\maven\lib\maven3\bin;C:\Program Files\erl-24.1\bin;C:\Program Files\RabbitMQ Server\rabbitmq_server-3.9.14\bin;C:\Program Files\Git\bin;C:\Program Files\elasticsearch-8.1.3\bin;H:\opensoft\kibana-8.1.3\bin;H:\opensoft\apache-jmeter-5.4.3\bin;H:\opensoft\logstash-8.1.3\bin;;C:\Program Files\Docker\Docker\resources\bin;C:\ProgramData\DockerDesktop\version-bin;C:\Users\mao\AppData\Local\Programs\Python\Python39\Scripts\;C:\Users\mao\AppData\Local\Programs\Python\Python39\;C:\Program Files\MySQL\MySQL Shell 8.0\bin\;C:\Users\mao\AppData\Local\Microsoft\WindowsApps;C:\Users\mao\.dotnet\tools;C:\Program Files\Azure Data Studio\bin;C:\Users\mao\AppData\Local\GitHubDesktop\bin;C:\Program Files\MySQL\MySQL Server 8.0\bin;;C:\Program Files\JetBrains\PyCharm 2021.2.2\bin;;C:\Users\mao\AppData\Roaming\npm;C:\Users\mao\AppData\Local\Pandoc\;.]
+2022-07-19 15:13:56.753  INFO 14852 --- [ost-startStop-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-07-19 15:13:56.754  INFO 14852 --- [ost-startStop-1] o.s.web.context.ContextLoader            : Root WebApplicationContext: initialization completed in 1366 ms
+2022-07-19 15:13:56.819  INFO 14852 --- [ost-startStop-1] c.a.c.s.dashboard.config.WebConfig       : Sentinel servlet CommonFilter registered
+2022-07-19 15:13:56.892  INFO 14852 --- [ost-startStop-1] o.s.b.w.servlet.FilterRegistrationBean   : Mapping filter: 'characterEncodingFilter' to: [/*]
+2022-07-19 15:13:56.893  INFO 14852 --- [ost-startStop-1] o.s.b.w.servlet.FilterRegistrationBean   : Mapping filter: 'hiddenHttpMethodFilter' to: [/*]
+2022-07-19 15:13:56.894  INFO 14852 --- [ost-startStop-1] o.s.b.w.servlet.FilterRegistrationBean   : Mapping filter: 'httpPutFormContentFilter' to: [/*]
+2022-07-19 15:13:56.894  INFO 14852 --- [ost-startStop-1] o.s.b.w.servlet.FilterRegistrationBean   : Mapping filter: 'requestContextFilter' to: [/*]
+2022-07-19 15:13:56.895  INFO 14852 --- [ost-startStop-1] o.s.b.w.servlet.FilterRegistrationBean   : Mapping filter: 'authenticationFilter' to urls: [/*]
+2022-07-19 15:13:56.895  INFO 14852 --- [ost-startStop-1] o.s.b.w.servlet.FilterRegistrationBean   : Mapping filter: 'sentinelFilter' to urls: [/*]
+2022-07-19 15:13:56.895  INFO 14852 --- [ost-startStop-1] o.s.b.w.servlet.ServletRegistrationBean  : Servlet dispatcherServlet mapped to [/]
+2022-07-19 15:13:57.322  INFO 14852 --- [           main] o.s.w.s.handler.SimpleUrlHandlerMapping  : Mapped URL path [/**/favicon.ico] onto handler of type [class org.springframework.web.servlet.resource.ResourceHttpRequestHandler]
+2022-07-19 15:13:57.448  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerAdapter : Looking for @ControllerAdvice: org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext@5ecddf8f: startup date [Tue Jul 19 15:13:55 CST 2022]; root of context hierarchy
+2022-07-19 15:13:57.524  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/metric/queryTopResourceMetric.json],produces=[application/json]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<?> com.alibaba.csp.sentinel.dashboard.controller.MetricController.queryTopResourceMetric(java.lang.String,java.lang.Integer,java.lang.Integer,java.lang.Boolean,java.lang.Long,java.lang.Long,java.lang.String)
+2022-07-19 15:13:57.526  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/metric/queryByAppAndResource.json],produces=[application/json]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<?> com.alibaba.csp.sentinel.dashboard.controller.MetricController.queryByAppAndResource(java.lang.String,java.lang.String,java.lang.Long,java.lang.Long)
+2022-07-19 15:13:57.529  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/version],methods=[GET]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<java.lang.String> com.alibaba.csp.sentinel.dashboard.controller.VersionController.apiGetVersion()
+2022-07-19 15:13:57.532  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/auth/check],methods=[POST]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<?> com.alibaba.csp.sentinel.dashboard.controller.AuthController.check(javax.servlet.http.HttpServletRequest)
+2022-07-19 15:13:57.532  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/auth/logout],methods=[POST]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<?> com.alibaba.csp.sentinel.dashboard.controller.AuthController.logout(javax.servlet.http.HttpServletRequest)
+2022-07-19 15:13:57.533  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/auth/login],methods=[POST]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<com.alibaba.csp.sentinel.dashboard.auth.AuthService$AuthUser> com.alibaba.csp.sentinel.dashboard.controller.AuthController.login(javax.servlet.http.HttpServletRequest,java.lang.String,java.lang.String)
+2022-07-19 15:13:57.537  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/cluster/config/modify_single],methods=[POST]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<java.lang.Boolean> com.alibaba.csp.sentinel.dashboard.controller.cluster.ClusterConfigController.apiModifyClusterConfig(java.lang.String)
+2022-07-19 15:13:57.538  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/cluster/state/{app}],methods=[GET]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<java.util.List<com.alibaba.csp.sentinel.dashboard.domain.cluster.state.ClusterUniversalStatePairVO>> com.alibaba.csp.sentinel.dashboard.controller.cluster.ClusterConfigController.apiGetClusterStateOfApp(java.lang.String)
+2022-07-19 15:13:57.538  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/cluster/state_single],methods=[GET]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<com.alibaba.csp.sentinel.dashboard.domain.cluster.state.ClusterUniversalStateVO> com.alibaba.csp.sentinel.dashboard.controller.cluster.ClusterConfigController.apiGetClusterState(java.lang.String,java.lang.String,java.lang.Integer)
+2022-07-19 15:13:57.539  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/cluster/client_state/{app}],methods=[GET]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<java.util.List<com.alibaba.csp.sentinel.dashboard.domain.cluster.state.AppClusterClientStateWrapVO>> com.alibaba.csp.sentinel.dashboard.controller.cluster.ClusterConfigController.apiGetClusterClientStateOfApp(java.lang.String)
+2022-07-19 15:13:57.540  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/cluster/server_state/{app}],methods=[GET]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<java.util.List<com.alibaba.csp.sentinel.dashboard.domain.cluster.state.AppClusterServerStateWrapVO>> com.alibaba.csp.sentinel.dashboard.controller.cluster.ClusterConfigController.apiGetClusterServerStateOfApp(java.lang.String)
+2022-07-19 15:13:57.543  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/gateway/flow/save.json],methods=[POST]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<com.alibaba.csp.sentinel.dashboard.datasource.entity.gateway.GatewayFlowRuleEntity> com.alibaba.csp.sentinel.dashboard.controller.gateway.GatewayFlowRuleController.updateFlowRule(com.alibaba.csp.sentinel.dashboard.domain.vo.gateway.rule.UpdateFlowRuleReqVo)
+2022-07-19 15:13:57.544  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/gateway/flow/delete.json],methods=[POST]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<java.lang.Long> com.alibaba.csp.sentinel.dashboard.controller.gateway.GatewayFlowRuleController.deleteFlowRule(java.lang.Long)
+2022-07-19 15:13:57.545  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/gateway/flow/list.json],methods=[GET]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<java.util.List<com.alibaba.csp.sentinel.dashboard.datasource.entity.gateway.GatewayFlowRuleEntity>> com.alibaba.csp.sentinel.dashboard.controller.gateway.GatewayFlowRuleController.queryFlowRules(java.lang.String,java.lang.String,java.lang.Integer)
+2022-07-19 15:13:57.549  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/gateway/flow/new.json],methods=[POST]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<com.alibaba.csp.sentinel.dashboard.datasource.entity.gateway.GatewayFlowRuleEntity> com.alibaba.csp.sentinel.dashboard.controller.gateway.GatewayFlowRuleController.addFlowRule(com.alibaba.csp.sentinel.dashboard.domain.vo.gateway.rule.AddFlowRuleReqVo)
+2022-07-19 15:13:57.551  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/system/delete.json]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<?> com.alibaba.csp.sentinel.dashboard.controller.SystemController.delete(java.lang.Long)
+2022-07-19 15:13:57.552  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/system/new.json]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.SystemRuleEntity> com.alibaba.csp.sentinel.dashboard.controller.SystemController.apiAdd(java.lang.String,java.lang.String,java.lang.Integer,java.lang.Double,java.lang.Double,java.lang.Long,java.lang.Long,java.lang.Double)
+2022-07-19 15:13:57.553  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/system/rules.json],methods=[GET]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<java.util.List<com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.SystemRuleEntity>> com.alibaba.csp.sentinel.dashboard.controller.SystemController.apiQueryMachineRules(java.lang.String,java.lang.String,java.lang.Integer)
+2022-07-19 15:13:57.554  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/system/save.json],methods=[GET]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.SystemRuleEntity> com.alibaba.csp.sentinel.dashboard.controller.SystemController.apiUpdateIfNotNull(java.lang.Long,java.lang.String,java.lang.Double,java.lang.Double,java.lang.Long,java.lang.Long,java.lang.Double)
+2022-07-19 15:13:57.556  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/cluster/assign/all_server/{app}],methods=[POST]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<com.alibaba.csp.sentinel.dashboard.domain.cluster.ClusterAppAssignResultVO> com.alibaba.csp.sentinel.dashboard.controller.cluster.ClusterAssignController.apiAssignAllClusterServersOfApp(java.lang.String,com.alibaba.csp.sentinel.dashboard.domain.cluster.ClusterAppFullAssignRequest)
+2022-07-19 15:13:57.556  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/cluster/assign/unbind_server/{app}],methods=[POST]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<com.alibaba.csp.sentinel.dashboard.domain.cluster.ClusterAppAssignResultVO> com.alibaba.csp.sentinel.dashboard.controller.cluster.ClusterAssignController.apiUnbindClusterServersOfApp(java.lang.String,java.util.Set<java.lang.String>)
+2022-07-19 15:13:57.557  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/cluster/assign/single_server/{app}],methods=[POST]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<com.alibaba.csp.sentinel.dashboard.domain.cluster.ClusterAppAssignResultVO> com.alibaba.csp.sentinel.dashboard.controller.cluster.ClusterAssignController.apiAssignSingleClusterServersOfApp(java.lang.String,com.alibaba.csp.sentinel.dashboard.domain.cluster.ClusterAppSingleServerAssignRequest)
+2022-07-19 15:13:57.559  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/demo/loop],produces=[application/json]}" onto public java.lang.String com.alibaba.csp.sentinel.dashboard.controller.DemoController.loop(java.lang.String,int) throws com.alibaba.csp.sentinel.slots.block.BlockException
+2022-07-19 15:13:57.559  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/demo/slow],produces=[application/json]}" onto public java.lang.String com.alibaba.csp.sentinel.dashboard.controller.DemoController.slow(java.lang.String,int) throws com.alibaba.csp.sentinel.slots.block.BlockException
+2022-07-19 15:13:57.560  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/demo/greeting],produces=[application/json]}" onto public java.lang.String com.alibaba.csp.sentinel.dashboard.controller.DemoController.greeting()
+2022-07-19 15:13:57.563  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/demo/link],produces=[application/json]}" onto public java.lang.String com.alibaba.csp.sentinel.dashboard.controller.DemoController.link() throws com.alibaba.csp.sentinel.slots.block.BlockException
+2022-07-19 15:13:57.569  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/v1/flow/rule],methods=[POST]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.FlowRuleEntity> com.alibaba.csp.sentinel.dashboard.controller.FlowControllerV1.apiAddFlowRule(com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.FlowRuleEntity)
+2022-07-19 15:13:57.569  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/v1/flow/save.json],methods=[PUT]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.FlowRuleEntity> com.alibaba.csp.sentinel.dashboard.controller.FlowControllerV1.apiUpdateFlowRule(java.lang.Long,java.lang.String,java.lang.String,java.lang.String,java.lang.Integer,java.lang.Double,java.lang.Integer,java.lang.String,java.lang.Integer,java.lang.Integer,java.lang.Integer)
+2022-07-19 15:13:57.570  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/v1/flow/delete.json],methods=[DELETE]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<java.lang.Long> com.alibaba.csp.sentinel.dashboard.controller.FlowControllerV1.apiDeleteFlowRule(java.lang.Long)
+2022-07-19 15:13:57.571  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/v1/flow/rules],methods=[GET]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<java.util.List<com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.FlowRuleEntity>> com.alibaba.csp.sentinel.dashboard.controller.FlowControllerV1.apiQueryMachineRules(java.lang.String,java.lang.String,java.lang.Integer)
+2022-07-19 15:13:57.572  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/registry/machine],produces=[application/json]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<?> com.alibaba.csp.sentinel.dashboard.controller.MachineRegistryController.receiveHeartBeat(java.lang.String,java.lang.Integer,java.lang.Long,java.lang.String,java.lang.String,java.lang.String,java.lang.Integer)
+2022-07-19 15:13:57.573  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/paramFlow/rule/{id}],methods=[DELETE]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<java.lang.Long> com.alibaba.csp.sentinel.dashboard.controller.ParamFlowRuleController.apiDeleteRule(java.lang.Long)
+2022-07-19 15:13:57.574  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/paramFlow/rule],methods=[POST]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.ParamFlowRuleEntity> com.alibaba.csp.sentinel.dashboard.controller.ParamFlowRuleController.apiAddParamFlowRule(com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.ParamFlowRuleEntity)
+2022-07-19 15:13:57.575  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/paramFlow/rule/{id}],methods=[PUT]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.ParamFlowRuleEntity> com.alibaba.csp.sentinel.dashboard.controller.ParamFlowRuleController.apiUpdateParamFlowRule(java.lang.Long,com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.ParamFlowRuleEntity)
+2022-07-19 15:13:57.576  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/paramFlow/rules],methods=[GET]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<java.util.List<com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.ParamFlowRuleEntity>> com.alibaba.csp.sentinel.dashboard.controller.ParamFlowRuleController.apiQueryAllRulesForMachine(java.lang.String,java.lang.String,java.lang.Integer)
+2022-07-19 15:13:57.580  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/v2/flow/rule],methods=[POST]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.FlowRuleEntity> com.alibaba.csp.sentinel.dashboard.controller.v2.FlowControllerV2.apiAddFlowRule(com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.FlowRuleEntity)
+2022-07-19 15:13:57.580  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/v2/flow/rule/{id}],methods=[DELETE]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<java.lang.Long> com.alibaba.csp.sentinel.dashboard.controller.v2.FlowControllerV2.apiDeleteRule(java.lang.Long)
+2022-07-19 15:13:57.581  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/v2/flow/rule/{id}],methods=[PUT]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.FlowRuleEntity> com.alibaba.csp.sentinel.dashboard.controller.v2.FlowControllerV2.apiUpdateFlowRule(java.lang.Long,com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.FlowRuleEntity)
+2022-07-19 15:13:57.581  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/v2/flow/rules],methods=[GET]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<java.util.List<com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.FlowRuleEntity>> com.alibaba.csp.sentinel.dashboard.controller.v2.FlowControllerV2.apiQueryMachineRules(java.lang.String)
+2022-07-19 15:13:57.583  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/app/briefinfos.json],methods=[GET]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<java.util.List<com.alibaba.csp.sentinel.dashboard.discovery.AppInfo>> com.alibaba.csp.sentinel.dashboard.controller.AppController.queryAppInfos(javax.servlet.http.HttpServletRequest)
+2022-07-19 15:13:57.584  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/app/names.json],methods=[GET]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<java.util.List<java.lang.String>> com.alibaba.csp.sentinel.dashboard.controller.AppController.queryApps(javax.servlet.http.HttpServletRequest)
+2022-07-19 15:13:57.584  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/app/{app}/machines.json],methods=[GET]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<java.util.List<com.alibaba.csp.sentinel.dashboard.domain.vo.MachineInfoVo>> com.alibaba.csp.sentinel.dashboard.controller.AppController.getMachinesByApp(java.lang.String)
+2022-07-19 15:13:57.585  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/app/{app}/machine/remove.json]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<java.lang.String> com.alibaba.csp.sentinel.dashboard.controller.AppController.removeMachineById(java.lang.String,java.lang.String,int)
+2022-07-19 15:13:57.587  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/authority/rule/{id}],methods=[DELETE]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<java.lang.Long> com.alibaba.csp.sentinel.dashboard.controller.AuthorityRuleController.apiDeleteRule(java.lang.Long)
+2022-07-19 15:13:57.587  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/authority/rule],methods=[POST]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.AuthorityRuleEntity> com.alibaba.csp.sentinel.dashboard.controller.AuthorityRuleController.apiAddAuthorityRule(com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.AuthorityRuleEntity)
+2022-07-19 15:13:57.589  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/authority/rule/{id}],methods=[PUT]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.AuthorityRuleEntity> com.alibaba.csp.sentinel.dashboard.controller.AuthorityRuleController.apiUpdateParamFlowRule(java.lang.Long,com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.AuthorityRuleEntity)
+2022-07-19 15:13:57.589  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/authority/rules],methods=[GET]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<java.util.List<com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.AuthorityRuleEntity>> com.alibaba.csp.sentinel.dashboard.controller.AuthorityRuleController.apiQueryAllRulesForMachine(java.lang.String,java.lang.String,java.lang.Integer)
+2022-07-19 15:13:57.593  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/degrade/rule/{id}],methods=[DELETE]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<java.lang.Long> com.alibaba.csp.sentinel.dashboard.controller.DegradeController.delete(java.lang.Long)
+2022-07-19 15:13:57.594  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/degrade/rule],methods=[POST]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.DegradeRuleEntity> com.alibaba.csp.sentinel.dashboard.controller.DegradeController.apiAddRule(com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.DegradeRuleEntity)
+2022-07-19 15:13:57.595  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/degrade/rule/{id}],methods=[PUT]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.DegradeRuleEntity> com.alibaba.csp.sentinel.dashboard.controller.DegradeController.apiUpdateRule(java.lang.Long,com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.DegradeRuleEntity)
+2022-07-19 15:13:57.596  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/degrade/rules.json],methods=[GET]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<java.util.List<com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.DegradeRuleEntity>> com.alibaba.csp.sentinel.dashboard.controller.DegradeController.apiQueryMachineRules(java.lang.String,java.lang.String,java.lang.Integer)
+2022-07-19 15:13:57.601  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/gateway/api/new.json],methods=[POST]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<com.alibaba.csp.sentinel.dashboard.datasource.entity.gateway.ApiDefinitionEntity> com.alibaba.csp.sentinel.dashboard.controller.gateway.GatewayApiController.addApi(javax.servlet.http.HttpServletRequest,com.alibaba.csp.sentinel.dashboard.domain.vo.gateway.api.AddApiReqVo)
+2022-07-19 15:13:57.602  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/gateway/api/list.json],methods=[GET]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<java.util.List<com.alibaba.csp.sentinel.dashboard.datasource.entity.gateway.ApiDefinitionEntity>> com.alibaba.csp.sentinel.dashboard.controller.gateway.GatewayApiController.queryApis(java.lang.String,java.lang.String,java.lang.Integer)
+2022-07-19 15:13:57.603  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/gateway/api/save.json],methods=[POST]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<com.alibaba.csp.sentinel.dashboard.datasource.entity.gateway.ApiDefinitionEntity> com.alibaba.csp.sentinel.dashboard.controller.gateway.GatewayApiController.updateApi(com.alibaba.csp.sentinel.dashboard.domain.vo.gateway.api.UpdateApiReqVo)
+2022-07-19 15:13:57.604  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/gateway/api/delete.json],methods=[POST]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<java.lang.Long> com.alibaba.csp.sentinel.dashboard.controller.gateway.GatewayApiController.deleteApi(java.lang.Long)
+2022-07-19 15:13:57.605  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/resource/machineResource.json],methods=[GET]}" onto public com.alibaba.csp.sentinel.dashboard.domain.Result<java.util.List<com.alibaba.csp.sentinel.dashboard.domain.vo.ResourceVo>> com.alibaba.csp.sentinel.dashboard.controller.ResourceController.fetchResourceChainListOfMachine(java.lang.String,java.lang.Integer,java.lang.String,java.lang.String)
+2022-07-19 15:13:57.608  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/error]}" onto public org.springframework.http.ResponseEntity<java.util.Map<java.lang.String, java.lang.Object>> org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController.error(javax.servlet.http.HttpServletRequest)
+2022-07-19 15:13:57.610  INFO 14852 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped "{[/error],produces=[text/html]}" onto public org.springframework.web.servlet.ModelAndView org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController.errorHtml(javax.servlet.http.HttpServletRequest,javax.servlet.http.HttpServletResponse)
+2022-07-19 15:13:57.621  INFO 14852 --- [           main] o.s.w.s.handler.SimpleUrlHandlerMapping  : Root mapping to handler of type [class org.springframework.web.servlet.mvc.ParameterizableViewController]
+2022-07-19 15:13:57.636  INFO 14852 --- [           main] o.s.w.s.handler.SimpleUrlHandlerMapping  : Mapped URL path [/webjars/**] onto handler of type [class org.springframework.web.servlet.resource.ResourceHttpRequestHandler]
+2022-07-19 15:13:57.636  INFO 14852 --- [           main] o.s.w.s.handler.SimpleUrlHandlerMapping  : Mapped URL path [/**] onto handler of type [class org.springframework.web.servlet.resource.ResourceHttpRequestHandler]
+2022-07-19 15:13:57.816  INFO 14852 --- [           main] o.s.j.e.a.AnnotationMBeanExporter        : Registering beans for JMX exposure on startup
+2022-07-19 15:13:57.854  INFO 14852 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8099 (http) with context path ''
+2022-07-19 15:13:57.858  INFO 14852 --- [           main] c.a.c.s.dashboard.DashboardApplication   : Started DashboardApplication in 2.812 seconds (JVM running for 3.22)
+```
+
+
+
+
+
+9. 重启项目
+
+
+
+![image-20220719152238430](img/image-20220719152238430.png)
+
+
+
+
+
+10. 访问
+
+
+
+http://localhost:8081/order/101
+
+
+
+注意修改controller：
+
+```java
+@RequestHeader(name = "key1",required = false) String key1
+```
+
+
+
+```java
+package mao.user_service.controller;
+
+import lombok.extern.slf4j.Slf4j;
+
+import mao.user_service.entity.User;
+import mao.user_service.service.UserService;
+import org.springframework.web.bind.annotation.*;
+
+import javax.annotation.Resource;
+
+/**
+ * Project name(项目名称)：spring_cloud_demo
+ * Package(包名): mao.user_service.controller
+ * Class(类名): UserController
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/9
+ * Time(创建时间)： 13:51
+ * Version(版本): 1.0
+ * Description(描述)： UserController
+ */
+
+@Slf4j
+@RestController
+@RequestMapping("/user")
+public class UserController
+{
+    @Resource
+    private UserService userService;
+
+    /**
+     * 获取用户信息
+     *
+     * @param id 用户的id
+     * @return User
+     */
+    @GetMapping("/{id}")
+    public User queryById(@PathVariable("id") Long id, @RequestHeader(name = "key1",required = false) String key1)
+    {
+        //log.debug("user被访问了："+id);
+        log.info("请求头key1：" + key1);
+        return userService.queryById(id);
+    }
+}
+```
+
+
+
+
+
+order_service：
+
+```sh
+2022-07-19 15:23:59.602  INFO 21204 --- [nio-8081-exec-4] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2022-07-19 15:23:59.602  INFO 21204 --- [nio-8081-exec-4] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2022-07-19 15:23:59.608  INFO 21204 --- [nio-8081-exec-4] o.s.web.servlet.DispatcherServlet        : Completed initialization in 6 ms
+INFO: Sentinel log output type is: file
+INFO: Sentinel log charset is: utf-8
+INFO: Sentinel log base directory is: C:\Users\mao\logs\csp\
+INFO: Sentinel log name use pid is: false
+2022-07-19 15:23:59.925 DEBUG 21204 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-19 15:23:59.942 DEBUG 21204 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-19 15:23:59.960 DEBUG 21204 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-19 15:23:59.963 DEBUG 21204 --- [nio-8081-exec-4] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/1 HTTP/1.1
+2022-07-19 15:23:59.964 DEBUG 21204 --- [nio-8081-exec-4] mao.feign.feign.UserClient               : [UserClient#queryById] ---> END HTTP (0-byte body)
+2022-07-19 15:24:00.345 DEBUG 21204 --- [nio-8081-exec-4] mao.feign.feign.UserClient               : [UserClient#queryById] <--- HTTP/1.1 200  (380ms)
+2022-07-19 15:24:00.345 DEBUG 21204 --- [nio-8081-exec-4] mao.feign.feign.UserClient               : [UserClient#queryById] connection: keep-alive
+2022-07-19 15:24:00.346 DEBUG 21204 --- [nio-8081-exec-4] mao.feign.feign.UserClient               : [UserClient#queryById] content-type: application/json
+2022-07-19 15:24:00.346 DEBUG 21204 --- [nio-8081-exec-4] mao.feign.feign.UserClient               : [UserClient#queryById] date: Tue, 19 Jul 2022 07:24:00 GMT
+2022-07-19 15:24:00.346 DEBUG 21204 --- [nio-8081-exec-4] mao.feign.feign.UserClient               : [UserClient#queryById] keep-alive: timeout=60
+2022-07-19 15:24:00.346 DEBUG 21204 --- [nio-8081-exec-4] mao.feign.feign.UserClient               : [UserClient#queryById] transfer-encoding: chunked
+2022-07-19 15:24:00.346 DEBUG 21204 --- [nio-8081-exec-4] mao.feign.feign.UserClient               : [UserClient#queryById] 
+2022-07-19 15:24:00.347 DEBUG 21204 --- [nio-8081-exec-4] mao.feign.feign.UserClient               : [UserClient#queryById] {"id":1,"username":"柳岩","address":"湖南省衡阳市"}
+2022-07-19 15:24:00.347 DEBUG 21204 --- [nio-8081-exec-4] mao.feign.feign.UserClient               : [UserClient#queryById] <--- END HTTP (59-byte body)
+```
+
+
+
+
+
+Sentinel控制台没有报错：
+
+
+
+![image-20220719152716382](img/image-20220719152716382.png)
+
+
+
+
+
+
+
+11. 登录Sentinel控制台
+
+
+
+http://localhost:8099/#/login
+
+注意端口号
+
+
+
+![image-20220719152824675](img/image-20220719152824675.png)
+
+
+
+
+
+
+
+![image-20220719152932725](img/image-20220719152932725.png)
+
+
+
+
+
+正常访问
+
+
+
+
+
