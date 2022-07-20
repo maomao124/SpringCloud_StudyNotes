@@ -17110,7 +17110,7 @@ SpringCloud中，微服务调用都是通过Feign来实现的，因此做客户�
 
 
 
-1. 更改配置
+#### 1. 更改配置
 
 修改order_service的application.yml文件，开启Feign的Sentinel功能
 
@@ -17254,7 +17254,7 @@ feign:
 
 
 
-2. 编写降级逻辑
+#### 2. 编写降级逻辑
 
 给FeignClient编写失败后的降级逻辑
 
@@ -17316,7 +17316,7 @@ public class UserClientFallbackFactory implements FallbackFactory<UserClient>
 
 
 
-3. 注册bean
+#### 3. 注册bean
 
 
 
@@ -17363,7 +17363,7 @@ public class FeignConfig
 
 
 
-4.  注入接口
+#### 4.  注入接口
 
 
 
@@ -17406,7 +17406,7 @@ public interface UserClient
 
 
 
-5. 安装到本地库
+#### 5. 安装到本地库
 
 
 
@@ -17461,7 +17461,7 @@ mvn install
 
 
 
-6. 启动并访问
+#### 6. 启动并访问
 
 
 
@@ -17530,7 +17530,7 @@ INFO: Sentinel log name use pid is: false
 
 
 
-7. 关闭user_service
+#### 7. 关闭user_service
 
 
 
@@ -17559,7 +17559,7 @@ INFO: Sentinel log name use pid is: false
 
 
 
-8. 再次访问
+#### 8. 再次访问
 
 
 
@@ -17621,4 +17621,6 @@ INFO: Sentinel log name use pid is: false
 
 
 ### 线程隔离
+
+
 
