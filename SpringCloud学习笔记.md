@@ -17096,3 +17096,529 @@ http://localhost:8081/order/104
 
 ## 隔离和降级
 
+虽然限流可以尽量避免因高并发而引起的服务故障，但服务还会因为其它原因而故障。而要将这些故障控制在一定范 围，避免雪崩，就要靠线程隔离（舱壁模式）和熔断降级手段了。
+
+不管是线程隔离还是熔断降级，都是对客户端（调用方）的保护。
+
+
+
+
+
+### Feign整合Sentinel
+
+SpringCloud中，微服务调用都是通过Feign来实现的，因此做客户端保护必须整合Feign和Sentinel
+
+
+
+1. 更改配置
+
+修改order_service的application.yml文件，开启Feign的Sentinel功能
+
+
+
+```yaml
+# order 业务 配置文件
+
+spring:
+
+
+  # 配置数据源
+  datasource:
+
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/cloud_order
+      username: root
+      password: 20010713
+
+
+
+
+  application:
+    name: orderservice
+
+#eureka:
+#  client:
+#    service-url:
+#      defaultZone: http://127.0.0.1:10080/eureka/
+
+
+  cloud:
+    nacos:
+      discovery:
+        # nacos 服务端地址
+        server-addr: localhost:8848
+        # 配置集群名称，也就是机房位置
+        cluster-name: HZ
+        # namespace: 5544c4b1-2899-4915-94af-f9940c01c2b9
+        # 是否为临时实例，true为临时实例
+        ephemeral: false
+
+
+
+    sentinel:
+      transport:
+        dashboard: localhost:8099
+      # 关闭context整合
+      web-context-unify: false
+
+
+
+# 负载均衡
+#userservice:
+#  ribbon:
+#    # 负载均衡规则
+#    NFLoadBalancerRuleClassName: com.alibaba.cloud.nacos.ribbon.NacosRule
+
+
+
+# 开启debug模式，输出调试信息，常用于检查系统运行状况
+#debug: true
+
+# 设置日志级别，root表示根节点，即整体应用日志级别
+logging:
+ # 日志输出到文件的文件名
+  file:
+     name: order_server.log
+  # 设置日志组
+  group:
+  # 自定义组名，设置当前组中所包含的包
+    mao_pro: mao
+  level:
+    root: info
+    # 为对应组设置日志级别
+    mao_pro: debug
+    # 日志输出格式
+# pattern:
+  # console: "%d %clr(%p) --- [%16t] %clr(%-40.40c){cyan} : %m %n"
+
+
+# 配置负载均衡规则
+#userservice:
+#  ribbon:
+#    NFLoadBalancerRuleClassName: com.netflix.loadbalancer.RandomRule
+
+
+ribbon:
+  eager-load:
+    # 开启饥饿加载
+    enabled: true
+    # 指定对 userservice 这个服务饥饿加载
+    clients: userservice
+
+
+server:
+  port: 8081
+
+
+mybatis:
+  type-aliases-package: mao.order_service
+  configuration:
+    map-underscore-to-camel-case: true
+
+
+
+feign:
+  # 配置连接池
+  httpclient:
+    # 开启feign对HttpClient的支持
+    enabled: true
+    # 最大的连接数
+    max-connections: 200
+    # 每个路径的最大连接数
+    max-connections-per-route: 50
+
+  client:
+    config:
+      # default是全局配置，如果是写服务名称，则是针对某个微服务的配置
+      default:
+         #日志级别，包含四种不同的级别：NONE、BASIC、HEADERS、FULL
+        loggerLevel: BASIC
+        # 连接超时时间
+        #connectTimeout:
+        # 响应结果的解析器，http远程调用的结果做解析，例如解析json字符串为java对象
+        #decoder:
+        # 请求参数编码，将请求参数编码，便于通过http请求发送
+        #encoder:
+        # 支持的注解格式，默认是SpringMVC的注解
+        #contract:
+        # 失败重试机制，请求失败的重试机制，默认是没有，不过会使用Ribbon的重试
+        #retryer:
+
+  # 开启Feign的Sentinel功能
+  sentinel:
+    enabled: true
+```
+
+
+
+
+
+2. 编写降级逻辑
+
+给FeignClient编写失败后的降级逻辑
+
+有两种方式：
+
+* 方式一：FallbackClass，无法对远程调用的异常做处理
+* 方式二：FallbackFactory，可以对远程调用的异常做处理，一般使用这一种
+
+
+
+
+
+在feign_api项目中定义类，实现FallbackFactory：
+
+```java
+package mao.feign.fallback;
+
+import feign.hystrix.FallbackFactory;
+import lombok.extern.slf4j.Slf4j;
+import mao.feign.entity.User;
+import mao.feign.feign.UserClient;
+
+/**
+ * Project name(项目名称)：spring_cloud_demo_Sentinel
+ * Package(包名): mao.feign.fallback
+ * Class(类名): UserClientFallbackFactory
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/20
+ * Time(创建时间)： 20:11
+ * Version(版本): 1.0
+ * Description(描述)： 降级逻辑
+ */
+
+@Slf4j
+public class UserClientFallbackFactory implements FallbackFactory<UserClient>
+{
+
+    @Override
+    public UserClient create(Throwable throwable)
+    {
+        return new UserClient()
+        {
+            @Override
+            public User queryById(Long id)
+            {
+                log.error("查询用户失败！" + throwable.getMessage());
+                //返回一个空的用户信息
+                return new User();
+            }
+        };
+    }
+}
+
+```
+
+
+
+
+
+3. 注册bean
+
+
+
+```java
+package mao.order_service.config;
+
+
+import mao.feign.fallback.UserClientFallbackFactory;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+/**
+ * Project name(项目名称)：spring_cloud_demo_Feign
+ * Package(包名): mao.order_service.config
+ * Class(类名): FeignConfig
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/17
+ * Time(创建时间)： 19:56
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+
+@Configuration
+public class FeignConfig
+{
+//    @Bean
+//    public Logger.Level feignLoggerLevel()
+//    {
+//        return Logger.Level.FULL;
+//    }
+
+    @Bean
+    public UserClientFallbackFactory userClientFallbackFactory()
+    {
+        return new UserClientFallbackFactory();
+    }
+}
+```
+
+
+
+
+
+4.  注入接口
+
+
+
+在feign_api项目中的UserClient接口中使用UserClientFallbackFactory
+
+
+
+```java
+package mao.feign.feign;
+
+
+import mao.feign.entity.User;
+import mao.feign.fallback.UserClientFallbackFactory;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+
+/**
+ * Project name(项目名称)：spring_cloud_demo_Feign
+ * Package(包名): mao.order_service.feign
+ * Interface(接口名): UserClient
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/16
+ * Time(创建时间)： 21:29
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+@FeignClient(value = "userservice", path = "/user", fallbackFactory = UserClientFallbackFactory.class)
+public interface UserClient
+{
+    @GetMapping("/{id}")
+    User queryById(@PathVariable("id") Long id);
+}
+```
+
+
+
+
+
+5. 安装到本地库
+
+
+
+mvn install
+
+
+
+![image-20220720203247567](img/image-20220720203247567.png)
+
+
+
+```sh
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ---------------------------< mao:feign_api >----------------------------
+[INFO] Building feign_api 0.0.1
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- maven-resources-plugin:3.1.0:resources (default-resources) @ feign_api ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 0 resource
+[INFO] Copying 0 resource
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.8.1:compile (default-compile) @ feign_api ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 3 source files to H:\程序\大三暑假\spring_cloud_demo_Sentinel\feign_api\target\classes
+[INFO] 
+[INFO] --- maven-resources-plugin:3.1.0:testResources (default-testResources) @ feign_api ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory H:\程序\大三暑假\spring_cloud_demo_Sentinel\feign_api\src\test\resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.8.1:testCompile (default-testCompile) @ feign_api ---
+[INFO] Changes detected - recompiling the module!
+[INFO] 
+[INFO] --- maven-surefire-plugin:2.22.2:test (default-test) @ feign_api ---
+[INFO] 
+[INFO] --- maven-jar-plugin:3.2.0:jar (default-jar) @ feign_api ---
+[INFO] Building jar: H:\程序\大三暑假\spring_cloud_demo_Sentinel\feign_api\target\feign_api-0.0.1.jar
+[INFO] 
+[INFO] --- maven-install-plugin:2.5.2:install (default-install) @ feign_api ---
+[INFO] Installing H:\程序\大三暑假\spring_cloud_demo_Sentinel\feign_api\target\feign_api-0.0.1.jar to C:\Users\mao\.m2\repository\mao\feign_api\0.0.1\feign_api-0.0.1.jar
+[INFO] Installing H:\程序\大三暑假\spring_cloud_demo_Sentinel\feign_api\pom.xml to C:\Users\mao\.m2\repository\mao\feign_api\0.0.1\feign_api-0.0.1.pom
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  3.769 s
+[INFO] Finished at: 2022-07-20T20:33:05+08:00
+[INFO] ------------------------------------------------------------------------
+```
+
+
+
+
+
+6. 启动并访问
+
+
+
+```sh
+OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::        (v2.3.9.RELEASE)
+
+2022-07-20 20:36:32.986  INFO 12656 --- [           main] m.order_service.OrderServiceApplication  : No active profile set, falling back to default profiles: default
+2022-07-20 20:36:33.475  INFO 12656 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=e5111f92-6d40-37f8-ad01-54790c051ef6
+2022-07-20 20:36:33.611  INFO 12656 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'spring.cloud.sentinel-com.alibaba.cloud.sentinel.SentinelProperties' of type [com.alibaba.cloud.sentinel.SentinelProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-20 20:36:33.614  INFO 12656 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'com.alibaba.cloud.sentinel.custom.SentinelAutoConfiguration' of type [com.alibaba.cloud.sentinel.custom.SentinelAutoConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-20 20:36:33.808  INFO 12656 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8081 (http)
+2022-07-20 20:36:33.815  INFO 12656 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-07-20 20:36:33.816  INFO 12656 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.43]
+2022-07-20 20:36:33.927  INFO 12656 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-07-20 20:36:33.928  INFO 12656 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 929 ms
+2022-07-20 20:36:34.020  INFO 12656 --- [           main] c.a.d.s.b.a.DruidDataSourceAutoConfigure : Init DruidDataSource
+2022-07-20 20:36:34.106  INFO 12656 --- [           main] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+2022-07-20 20:36:34.622  WARN 12656 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-20 20:36:34.622  INFO 12656 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-20 20:36:34.625  WARN 12656 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-20 20:36:34.625  INFO 12656 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-20 20:36:34.720  INFO 12656 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-20 20:36:34.748  INFO 12656 --- [           main] c.a.c.s.SentinelWebAutoConfiguration     : [Sentinel Starter] register SentinelWebInterceptor with urlPatterns: [/**].
+2022-07-20 20:36:34.816  INFO 12656 --- [           main] o.s.s.c.ThreadPoolTaskScheduler          : Initializing ExecutorService 'Nacos-Watch-Task-Scheduler'
+2022-07-20 20:36:35.238  INFO 12656 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8081 (http) with context path ''
+2022-07-20 20:36:35.250  INFO 12656 --- [           main] c.a.c.n.registry.NacosServiceRegistry    : nacos registry, DEFAULT_GROUP orderservice 192.168.202.1:8081 register finished
+2022-07-20 20:36:35.387  INFO 12656 --- [           main] m.order_service.OrderServiceApplication  : Started OrderServiceApplication in 3.216 seconds (JVM running for 3.779)
+2022-07-20 20:36:35.480  INFO 12656 --- [           main] c.netflix.loadbalancer.BaseLoadBalancer  : Client: userservice instantiated a LoadBalancer: DynamicServerListLoadBalancer:{NFLoadBalancer:name=userservice,current list of Servers=[],Load balancer stats=Zone stats: {},Server stats: []}ServerList:null
+2022-07-20 20:36:35.490  INFO 12656 --- [           main] c.n.l.DynamicServerListLoadBalancer      : Using serverListUpdater PollingServerListUpdater
+2022-07-20 20:36:35.525  INFO 12656 --- [           main] c.n.l.DynamicServerListLoadBalancer      : DynamicServerListLoadBalancer for client userservice initialized: DynamicServerListLoadBalancer:{NFLoadBalancer:name=userservice,current list of Servers=[192.168.202.1:8082],Load balancer stats=Zone stats: {unknown=[Zone:unknown;	Instance count:1;	Active connections count: 0;	Circuit breaker tripped count: 0;	Active connections per server: 0.0;]
+},Server stats: [[Server:192.168.202.1:8082;	Zone:UNKNOWN;	Total Requests:0;	Successive connection failure:0;	Total blackout seconds:0;	Last connection made:Thu Jan 01 08:00:00 CST 1970;	First connection made: Thu Jan 01 08:00:00 CST 1970;	Active Connections:0;	total failure count in last (1000) msecs:0;	average resp time:0.0;	90 percentile resp time:0.0;	95 percentile resp time:0.0;	min resp time:0.0;	max resp time:0.0;	stddev resp time:0.0]
+]}ServerList:com.alibaba.cloud.nacos.ribbon.NacosServerList@294ebe11
+2022-07-20 20:36:41.209  INFO 12656 --- [nio-8081-exec-2] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2022-07-20 20:36:41.209  INFO 12656 --- [nio-8081-exec-2] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2022-07-20 20:36:41.213  INFO 12656 --- [nio-8081-exec-2] o.s.web.servlet.DispatcherServlet        : Completed initialization in 4 ms
+INFO: Sentinel log output type is: file
+INFO: Sentinel log charset is: utf-8
+INFO: Sentinel log base directory is: C:\Users\mao\logs\csp\
+INFO: Sentinel log name use pid is: false
+2022-07-20 20:36:41.496 DEBUG 12656 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-20 20:36:41.512 DEBUG 12656 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-20 20:36:41.530 DEBUG 12656 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-20 20:36:41.534 DEBUG 12656 --- [nio-8081-exec-2] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/1 HTTP/1.1
+2022-07-20 20:36:41.594 DEBUG 12656 --- [nio-8081-exec-2] mao.feign.feign.UserClient               : [UserClient#queryById] <--- HTTP/1.1 200  (58ms)
+2022-07-20 20:36:44.563 DEBUG 12656 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-20 20:36:44.564 DEBUG 12656 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-20 20:36:44.565 DEBUG 12656 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-20 20:36:44.566 DEBUG 12656 --- [nio-8081-exec-5] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/1 HTTP/1.1
+2022-07-20 20:36:44.571 DEBUG 12656 --- [nio-8081-exec-5] mao.feign.feign.UserClient               : [UserClient#queryById] <--- HTTP/1.1 200  (5ms)
+2022-07-20 20:36:44.996 DEBUG 12656 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-20 20:36:44.997 DEBUG 12656 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-20 20:36:44.999 DEBUG 12656 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-20 20:36:45.000 DEBUG 12656 --- [nio-8081-exec-6] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/1 HTTP/1.1
+2022-07-20 20:36:45.004 DEBUG 12656 --- [nio-8081-exec-6] mao.feign.feign.UserClient               : [UserClient#queryById] <--- HTTP/1.1 200  (4ms)
+```
+
+
+
+
+
+7. 关闭user_service
+
+
+
+```sh
+2022-07-20 20:37:52.823  INFO 10972 --- [g.push.receiver] com.alibaba.nacos.client.naming          : current ips:(0) service: DEFAULT_GROUP@@userservice@@HZ -> []
+2022-07-20 20:37:54.834  INFO 10972 --- [extShutdownHook] com.alibaba.nacos.client.naming          : com.alibaba.nacos.client.naming.beat.BeatReactor do shutdown stop
+2022-07-20 20:37:54.834  INFO 10972 --- [extShutdownHook] com.alibaba.nacos.client.naming          : com.alibaba.nacos.client.naming.core.HostReactor do shutdown begin
+2022-07-20 20:37:55.785  INFO 10972 --- [extShutdownHook] com.alibaba.nacos.client.naming          : com.alibaba.nacos.client.naming.core.PushReceiver do shutdown begin
+2022-07-20 20:37:58.810  INFO 10972 --- [extShutdownHook] com.alibaba.nacos.client.naming          : com.alibaba.nacos.client.naming.core.PushReceiver do shutdown stop
+2022-07-20 20:37:58.810  INFO 10972 --- [extShutdownHook] com.alibaba.nacos.client.naming          : com.alibaba.nacos.client.naming.backups.FailoverReactor do shutdown begin
+2022-07-20 20:37:58.810  INFO 10972 --- [extShutdownHook] com.alibaba.nacos.client.naming          : com.alibaba.nacos.client.naming.backups.FailoverReactor do shutdown stop
+2022-07-20 20:37:58.810  INFO 10972 --- [extShutdownHook] com.alibaba.nacos.client.naming          : com.alibaba.nacos.client.naming.core.HostReactor do shutdown stop
+2022-07-20 20:37:58.810  INFO 10972 --- [extShutdownHook] com.alibaba.nacos.client.naming          : com.alibaba.nacos.client.naming.net.NamingProxy do shutdown begin
+2022-07-20 20:37:58.811  WARN 10972 --- [extShutdownHook] com.alibaba.nacos.client.naming          : [NamingHttpClientManager] Start destroying NacosRestTemplate
+2022-07-20 20:37:58.811  WARN 10972 --- [extShutdownHook] com.alibaba.nacos.client.naming          : [NamingHttpClientManager] Destruction of the end
+2022-07-20 20:37:58.811  INFO 10972 --- [extShutdownHook] c.a.n.client.identify.CredentialWatcher  : [null] CredentialWatcher is stopped
+2022-07-20 20:37:58.811  INFO 10972 --- [extShutdownHook] c.a.n.client.identify.CredentialService  : [null] CredentialService is freed
+2022-07-20 20:37:58.811  INFO 10972 --- [extShutdownHook] com.alibaba.nacos.client.naming          : com.alibaba.nacos.client.naming.net.NamingProxy do shutdown stop
+2022-07-20 20:37:58.812  WARN 10972 --- [extShutdownHook] o.s.b.f.support.DisposableBeanAdapter    : Destroy method 'close' on bean with name 'nacosServiceRegistry' threw an exception: java.lang.NullPointerException: Cannot invoke "com.alibaba.nacos.api.naming.NamingService.shutDown()" because "this.namingService" is null
+2022-07-20 20:37:58.813  INFO 10972 --- [extShutdownHook] o.s.s.concurrent.ThreadPoolTaskExecutor  : Shutting down ExecutorService 'applicationTaskExecutor'
+2022-07-20 20:37:58.814  INFO 10972 --- [extShutdownHook] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} closing ...
+2022-07-20 20:37:58.817  INFO 10972 --- [extShutdownHook] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} closed
+```
+
+
+
+
+
+8. 再次访问
+
+
+
+```json
+{"id":101,"price":699900,"name":"Apple 苹果 iPhone 12 ","num":1,"userId":1,"user":{"id":null,"username":null,"address":null}}
+```
+
+
+
+
+
+日志：
+
+```sh
+2022-07-20 20:36:41.496 DEBUG 12656 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-20 20:36:41.512 DEBUG 12656 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-20 20:36:41.530 DEBUG 12656 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-20 20:36:41.534 DEBUG 12656 --- [nio-8081-exec-2] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/1 HTTP/1.1
+2022-07-20 20:36:41.594 DEBUG 12656 --- [nio-8081-exec-2] mao.feign.feign.UserClient               : [UserClient#queryById] <--- HTTP/1.1 200  (58ms)
+2022-07-20 20:36:44.563 DEBUG 12656 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-20 20:36:44.564 DEBUG 12656 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-20 20:36:44.565 DEBUG 12656 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-20 20:36:44.566 DEBUG 12656 --- [nio-8081-exec-5] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/1 HTTP/1.1
+2022-07-20 20:36:44.571 DEBUG 12656 --- [nio-8081-exec-5] mao.feign.feign.UserClient               : [UserClient#queryById] <--- HTTP/1.1 200  (5ms)
+2022-07-20 20:36:44.996 DEBUG 12656 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-20 20:36:44.997 DEBUG 12656 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-20 20:36:44.999 DEBUG 12656 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-20 20:36:45.000 DEBUG 12656 --- [nio-8081-exec-6] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/1 HTTP/1.1
+2022-07-20 20:36:45.004 DEBUG 12656 --- [nio-8081-exec-6] mao.feign.feign.UserClient               : [UserClient#queryById] <--- HTTP/1.1 200  (4ms)
+2022-07-20 20:39:18.606  WARN 12656 --- [nio-8081-exec-1] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/cloud_order, version : 1.2.8, lastPacketReceivedIdleMillis : 153594
+2022-07-20 20:39:18.627 DEBUG 12656 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-20 20:39:18.628 DEBUG 12656 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-20 20:39:18.629 DEBUG 12656 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-20 20:39:18.630 DEBUG 12656 --- [nio-8081-exec-1] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/1 HTTP/1.1
+2022-07-20 20:39:18.630  WARN 12656 --- [nio-8081-exec-1] c.alibaba.cloud.nacos.ribbon.NacosRule   : no instance in service userservice
+2022-07-20 20:39:18.632 ERROR 12656 --- [nio-8081-exec-1] m.f.fallback.UserClientFallbackFactory   : 查询用户失败！com.netflix.client.ClientException: Load balancer does not have available server for client: userservice
+2022-07-20 20:39:30.211 DEBUG 12656 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-20 20:39:30.211 DEBUG 12656 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-20 20:39:30.213 DEBUG 12656 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-20 20:39:30.214 DEBUG 12656 --- [nio-8081-exec-4] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/1 HTTP/1.1
+2022-07-20 20:39:30.214  WARN 12656 --- [nio-8081-exec-4] c.alibaba.cloud.nacos.ribbon.NacosRule   : no instance in service userservice
+2022-07-20 20:39:30.214 ERROR 12656 --- [nio-8081-exec-4] m.f.fallback.UserClientFallbackFactory   : 查询用户失败！com.netflix.client.ClientException: Load balancer does not have available server for client: userservice
+2022-07-20 20:39:30.726 DEBUG 12656 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-20 20:39:30.727 DEBUG 12656 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-20 20:39:30.729 DEBUG 12656 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-20 20:39:30.729 DEBUG 12656 --- [nio-8081-exec-6] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/1 HTTP/1.1
+2022-07-20 20:39:30.729  WARN 12656 --- [nio-8081-exec-6] c.alibaba.cloud.nacos.ribbon.NacosRule   : no instance in service userservice
+2022-07-20 20:39:30.730 ERROR 12656 --- [nio-8081-exec-6] m.f.fallback.UserClientFallbackFactory   : 查询用户失败！com.netflix.client.ClientException: Load balancer does not have available server for client: userservice
+```
+
+
+
+降级逻辑设置成功
+
+
+
+
+
+
+
+### 线程隔离
+
