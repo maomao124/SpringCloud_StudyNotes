@@ -15875,7 +15875,7 @@ http://localhost:8081/order/101
 
 
 
-| ID  |   执行时间   |      线程组       |  lable   | 请求时间ms |  状态   | bytes | sent bytes | latency | 连接时间 |
+|  ID  |   执行时间   |      线程组       |  lable   | 请求时间ms |  状态   | bytes | sent bytes | latency | 连接时间 |
 | :--: | :----------: | :---------------: | :------: | :--------: | :-----: | :---: | :--------: | :-----: | :------: |
 |  1   | 22:29:40.593 |  setUp线程组 1-1  | HTTP请求 |     51     | Success |  317  |    125     |   51    |    2     |
 |  2   | 22:29:40.661 |  setUp线程组 1-2  | HTTP请求 |     38     | Success |  317  |    125     |   38    |    0     |
@@ -16187,4 +16187,432 @@ http://localhost:8081/order/101
 ### 热点参数限流
 
 
+
+之前的限流是统计访问某个资源的所有请求，判断是否超过QPS阈值。而热点参数限流是分别统计参数值相同的请求， 判断是否超过QPS阈值。
+
+
+
+![image-20220720124008743](img/image-20220720124008743.png)
+
+
+
+![image-20220720124336745](img/image-20220720124336745.png)
+
+
+
+代表的含义是：对hot这个资源的0号参数（第一个参数）做统计，每1秒相同参数值的请求数不能超过5
+
+
+
+![image-20220720124420351](img/image-20220720124420351.png)
+
+
+
+
+
+这里的含义是对0号的long类型参数限流，每1秒相同参数的QPS不能超过5，有两个例外：
+
+*  如果参数值是100，则每1秒允许的QPS为10
+* 如果参数值是101，则每1秒允许的QPS为15
+
+
+
+热点参数限流对默认的SpringMVC资源无效
+
+
+
+### 热点参数限流测试
+
+给/order/{orderId}这个资源添加热点参数限流，规则如下：
+
+* 默认的热点参数规则是每1秒请求量不超过3
+* 给102这个参数设置例外：每1秒请求量不超过5
+* 给103这个参数设置例外：每1秒请求量不超过10
+
+
+
+
+
+热点参数限流对默认的SpringMVC资源无效
+
+所以需要添加@SentinelResource注解
+
+```java
+@SentinelResource("order_hot")
+```
+
+
+
+| 属性                          | 作用                                                         | 是否必须    |
+| :---------------------------- | :----------------------------------------------------------- | :---------- |
+| value                         | 资源名称                                                     | 是          |
+| entryType                     | entry类型，标记流量的方向，取值IN/OUT，默认是OUT             | 否          |
+| blockHandler                  | 处理BlockException的函数名称                                 | 否          |
+| blockHandlerClass             | 存放blockHandler的类。对应的处理函数必须static修饰，否则无法解析，其他要求：同blockHandler | 否          |
+| fallback                      | 用于在抛出异常的时候提供fallback处理逻辑。fallback函数可以针对所有类型的异常（除了`exceptionsToIgnore` 里面排除掉的异常类型）进行处理 | 否          |
+| fallbackClass【1.6支持】      | 存放fallback的类。对应的处理函数必须static修饰，否则无法解析，其他要求：同fallback | 否          |
+| defaultFallback【1.6支持】    | 用于通用的 fallback 逻辑。默认fallback函数可以针对所有类型的异常（除了`exceptionsToIgnore` 里面排除掉的异常类型）进行处理。若同时配置了 fallback 和 defaultFallback，以fallback为准 | 否          |
+| exceptionsToIgnore【1.6支持】 | 指定排除掉哪些异常。排除的异常不会计入异常统计，也不会进入fallback逻辑，而是原样抛出 | 否          |
+| exceptionsToTrace             | 需要trace的异常                                              | `Throwable` |
+
+
+
+
+
+```java
+package mao.order_service.controller;
+
+import com.alibaba.csp.sentinel.annotation.SentinelResource;
+import mao.order_service.entity.Order;
+import mao.order_service.service.OrderService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * Project name(项目名称)：spring_cloud_demo
+ * Package(包名): mao.order_service.controller
+ * Class(类名): OrderController
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/9
+ * Time(创建时间)： 13:59
+ * Version(版本): 1.0
+ * Description(描述)： OrderController
+ */
+
+@RestController
+@RequestMapping("order")
+public class OrderController
+{
+    @Autowired
+    private OrderService orderService;
+
+
+    /**
+     * 获取订单数据
+     *
+     * @param orderId 订单的id
+     * @return Order
+     */
+    @SentinelResource("order_hot")
+    @GetMapping("{orderId}")
+    public Order queryOrderByUserId(@PathVariable("orderId") Long orderId)
+    {
+        return orderService.queryOrderById(orderId);
+    }
+
+    /**
+     * 模拟查询订单
+     *
+     * @return query
+     */
+    @GetMapping("/query")
+    public String query()
+    {
+        //return "query";
+        return "query" + orderService.queryGoods();
+    }
+
+    /**
+     * 模拟
+     *
+     * @return update
+     */
+    @GetMapping("/update")
+    public String update()
+    {
+        return "update";
+    }
+
+    /**
+     * 模拟创建订单
+     *
+     * @return save
+     */
+    @GetMapping("/save")
+    public String save()
+    {
+        return "save" + orderService.queryGoods();
+    }
+}
+```
+
+
+
+
+
+启动服务
+
+
+
+![image-20220720124753007](img/image-20220720124753007.png)
+
+
+
+
+
+访问一次
+
+http://localhost:8081/order/101
+
+
+
+进入sentinel控制台
+
+
+
+![image-20220720133612210](img/image-20220720133612210.png)
+
+
+
+
+
+点击order_hot热点
+
+
+
+![image-20220720133637765](img/image-20220720133637765.png)
+
+
+
+
+
+填写表单
+
+
+
+![image-20220720133653505](img/image-20220720133653505.png)
+
+
+
+
+
+点击新增
+
+
+
+![image-20220720133704294](img/image-20220720133704294.png)
+
+
+
+
+
+点击编辑
+
+
+
+![image-20220720133716714](img/image-20220720133716714.png)
+
+
+
+
+
+点击高级选项
+
+
+
+![image-20220720133726504](img/image-20220720133726504.png)
+
+
+
+
+
+填写数据
+
+
+
+![image-20220720133955937](img/image-20220720133955937.png)
+
+
+
+
+
+点击保存
+
+
+
+![image-20220720134008769](img/image-20220720134008769.png)
+
+
+
+
+
+
+
+
+
+
+
+启动jmeter
+
+
+
+![image-20220720125610605](img/image-20220720125610605.png)
+
+
+
+对
+
+http://localhost:8081/order/101
+
+做测试
+
+![image-20220720125639444](img/image-20220720125639444.png)
+
+
+
+
+
+发起请求
+
+
+
+| 时间     | 通过 QPS | 拒绝QPS | 响应时间（ms） |
+| -------- | -------- | ------- | -------------- |
+| 13:41:25 | 0.0      | 1.0     | 0.0            |
+| 13:41:24 | 3.0      | 7.0     | 3.0            |
+| 13:41:23 | 3.0      | 7.0     | 5.0            |
+| 13:41:22 | 3.0      | 7.0     | 4.0            |
+| 13:41:21 | 3.0      | 7.0     | 5.0            |
+| 13:41:20 | 3.0      | 7.0     | 5.0            |
+
+
+
+
+
+
+![image-20220720134139952](img/image-20220720134139952.png)
+
+
+
+
+
+结果
+
+
+
+![image-20220720134348877](img/image-20220720134348877.png)
+
+
+
+
+
+
+|  ID  |   执行时间   |      线程组       |  lable   | 请求时间ms |  状态   | bytes | sent bytes | latency | 连接时间 |
+| :--: | :----------: | :---------------: | :------: | :--: | :-----: | :--: | :--: | :--: | :--: |
+| 1    | 13:41:05.139 | setUp线程组 1-1   | HTTP请求 | 48   | Success | 317  | 125  | 48   | 1    |
+| 2    | 13:41:05.241 | setUp线程组 1-2   | HTTP请求 | 7    | Success | 317  | 125  | 7    | 0    |
+| 3    | 13:41:05.351 | setUp线程组 1-3   | HTTP请求 | 9    | Success | 317  | 125  | 8    | 1    |
+| 4    | 13:41:05.445 | setUp线程组 1-4   | HTTP请求 | 4    | Warning | 267  | 125  | 4    | 1    |
+| 5    | 13:41:05.540 | setUp线程组 1-5   | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 6    | 13:41:05.648 | setUp线程组 1-6   | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 7    | 13:41:05.738 | setUp线程组 1-7   | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 8    | 13:41:05.838 | setUp线程组 1-8   | HTTP请求 | 5    | Warning | 267  | 125  | 4    | 1    |
+| 9    | 13:41:05.940 | setUp线程组 1-9   | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 10   | 13:41:06.041 | setUp线程组 1-10  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 11   | 13:41:06.141 | setUp线程组 1-11  | HTTP请求 | 8    | Success | 317  | 125  | 8    | 1    |
+| 12   | 13:41:06.238 | setUp线程组 1-12  | HTTP请求 | 8    | Success | 317  | 125  | 8    | 0    |
+| 13   | 13:41:06.339 | setUp线程组 1-13  | HTTP请求 | 7    | Success | 317  | 125  | 7    | 0    |
+| 14   | 13:41:06.439 | setUp线程组 1-14  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 0    |
+| 15   | 13:41:06.539 | setUp线程组 1-15  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 16   | 13:41:06.639 | setUp线程组 1-16  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 17   | 13:41:06.738 | setUp线程组 1-17  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 18   | 13:41:06.838 | setUp线程组 1-18  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 19   | 13:41:06.938 | setUp线程组 1-19  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 20   | 13:41:07.038 | setUp线程组 1-20  | HTTP请求 | 2    | Warning | 267  | 125  | 2    | 0    |
+| 21   | 13:41:07.138 | setUp线程组 1-21  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 22   | 13:41:07.238 | setUp线程组 1-22  | HTTP请求 | 8    | Success | 317  | 125  | 8    | 1    |
+| 23   | 13:41:07.338 | setUp线程组 1-23  | HTTP请求 | 8    | Success | 317  | 125  | 8    | 1    |
+| 24   | 13:41:07.439 | setUp线程组 1-24  | HTTP请求 | 7    | Success | 317  | 125  | 7    | 0    |
+| 25   | 13:41:07.540 | setUp线程组 1-25  | HTTP请求 | 3    | Warning | 267  | 125  | 2    | 0    |
+| 26   | 13:41:07.639 | setUp线程组 1-26  | HTTP请求 | 4    | Warning | 267  | 125  | 4    | 1    |
+| 27   | 13:41:07.740 | setUp线程组 1-27  | HTTP请求 | 5    | Warning | 267  | 125  | 4    | 1    |
+| 28   | 13:41:07.839 | setUp线程组 1-28  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 0    |
+| 29   | 13:41:07.939 | setUp线程组 1-29  | HTTP请求 | 3    | Warning | 267  | 125  | 2    | 0    |
+| 30   | 13:41:08.038 | setUp线程组 1-30  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 31   | 13:41:08.138 | setUp线程组 1-31  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 32   | 13:41:08.238 | setUp线程组 1-32  | HTTP请求 | 4    | Warning | 267  | 125  | 4    | 1    |
+| 33   | 13:41:08.339 | setUp线程组 1-33  | HTTP请求 | 9    | Success | 317  | 125  | 9    | 0    |
+| 34   | 13:41:08.438 | setUp线程组 1-34  | HTTP请求 | 8    | Success | 317  | 125  | 8    | 1    |
+| 35   | 13:41:08.538 | setUp线程组 1-35  | HTTP请求 | 6    | Success | 317  | 125  | 6    | 0    |
+| 36   | 13:41:08.639 | setUp线程组 1-36  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 0    |
+| 37   | 13:41:08.739 | setUp线程组 1-37  | HTTP请求 | 2    | Warning | 267  | 125  | 2    | 1    |
+| 38   | 13:41:08.839 | setUp线程组 1-38  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 39   | 13:41:08.938 | setUp线程组 1-39  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 40   | 13:41:09.037 | setUp线程组 1-40  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 41   | 13:41:09.137 | setUp线程组 1-41  | HTTP请求 | 4    | Warning | 267  | 125  | 3    | 1    |
+| 42   | 13:41:09.238 | setUp线程组 1-42  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 0    |
+| 43   | 13:41:09.338 | setUp线程组 1-43  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 44   | 13:41:09.438 | setUp线程组 1-44  | HTTP请求 | 6    | Success | 317  | 125  | 6    | 1    |
+| 45   | 13:41:09.538 | setUp线程组 1-45  | HTTP请求 | 7    | Success | 317  | 125  | 7    | 1    |
+| 46   | 13:41:09.638 | setUp线程组 1-46  | HTTP请求 | 8    | Success | 317  | 125  | 8    | 1    |
+| 47   | 13:41:09.738 | setUp线程组 1-47  | HTTP请求 | 4    | Warning | 267  | 125  | 4    | 1    |
+| 48   | 13:41:09.839 | setUp线程组 1-48  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 49   | 13:41:09.940 | setUp线程组 1-49  | HTTP请求 | 5    | Warning | 267  | 125  | 5    | 1    |
+| 50   | 13:41:10.039 | setUp线程组 1-50  | HTTP请求 | 4    | Warning | 267  | 125  | 4    | 2    |
+| 51   | 13:41:10.138 | setUp线程组 1-51  | HTTP请求 | 4    | Warning | 267  | 125  | 4    | 1    |
+| 52   | 13:41:10.239 | setUp线程组 1-52  | HTTP请求 | 4    | Warning | 267  | 125  | 4    | 1    |
+| 53   | 13:41:10.341 | setUp线程组 1-53  | HTTP请求 | 5    | Warning | 267  | 125  | 4    | 1    |
+| 54   | 13:41:10.439 | setUp线程组 1-54  | HTTP请求 | 9    | Success | 317  | 125  | 9    | 1    |
+| 55   | 13:41:10.540 | setUp线程组 1-55  | HTTP请求 | 8    | Success | 317  | 125  | 8    | 1    |
+| 56   | 13:41:10.639 | setUp线程组 1-56  | HTTP请求 | 7    | Success | 317  | 125  | 7    | 1    |
+| 57   | 13:41:10.739 | setUp线程组 1-57  | HTTP请求 | 4    | Warning | 267  | 125  | 4    | 1    |
+| 58   | 13:41:10.838 | setUp线程组 1-58  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 59   | 13:41:10.941 | setUp线程组 1-59  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 60   | 13:41:11.042 | setUp线程组 1-60  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 61   | 13:41:11.139 | setUp线程组 1-61  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 62   | 13:41:11.239 | setUp线程组 1-62  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 63   | 13:41:11.339 | setUp线程组 1-63  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 64   | 13:41:11.439 | setUp线程组 1-64  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 65   | 13:41:11.538 | setUp线程组 1-65  | HTTP请求 | 8    | Success | 317  | 125  | 8    | 1    |
+| 66   | 13:41:11.638 | setUp线程组 1-66  | HTTP请求 | 7    | Success | 317  | 125  | 7    | 1    |
+| 67   | 13:41:11.738 | setUp线程组 1-67  | HTTP请求 | 7    | Success | 317  | 125  | 7    | 1    |
+| 68   | 13:41:11.838 | setUp线程组 1-68  | HTTP请求 | 4    | Warning | 267  | 125  | 4    | 1    |
+| 69   | 13:41:11.939 | setUp线程组 1-69  | HTTP请求 | 3    | Warning | 267  | 125  | 2    | 1    |
+| 70   | 13:41:12.040 | setUp线程组 1-70  | HTTP请求 | 4    | Warning | 267  | 125  | 4    | 1    |
+| 71   | 13:41:12.140 | setUp线程组 1-71  | HTTP请求 | 3    | Warning | 267  | 125  | 2    | 0    |
+| 72   | 13:41:12.239 | setUp线程组 1-72  | HTTP请求 | 4    | Warning | 267  | 125  | 3    | 0    |
+| 73   | 13:41:12.338 | setUp线程组 1-73  | HTTP请求 | 3    | Warning | 267  | 125  | 2    | 1    |
+| 74   | 13:41:12.438 | setUp线程组 1-74  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 75   | 13:41:12.543 | setUp线程组 1-75  | HTTP请求 | 7    | Success | 317  | 125  | 7    | 0    |
+| 76   | 13:41:12.638 | setUp线程组 1-76  | HTTP请求 | 9    | Success | 317  | 125  | 9    | 1    |
+| 77   | 13:41:12.738 | setUp线程组 1-77  | HTTP请求 | 8    | Success | 317  | 125  | 8    | 1    |
+| 78   | 13:41:12.838 | setUp线程组 1-78  | HTTP请求 | 4    | Warning | 267  | 125  | 3    | 1    |
+| 79   | 13:41:12.938 | setUp线程组 1-79  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 80   | 13:41:13.038 | setUp线程组 1-80  | HTTP请求 | 4    | Warning | 267  | 125  | 4    | 1    |
+| 81   | 13:41:13.139 | setUp线程组 1-81  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 82   | 13:41:13.239 | setUp线程组 1-82  | HTTP请求 | 3    | Warning | 267  | 125  | 2    | 0    |
+| 83   | 13:41:13.339 | setUp线程组 1-83  | HTTP请求 | 3    | Warning | 267  | 125  | 2    | 1    |
+| 84   | 13:41:13.438 | setUp线程组 1-84  | HTTP请求 | 4    | Warning | 267  | 125  | 4    | 1    |
+| 85   | 13:41:13.538 | setUp线程组 1-85  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 86   | 13:41:13.638 | setUp线程组 1-86  | HTTP请求 | 8    | Success | 317  | 125  | 8    | 1    |
+| 87   | 13:41:13.738 | setUp线程组 1-87  | HTTP请求 | 9    | Success | 317  | 125  | 8    | 1    |
+| 88   | 13:41:13.838 | setUp线程组 1-88  | HTTP请求 | 8    | Success | 317  | 125  | 8    | 1    |
+| 89   | 13:41:13.938 | setUp线程组 1-89  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 90   | 13:41:14.038 | setUp线程组 1-90  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 0    |
+| 91   | 13:41:14.138 | setUp线程组 1-91  | HTTP请求 | 2    | Warning | 267  | 125  | 2    | 0    |
+| 92   | 13:41:14.238 | setUp线程组 1-92  | HTTP请求 | 3    | Warning | 267  | 125  | 2    | 1    |
+| 93   | 13:41:14.338 | setUp线程组 1-93  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 94   | 13:41:14.439 | setUp线程组 1-94  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 1    |
+| 95   | 13:41:14.539 | setUp线程组 1-95  | HTTP请求 | 3    | Warning | 267  | 125  | 3    | 2    |
+| 96   | 13:41:14.639 | setUp线程组 1-96  | HTTP请求 | 8    | Success | 317  | 125  | 8    | 1    |
+| 97   | 13:41:14.738 | setUp线程组 1-97  | HTTP请求 | 7    | Success | 317  | 125  | 7    | 1    |
+| 98   | 13:41:14.838 | setUp线程组 1-98  | HTTP请求 | 7    | Success | 317  | 125  | 7    | 1    |
+| 99   | 13:41:14.938 | setUp线程组 1-99  | HTTP请求 | 4    | Warning | 267  | 125  | 4    | 2    |
+| 100  | 13:41:15.038 | setUp线程组 1-100 | HTTP请求 | 4    | Warning | 267  | 125  | 4    | 1    |
+| 101  | 13:41:15.138 | setUp线程组 1-101 | HTTP请求 | 4    | Warning | 267  | 125  | 4    | 1    |
+
+
+
+
+
+对
+
+http://localhost:8081/order/101
+
+做测试
 
