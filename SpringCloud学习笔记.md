@@ -18099,7 +18099,7 @@ RT超过500ms的调用是慢调用，统计最近10000ms内的请求，如果请
 
 
 
-1. 更改UserService业务
+#### 1. 更改UserService业务
 
 
 
@@ -18174,13 +18174,13 @@ public class UserController
 
 
 
-2. 启动服务
+#### 2. 启动服务
 
 
 
 
 
-3. 访问
+#### 3. 访问
 
 
 
@@ -18242,7 +18242,7 @@ INFO: Sentinel log name use pid is: false
 
 
 
-4. 进入sentinel控制台
+#### 4. 进入sentinel控制台
 
 
 
@@ -18250,7 +18250,7 @@ INFO: Sentinel log name use pid is: false
 
 
 
-5. 添加降级策略
+#### 5. 添加降级策略
 
 
 
@@ -18258,7 +18258,7 @@ INFO: Sentinel log name use pid is: false
 
 
 
-6. 编写降级策略
+#### 6. 编写降级策略
 
 
 
@@ -18266,7 +18266,7 @@ INFO: Sentinel log name use pid is: false
 
 
 
-7. 提交保存
+#### 7. 提交保存
 
 
 
@@ -18276,11 +18276,11 @@ INFO: Sentinel log name use pid is: false
 
 
 
-8. 进入jmeter
+#### 8. 进入jmeter
 
 
 
-9. 设置线程组
+#### 9. 设置线程组
 
 
 
@@ -18290,13 +18290,13 @@ INFO: Sentinel log name use pid is: false
 
 
 
-10. 发起请求
+#### 10. 发起请求
 
 
 
 
 
-11. 结果
+#### 11. 结果
 
 ![image-20220721182736798](img/image-20220721182736798.png)
 
@@ -18429,7 +18429,7 @@ INFO: Sentinel log name use pid is: false
 
 
 
-12. 更改业务代码
+#### 12. 更改业务代码
 
 
 
@@ -18503,19 +18503,19 @@ public class UserController
 
 
 
-13. 重启服务并访问一次
+#### 13. 重启服务并访问一次
 
 
 
-14. 重新设置降级逻辑
+#### 14. 重新设置降级逻辑
 
 
 
-15. 发起请求
+#### 15. 发起请求
 
 
 
-16.  结果
+#### 16.  结果
 
 
 
