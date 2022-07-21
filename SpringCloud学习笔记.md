@@ -18061,3 +18061,579 @@ http://localhost:8081/order/101
 
 ### 熔断降级
 
+熔断降级是解决雪崩问题的重要手段。其思路是由断路器统计服务调用的异常比例、慢请求比例，如果超出阈值则会 熔断该服务。即拦截访问该服务的一切请求；而当服务恢复时，断路器会放行访问该服务的请求。
+
+
+
+![image-20220721180517834](img/image-20220721180517834.png)
+
+
+
+
+
+断路器熔断策略有三种：慢调用、异常比例、异常数
+
+
+
+### 熔断策略-慢调用
+
+慢调用：业务的响应时长（RT）大于指定时长的请求认定为慢调用请求。在指定时间内，如果请求数量超过设定的 最小数量，慢调用比例大于设定的阈值，则触发熔断
+
+
+
+![image-20220721180933019](img/image-20220721180933019.png)
+
+
+
+RT超过500ms的调用是慢调用，统计最近10000ms内的请求，如果请求量超过10次，并且慢调用比例不低于 0.5，则触发熔断，熔断时长为5秒。然后进入half-open状态，放行一次请求做测试
+
+
+
+
+
+
+
+### 实现熔断策略-慢调用
+
+需求：给 UserClient的查询用户接口设置降级规则，慢调用的RT阈值为50ms，统计时间为1秒，最 小请求数量为5，失败阈值比例为0.4，熔断时长为5
+
+
+
+1. 更改UserService业务
+
+
+
+UserController：
+
+```java
+package mao.user_service.controller;
+
+import lombok.extern.slf4j.Slf4j;
+
+import mao.user_service.entity.User;
+import mao.user_service.service.UserService;
+import org.springframework.web.bind.annotation.*;
+
+import javax.annotation.Resource;
+
+/**
+ * Project name(项目名称)：spring_cloud_demo
+ * Package(包名): mao.user_service.controller
+ * Class(类名): UserController
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/9
+ * Time(创建时间)： 13:51
+ * Version(版本): 1.0
+ * Description(描述)： UserController
+ */
+
+@Slf4j
+@RestController
+@RequestMapping("/user")
+public class UserController
+{
+    @Resource
+    private UserService userService;
+
+    /**
+     * 获取用户信息
+     *
+     * @param id 用户的id
+     * @return User
+     */
+    @GetMapping("/{id}")
+    public User queryById(@PathVariable("id") Long id, @RequestHeader(name = "key1",required = false) String key1)
+    {
+        //log.debug("user被访问了："+id);
+        log.info("请求头key1：" + key1);
+        if (id==1)
+        {
+            //一定概率触发
+            if (Math.random()<0.8)
+            {
+                try
+                {
+                    //100毫秒，大于50毫秒
+                    Thread.sleep(100);
+                }
+                catch (InterruptedException e)
+                {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return userService.queryById(id);
+    }
+}
+
+```
+
+
+
+
+
+2. 启动服务
+
+
+
+
+
+3. 访问
+
+
+
+http://localhost:8081/order/101
+
+
+
+```sh
+2022-07-21 18:19:01.699  INFO 23092 --- [nio-8081-exec-2] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2022-07-21 18:19:01.699  INFO 23092 --- [nio-8081-exec-2] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2022-07-21 18:19:01.703  INFO 23092 --- [nio-8081-exec-2] o.s.web.servlet.DispatcherServlet        : Completed initialization in 4 ms
+INFO: Sentinel log output type is: file
+INFO: Sentinel log charset is: utf-8
+INFO: Sentinel log base directory is: C:\Users\mao\logs\csp\
+INFO: Sentinel log name use pid is: false
+2022-07-21 18:19:01.997 DEBUG 23092 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-21 18:19:02.016 DEBUG 23092 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-21 18:19:02.035 DEBUG 23092 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-21 18:19:02.040 DEBUG 23092 --- [nio-8081-exec-2] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/1 HTTP/1.1
+2022-07-21 18:19:02.523 DEBUG 23092 --- [nio-8081-exec-2] mao.feign.feign.UserClient               : [UserClient#queryById] <--- HTTP/1.1 200  (481ms)
+2022-07-21 18:19:25.584 DEBUG 23092 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-21 18:19:25.585 DEBUG 23092 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-21 18:19:25.586 DEBUG 23092 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-21 18:19:25.587 DEBUG 23092 --- [nio-8081-exec-2] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/1 HTTP/1.1
+2022-07-21 18:19:25.705 DEBUG 23092 --- [nio-8081-exec-2] mao.feign.feign.UserClient               : [UserClient#queryById] <--- HTTP/1.1 200  (117ms)
+2022-07-21 18:19:27.235 DEBUG 23092 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-21 18:19:27.235 DEBUG 23092 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-21 18:19:27.237 DEBUG 23092 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-21 18:19:27.237 DEBUG 23092 --- [nio-8081-exec-5] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/1 HTTP/1.1
+2022-07-21 18:19:27.242 DEBUG 23092 --- [nio-8081-exec-5] mao.feign.feign.UserClient               : [UserClient#queryById] <--- HTTP/1.1 200  (4ms)
+2022-07-21 18:19:27.981 DEBUG 23092 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-21 18:19:27.981 DEBUG 23092 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-21 18:19:27.982 DEBUG 23092 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-21 18:19:27.983 DEBUG 23092 --- [nio-8081-exec-6] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/1 HTTP/1.1
+2022-07-21 18:19:28.094 DEBUG 23092 --- [nio-8081-exec-6] mao.feign.feign.UserClient               : [UserClient#queryById] <--- HTTP/1.1 200  (111ms)
+2022-07-21 18:19:30.051 DEBUG 23092 --- [nio-8081-exec-9] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-21 18:19:30.051 DEBUG 23092 --- [nio-8081-exec-9] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-21 18:19:30.053 DEBUG 23092 --- [nio-8081-exec-9] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-21 18:19:30.054 DEBUG 23092 --- [nio-8081-exec-9] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/1 HTTP/1.1
+2022-07-21 18:19:30.165 DEBUG 23092 --- [nio-8081-exec-9] mao.feign.feign.UserClient               : [UserClient#queryById] <--- HTTP/1.1 200  (111ms)
+2022-07-21 18:19:30.828 DEBUG 23092 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-21 18:19:30.828 DEBUG 23092 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-21 18:19:30.829 DEBUG 23092 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-21 18:19:30.830 DEBUG 23092 --- [nio-8081-exec-1] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/1 HTTP/1.1
+2022-07-21 18:19:30.945 DEBUG 23092 --- [nio-8081-exec-1] mao.feign.feign.UserClient               : [UserClient#queryById] <--- HTTP/1.1 200  (114ms)
+2022-07-21 18:19:31.406 DEBUG 23092 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-21 18:19:31.406 DEBUG 23092 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-21 18:19:31.408 DEBUG 23092 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-21 18:19:31.408 DEBUG 23092 --- [nio-8081-exec-3] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/1 HTTP/1.1
+2022-07-21 18:19:31.413 DEBUG 23092 --- [nio-8081-exec-3] mao.feign.feign.UserClient               : [UserClient#queryById] <--- HTTP/1.1 200  (4ms)
+2022-07-21 18:19:31.916 DEBUG 23092 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-21 18:19:31.916 DEBUG 23092 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : ==> Parameters: 101(Long)
+2022-07-21 18:19:31.918 DEBUG 23092 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-21 18:19:31.919 DEBUG 23092 --- [nio-8081-exec-4] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/1 HTTP/1.1
+2022-07-21 18:19:32.034 DEBUG 23092 --- [nio-8081-exec-4] mao.feign.feign.UserClient               : [UserClient#queryById] <--- HTTP/1.1 200  (115ms)
+```
+
+
+
+
+
+4. 进入sentinel控制台
+
+
+
+![image-20220721182046511](img/image-20220721182046511.png)
+
+
+
+5. 添加降级策略
+
+
+
+![image-20220721182111132](img/image-20220721182111132.png)
+
+
+
+6. 编写降级策略
+
+
+
+![image-20220721182304888](img/image-20220721182304888.png)
+
+
+
+7. 提交保存
+
+
+
+![image-20220721182328397](img/image-20220721182328397.png)
+
+
+
+
+
+8. 进入jmeter
+
+
+
+9. 设置线程组
+
+
+
+![image-20220721182513213](img/image-20220721182513213.png)
+
+
+
+
+
+10. 发起请求
+
+
+
+
+
+11. 结果
+
+![image-20220721182736798](img/image-20220721182736798.png)
+
+
+
+
+
+| 时间     | 通过 QPS | 拒绝QPS | 响应时间（ms） |
+| -------- | -------- | ------- | -------------- |
+| 18:27:28 | 0.0      | 7.0     | 0.0            |
+| 18:27:27 | 0.0      | 10.0    | 0.0            |
+| 18:27:26 | 0.0      | 10.0    | 0.0            |
+| 18:27:25 | 0.0      | 10.0    | 0.0            |
+| 18:27:24 | 1.0      | 9.0     | 117.0          |
+| 18:27:23 | 0.0      | 10.0    | 0.0            |
+
+
+
+![image-20220721182930874](img/image-20220721182930874.png)
+
+
+
+
+
+
+|  ID  |   执行时间   |      线程组       |  lable   | 请求时间ms |  状态   | bytes | sent bytes | latency | 连接时间 |
+| :--: | :----------: | :---------------: | :------: | :--: | :-----: | :--: | :--: | :--: | :--: |
+| 1    | 18:27:18.727 | setUp线程组 1-1   | HTTP请求 | 178  | Success | 317  | 125  | 178  | 5    |
+| 2    | 18:27:18.837 | setUp线程组 1-2   | HTTP请求 | 114  | Success | 317  | 125  | 113  | 1    |
+| 3    | 18:27:18.931 | setUp线程组 1-3   | HTTP请求 | 114  | Success | 317  | 125  | 114  | 0    |
+| 4    | 18:27:19.024 | setUp线程组 1-4   | HTTP请求 | 116  | Success | 317  | 125  | 116  | 0    |
+| 5    | 18:27:19.124 | setUp线程组 1-5   | HTTP请求 | 111  | Success | 317  | 125  | 111  | 1    |
+| 6    | 18:27:19.225 | setUp线程组 1-6   | HTTP请求 | 121  | Success | 317  | 125  | 121  | 2    |
+| 7    | 18:27:19.323 | setUp线程组 1-7   | HTTP请求 | 119  | Success | 317  | 125  | 119  | 1    |
+| 8    | 18:27:19.525 | setUp线程组 1-9   | HTTP请求 | 16   | Success | 300  | 125  | 16   | 1    |
+| 9    | 18:27:19.425 | setUp线程组 1-8   | HTTP请求 | 130  | Success | 317  | 125  | 130  | 1    |
+| 10   | 18:27:19.626 | setUp线程组 1-10  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 0    |
+| 11   | 18:27:19.724 | setUp线程组 1-11  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 0    |
+| 12   | 18:27:19.822 | setUp线程组 1-12  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 13   | 18:27:19.922 | setUp线程组 1-13  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 14   | 18:27:20.022 | setUp线程组 1-14  | HTTP请求 | 5    | Success | 300  | 125  | 5    | 1    |
+| 15   | 18:27:20.122 | setUp线程组 1-15  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 0    |
+| 16   | 18:27:20.223 | setUp线程组 1-16  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 0    |
+| 17   | 18:27:20.323 | setUp线程组 1-17  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 18   | 18:27:20.424 | setUp线程组 1-18  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 0    |
+| 19   | 18:27:20.524 | setUp线程组 1-19  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 0    |
+| 20   | 18:27:20.622 | setUp线程组 1-20  | HTTP请求 | 5    | Success | 300  | 125  | 4    | 1    |
+| 21   | 18:27:20.723 | setUp线程组 1-21  | HTTP请求 | 5    | Success | 300  | 125  | 5    | 1    |
+| 22   | 18:27:20.823 | setUp线程组 1-22  | HTTP请求 | 5    | Success | 300  | 125  | 5    | 2    |
+| 23   | 18:27:20.923 | setUp线程组 1-23  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 24   | 18:27:21.024 | setUp线程组 1-24  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 0    |
+| 25   | 18:27:21.124 | setUp线程组 1-25  | HTTP请求 | 4    | Success | 300  | 125  | 3    | 0    |
+| 26   | 18:27:21.225 | setUp线程组 1-26  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 27   | 18:27:21.323 | setUp线程组 1-27  | HTTP请求 | 4    | Success | 300  | 125  | 3    | 0    |
+| 28   | 18:27:21.423 | setUp线程组 1-28  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 0    |
+| 29   | 18:27:21.524 | setUp线程组 1-29  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 0    |
+| 30   | 18:27:21.623 | setUp线程组 1-30  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 31   | 18:27:21.723 | setUp线程组 1-31  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 0    |
+| 32   | 18:27:21.824 | setUp线程组 1-32  | HTTP请求 | 3    | Success | 300  | 125  | 3    | 0    |
+| 33   | 18:27:21.923 | setUp线程组 1-33  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 34   | 18:27:22.023 | setUp线程组 1-34  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 0    |
+| 35   | 18:27:22.122 | setUp线程组 1-35  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 0    |
+| 36   | 18:27:22.222 | setUp线程组 1-36  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 37   | 18:27:22.323 | setUp线程组 1-37  | HTTP请求 | 4    | Success | 300  | 125  | 3    | 0    |
+| 38   | 18:27:22.423 | setUp线程组 1-38  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 0    |
+| 39   | 18:27:22.525 | setUp线程组 1-39  | HTTP请求 | 4    | Success | 300  | 125  | 3    | 0    |
+| 40   | 18:27:22.623 | setUp线程组 1-40  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 41   | 18:27:22.723 | setUp线程组 1-41  | HTTP请求 | 5    | Success | 300  | 125  | 4    | 1    |
+| 42   | 18:27:22.822 | setUp线程组 1-42  | HTTP请求 | 6    | Success | 300  | 125  | 6    | 0    |
+| 43   | 18:27:22.922 | setUp线程组 1-43  | HTTP请求 | 4    | Success | 300  | 125  | 3    | 0    |
+| 44   | 18:27:23.023 | setUp线程组 1-44  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 45   | 18:27:23.122 | setUp线程组 1-45  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 0    |
+| 46   | 18:27:23.223 | setUp线程组 1-46  | HTTP请求 | 4    | Success | 300  | 125  | 3    | 0    |
+| 47   | 18:27:23.324 | setUp线程组 1-47  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 48   | 18:27:23.424 | setUp线程组 1-48  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 49   | 18:27:23.525 | setUp线程组 1-49  | HTTP请求 | 4    | Success | 300  | 125  | 3    | 0    |
+| 50   | 18:27:23.623 | setUp线程组 1-50  | HTTP请求 | 5    | Success | 300  | 125  | 5    | 1    |
+| 51   | 18:27:23.723 | setUp线程组 1-51  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 52   | 18:27:23.823 | setUp线程组 1-52  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 53   | 18:27:23.923 | setUp线程组 1-53  | HTTP请求 | 5    | Success | 300  | 125  | 5    | 1    |
+| 54   | 18:27:24.023 | setUp线程组 1-54  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 55   | 18:27:24.124 | setUp线程组 1-55  | HTTP请求 | 8    | Success | 300  | 125  | 8    | 1    |
+| 56   | 18:27:24.225 | setUp线程组 1-56  | HTTP请求 | 5    | Success | 300  | 125  | 4    | 1    |
+| 57   | 18:27:24.324 | setUp线程组 1-57  | HTTP请求 | 5    | Success | 300  | 125  | 5    | 1    |
+| 58   | 18:27:24.423 | setUp线程组 1-58  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 0    |
+| 59   | 18:27:24.624 | setUp线程组 1-60  | HTTP请求 | 5    | Success | 300  | 125  | 5    | 1    |
+| 60   | 18:27:24.523 | setUp线程组 1-59  | HTTP请求 | 121  | Success | 317  | 125  | 121  | 1    |
+| 61   | 18:27:24.722 | setUp线程组 1-61  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 62   | 18:27:24.825 | setUp线程组 1-62  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 63   | 18:27:24.924 | setUp线程组 1-63  | HTTP请求 | 5    | Success | 300  | 125  | 5    | 1    |
+| 64   | 18:27:25.031 | setUp线程组 1-64  | HTTP请求 | 7    | Success | 300  | 125  | 7    | 2    |
+| 65   | 18:27:25.124 | setUp线程组 1-65  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 66   | 18:27:25.224 | setUp线程组 1-66  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 67   | 18:27:25.325 | setUp线程组 1-67  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 68   | 18:27:25.423 | setUp线程组 1-68  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 0    |
+| 69   | 18:27:25.523 | setUp线程组 1-69  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 70   | 18:27:25.623 | setUp线程组 1-70  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 0    |
+| 71   | 18:27:25.722 | setUp线程组 1-71  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 72   | 18:27:25.824 | setUp线程组 1-72  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 0    |
+| 73   | 18:27:25.924 | setUp线程组 1-73  | HTTP请求 | 3    | Success | 300  | 125  | 3    | 1    |
+| 74   | 18:27:26.024 | setUp线程组 1-74  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 0    |
+| 75   | 18:27:26.125 | setUp线程组 1-75  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 76   | 18:27:26.223 | setUp线程组 1-76  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 77   | 18:27:26.323 | setUp线程组 1-77  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 78   | 18:27:26.423 | setUp线程组 1-78  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 0    |
+| 79   | 18:27:26.523 | setUp线程组 1-79  | HTTP请求 | 5    | Success | 300  | 125  | 4    | 1    |
+| 80   | 18:27:26.623 | setUp线程组 1-80  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 81   | 18:27:26.724 | setUp线程组 1-81  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 82   | 18:27:26.824 | setUp线程组 1-82  | HTTP请求 | 4    | Success | 300  | 125  | 3    | 1    |
+| 83   | 18:27:26.925 | setUp线程组 1-83  | HTTP请求 | 4    | Success | 300  | 125  | 3    | 0    |
+| 84   | 18:27:27.024 | setUp线程组 1-84  | HTTP请求 | 5    | Success | 300  | 125  | 5    | 1    |
+| 85   | 18:27:27.123 | setUp线程组 1-85  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 86   | 18:27:27.223 | setUp线程组 1-86  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 87   | 18:27:27.323 | setUp线程组 1-87  | HTTP请求 | 5    | Success | 300  | 125  | 5    | 1    |
+| 88   | 18:27:27.423 | setUp线程组 1-88  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 0    |
+| 89   | 18:27:27.523 | setUp线程组 1-89  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 90   | 18:27:27.623 | setUp线程组 1-90  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 91   | 18:27:27.724 | setUp线程组 1-91  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 92   | 18:27:27.825 | setUp线程组 1-92  | HTTP请求 | 4    | Success | 300  | 125  | 3    | 1    |
+| 93   | 18:27:27.923 | setUp线程组 1-93  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 94   | 18:27:28.022 | setUp线程组 1-94  | HTTP请求 | 3    | Success | 300  | 125  | 3    | 0    |
+| 95   | 18:27:28.123 | setUp线程组 1-95  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 0    |
+| 96   | 18:27:28.224 | setUp线程组 1-96  | HTTP请求 | 5    | Success | 300  | 125  | 5    | 1    |
+| 97   | 18:27:28.323 | setUp线程组 1-97  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 98   | 18:27:28.422 | setUp线程组 1-98  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 99   | 18:27:28.523 | setUp线程组 1-99  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 100  | 18:27:28.624 | setUp线程组 1-100 | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+
+
+
+
+
+12. 更改业务代码
+
+
+
+概率更改为0.3
+
+```java
+package mao.user_service.controller;
+
+import lombok.extern.slf4j.Slf4j;
+
+import mao.user_service.entity.User;
+import mao.user_service.service.UserService;
+import org.springframework.web.bind.annotation.*;
+
+import javax.annotation.Resource;
+
+/**
+ * Project name(项目名称)：spring_cloud_demo
+ * Package(包名): mao.user_service.controller
+ * Class(类名): UserController
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/9
+ * Time(创建时间)： 13:51
+ * Version(版本): 1.0
+ * Description(描述)： UserController
+ */
+
+@Slf4j
+@RestController
+@RequestMapping("/user")
+public class UserController
+{
+    @Resource
+    private UserService userService;
+
+    /**
+     * 获取用户信息
+     *
+     * @param id 用户的id
+     * @return User
+     */
+    @GetMapping("/{id}")
+    public User queryById(@PathVariable("id") Long id, @RequestHeader(name = "key1",required = false) String key1)
+    {
+        //log.debug("user被访问了："+id);
+        log.info("请求头key1：" + key1);
+        if (id==1)
+        {
+            //一定概率触发
+            if (Math.random()<0.3)
+            {
+                try
+                {
+                    //100毫秒，大于50毫秒
+                    Thread.sleep(100);
+                }
+                catch (InterruptedException e)
+                {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return userService.queryById(id);
+    }
+}
+```
+
+
+
+
+
+13. 重启服务并访问一次
+
+
+
+14. 重新设置降级逻辑
+
+
+
+15. 发起请求
+
+
+
+16.  结果
+
+
+
+![image-20220721184546259](img/image-20220721184546259.png)
+
+
+
+
+
+
+|  ID  |   执行时间   |      线程组       |  lable   | 请求时间ms |  状态   | bytes | sent bytes | latency | 连接时间 |
+| :--: | :----------: | :---------------: | :------: | :--: | :-----: | :--: | :--: | :--: | :--: |
+| 1    | 18:43:12.626 | setUp线程组 1-1   | HTTP请求 | 62   | Success | 317  | 125  | 62   | 2    |
+| 2    | 18:43:12.729 | setUp线程组 1-2   | HTTP请求 | 13   | Success | 317  | 125  | 12   | 1    |
+| 3    | 18:43:12.838 | setUp线程组 1-3   | HTTP请求 | 11   | Success | 317  | 125  | 11   | 1    |
+| 4    | 18:43:12.933 | setUp线程组 1-4   | HTTP请求 | 11   | Success | 317  | 125  | 11   | 1    |
+| 5    | 18:43:13.028 | setUp线程组 1-5   | HTTP请求 | 13   | Success | 317  | 125  | 13   | 1    |
+| 6    | 18:43:13.235 | setUp线程组 1-7   | HTTP请求 | 10   | Success | 317  | 125  | 10   | 1    |
+| 7    | 18:43:13.140 | setUp线程组 1-6   | HTTP请求 | 115  | Success | 317  | 125  | 115  | 1    |
+| 8    | 18:43:13.330 | setUp线程组 1-8   | HTTP请求 | 115  | Success | 317  | 125  | 115  | 1    |
+| 9    | 18:43:13.441 | setUp线程组 1-9   | HTTP请求 | 10   | Success | 317  | 125  | 10   | 1    |
+| 10   | 18:43:13.536 | setUp线程组 1-10  | HTTP请求 | 12   | Success | 317  | 125  | 12   | 2    |
+| 11   | 18:43:13.729 | setUp线程组 1-12  | HTTP请求 | 11   | Success | 317  | 125  | 11   | 1    |
+| 12   | 18:43:13.632 | setUp线程组 1-11  | HTTP请求 | 115  | Success | 317  | 125  | 114  | 1    |
+| 13   | 18:43:13.827 | setUp线程组 1-13  | HTTP请求 | 125  | Success | 317  | 125  | 125  | 2    |
+| 14   | 18:43:14.028 | setUp线程组 1-15  | HTTP请求 | 19   | Success | 300  | 125  | 19   | 1    |
+| 15   | 18:43:13.928 | setUp线程组 1-14  | HTTP请求 | 121  | Success | 317  | 125  | 121  | 1    |
+| 16   | 18:43:14.127 | setUp线程组 1-16  | HTTP请求 | 5    | Success | 300  | 125  | 5    | 1    |
+| 17   | 18:43:14.229 | setUp线程组 1-17  | HTTP请求 | 5    | Success | 300  | 125  | 4    | 1    |
+| 18   | 18:43:14.328 | setUp线程组 1-18  | HTTP请求 | 5    | Success | 300  | 125  | 5    | 1    |
+| 19   | 18:43:14.429 | setUp线程组 1-19  | HTTP请求 | 5    | Success | 300  | 125  | 5    | 1    |
+| 20   | 18:43:14.527 | setUp线程组 1-20  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 21   | 18:43:14.627 | setUp线程组 1-21  | HTTP请求 | 5    | Success | 300  | 125  | 5    | 1    |
+| 22   | 18:43:14.728 | setUp线程组 1-22  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 23   | 18:43:14.828 | setUp线程组 1-23  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 24   | 18:43:14.927 | setUp线程组 1-24  | HTTP请求 | 5    | Success | 300  | 125  | 5    | 1    |
+| 25   | 18:43:15.029 | setUp线程组 1-25  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 26   | 18:43:15.127 | setUp线程组 1-26  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 27   | 18:43:15.227 | setUp线程组 1-27  | HTTP请求 | 5    | Success | 300  | 125  | 5    | 1    |
+| 28   | 18:43:15.328 | setUp线程组 1-28  | HTTP请求 | 6    | Success | 300  | 125  | 6    | 1    |
+| 29   | 18:43:15.427 | setUp线程组 1-29  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 30   | 18:43:15.528 | setUp线程组 1-30  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 31   | 18:43:15.628 | setUp线程组 1-31  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 32   | 18:43:15.727 | setUp线程组 1-32  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 33   | 18:43:15.828 | setUp线程组 1-33  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 34   | 18:43:15.928 | setUp线程组 1-34  | HTTP请求 | 6    | Success | 300  | 125  | 5    | 1    |
+| 35   | 18:43:16.028 | setUp线程组 1-35  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 36   | 18:43:16.128 | setUp线程组 1-36  | HTTP请求 | 5    | Success | 300  | 125  | 5    | 1    |
+| 37   | 18:43:16.228 | setUp线程组 1-37  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 38   | 18:43:16.328 | setUp线程组 1-38  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 39   | 18:43:16.426 | setUp线程组 1-39  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 40   | 18:43:16.527 | setUp线程组 1-40  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 41   | 18:43:16.627 | setUp线程组 1-41  | HTTP请求 | 5    | Success | 300  | 125  | 5    | 2    |
+| 42   | 18:43:16.727 | setUp线程组 1-42  | HTTP请求 | 5    | Success | 300  | 125  | 5    | 1    |
+| 43   | 18:43:16.827 | setUp线程组 1-43  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 44   | 18:43:16.927 | setUp线程组 1-44  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 45   | 18:43:17.027 | setUp线程组 1-45  | HTTP请求 | 5    | Success | 300  | 125  | 5    | 1    |
+| 46   | 18:43:17.127 | setUp线程组 1-46  | HTTP请求 | 5    | Success | 300  | 125  | 5    | 1    |
+| 47   | 18:43:17.229 | setUp线程组 1-47  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 48   | 18:43:17.327 | setUp线程组 1-48  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 49   | 18:43:17.427 | setUp线程组 1-49  | HTTP请求 | 6    | Success | 300  | 125  | 5    | 1    |
+| 50   | 18:43:17.528 | setUp线程组 1-50  | HTTP请求 | 5    | Success | 300  | 125  | 5    | 1    |
+| 51   | 18:43:17.628 | setUp线程组 1-51  | HTTP请求 | 5    | Success | 300  | 125  | 5    | 1    |
+| 52   | 18:43:17.726 | setUp线程组 1-52  | HTTP请求 | 5    | Success | 300  | 125  | 5    | 1    |
+| 53   | 18:43:17.827 | setUp线程组 1-53  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 54   | 18:43:17.927 | setUp线程组 1-54  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 55   | 18:43:18.027 | setUp线程组 1-55  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 56   | 18:43:18.126 | setUp线程组 1-56  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 57   | 18:43:18.227 | setUp线程组 1-57  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 58   | 18:43:18.327 | setUp线程组 1-58  | HTTP请求 | 5    | Success | 300  | 125  | 4    | 1    |
+| 59   | 18:43:18.427 | setUp线程组 1-59  | HTTP请求 | 6    | Success | 300  | 125  | 5    | 1    |
+| 60   | 18:43:18.535 | setUp线程组 1-60  | HTTP请求 | 5    | Success | 300  | 125  | 5    | 1    |
+| 61   | 18:43:18.628 | setUp线程组 1-61  | HTTP请求 | 5    | Success | 300  | 125  | 4    | 1    |
+| 62   | 18:43:18.728 | setUp线程组 1-62  | HTTP请求 | 5    | Success | 300  | 125  | 4    | 1    |
+| 63   | 18:43:18.827 | setUp线程组 1-63  | HTTP请求 | 5    | Success | 300  | 125  | 4    | 1    |
+| 64   | 18:43:18.927 | setUp线程组 1-64  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 65   | 18:43:19.027 | setUp线程组 1-65  | HTTP请求 | 12   | Success | 317  | 125  | 12   | 1    |
+| 66   | 18:43:19.227 | setUp线程组 1-67  | HTTP请求 | 11   | Success | 317  | 125  | 11   | 1    |
+| 67   | 18:43:19.127 | setUp线程组 1-66  | HTTP请求 | 121  | Success | 317  | 125  | 121  | 1    |
+| 68   | 18:43:19.327 | setUp线程组 1-68  | HTTP请求 | 110  | Success | 317  | 125  | 110  | 1    |
+| 69   | 18:43:19.527 | setUp线程组 1-70  | HTTP请求 | 9    | Success | 317  | 125  | 9    | 1    |
+| 70   | 18:43:19.427 | setUp线程组 1-69  | HTTP请求 | 120  | Success | 317  | 125  | 120  | 1    |
+| 71   | 18:43:19.627 | setUp线程组 1-71  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 72   | 18:43:19.728 | setUp线程组 1-72  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 73   | 18:43:19.828 | setUp线程组 1-73  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 74   | 18:43:19.928 | setUp线程组 1-74  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 75   | 18:43:20.027 | setUp线程组 1-75  | HTTP请求 | 5    | Success | 300  | 125  | 5    | 1    |
+| 76   | 18:43:20.127 | setUp线程组 1-76  | HTTP请求 | 6    | Success | 300  | 125  | 5    | 1    |
+| 77   | 18:43:20.226 | setUp线程组 1-77  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 78   | 18:43:20.327 | setUp线程组 1-78  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 79   | 18:43:20.427 | setUp线程组 1-79  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 80   | 18:43:20.527 | setUp线程组 1-80  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 81   | 18:43:20.626 | setUp线程组 1-81  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 82   | 18:43:20.727 | setUp线程组 1-82  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 83   | 18:43:20.826 | setUp线程组 1-83  | HTTP请求 | 5    | Success | 300  | 125  | 4    | 1    |
+| 84   | 18:43:20.927 | setUp线程组 1-84  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 85   | 18:43:21.028 | setUp线程组 1-85  | HTTP请求 | 5    | Success | 300  | 125  | 5    | 1    |
+| 86   | 18:43:21.128 | setUp线程组 1-86  | HTTP请求 | 5    | Success | 300  | 125  | 4    | 1    |
+| 87   | 18:43:21.229 | setUp线程组 1-87  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 88   | 18:43:21.328 | setUp线程组 1-88  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 89   | 18:43:21.427 | setUp线程组 1-89  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 90   | 18:43:21.527 | setUp线程组 1-90  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 91   | 18:43:21.626 | setUp线程组 1-91  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 92   | 18:43:21.727 | setUp线程组 1-92  | HTTP请求 | 5    | Success | 300  | 125  | 5    | 2    |
+| 93   | 18:43:21.827 | setUp线程组 1-93  | HTTP请求 | 5    | Success | 300  | 125  | 4    | 1    |
+| 94   | 18:43:21.926 | setUp线程组 1-94  | HTTP请求 | 5    | Success | 300  | 125  | 4    | 1    |
+| 95   | 18:43:22.027 | setUp线程组 1-95  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 96   | 18:43:22.126 | setUp线程组 1-96  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 97   | 18:43:22.227 | setUp线程组 1-97  | HTTP请求 | 5    | Success | 300  | 125  | 5    | 1    |
+| 98   | 18:43:22.328 | setUp线程组 1-98  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 99   | 18:43:22.428 | setUp线程组 1-99  | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+| 100  | 18:43:22.528 | setUp线程组 1-100 | HTTP请求 | 4    | Success | 300  | 125  | 4    | 1    |
+
+
+
+
+
+
+
+### 熔断策略-异常比例
+
