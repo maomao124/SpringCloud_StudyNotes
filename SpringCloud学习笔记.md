@@ -18637,3 +18637,421 @@ public class UserController
 
 ### 熔断策略-异常比例
 
+统计指定时间内的调用，如果调用次数超过指定请求数，并且出现异常的比例达到设定的比例阈值，则触发熔断。
+
+
+
+![image-20220721185438231](img/image-20220721185438231.png)
+
+
+
+统计最近1000ms内的请求，如果请求量超过10次，并且异常比例不低于0.4，则触发熔断，熔断时长为5秒。 然后进入half-open状态，放行一次请求做测试
+
+
+
+
+
+### 实现熔断策略-异常比例
+
+需求：给 UserClient的查询用户接口设置降级规则，统计时间为1秒，最小请求数量为5，失败阈值比例为0.4，熔断时长为5s
+
+
+
+1. 更改业务代码
+
+
+
+```java
+package mao.user_service.controller;
+
+import lombok.extern.slf4j.Slf4j;
+
+import mao.user_service.entity.User;
+import mao.user_service.service.UserService;
+import org.springframework.web.bind.annotation.*;
+
+import javax.annotation.Resource;
+
+/**
+ * Project name(项目名称)：spring_cloud_demo
+ * Package(包名): mao.user_service.controller
+ * Class(类名): UserController
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/9
+ * Time(创建时间)： 13:51
+ * Version(版本): 1.0
+ * Description(描述)： UserController
+ */
+
+@Slf4j
+@RestController
+@RequestMapping("/user")
+public class UserController
+{
+    @Resource
+    private UserService userService;
+
+    /**
+     * 获取用户信息
+     *
+     * @param id 用户的id
+     * @return User
+     */
+    @GetMapping("/{id}")
+    public User queryById(@PathVariable("id") Long id, @RequestHeader(name = "key1", required = false) String key1)
+    {
+        //log.debug("user被访问了："+id);
+        log.info("请求头key1：" + key1);
+        if (id == 1)
+        {
+            //慢调用
+            //一定概率触发
+            if (Math.random() < 0.3)
+            {
+                try
+                {
+                    //100毫秒，大于50毫秒
+                    Thread.sleep(100);
+                }
+                catch (InterruptedException e)
+                {
+                    e.printStackTrace();
+                }
+            }
+        }
+        else if (id == 2)
+        {
+            //异常
+            //一定概率触发
+            if (Math.random() < 0.5)
+            {
+                throw new RuntimeException("熔断策略-异常比例");
+            }
+        }
+        return userService.queryById(id);
+    }
+}
+```
+
+
+
+
+
+2. 启动服务
+
+
+
+3. 访问
+
+
+
+http://localhost:8081/order/102
+
+
+
+```sh
+2022-07-21 19:17:33.673 DEBUG 14684 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-21 19:17:33.674 DEBUG 14684 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : ==> Parameters: 102(Long)
+2022-07-21 19:17:33.675 DEBUG 14684 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-21 19:17:33.676 DEBUG 14684 --- [nio-8081-exec-3] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/2 HTTP/1.1
+2022-07-21 19:17:33.682 DEBUG 14684 --- [nio-8081-exec-3] mao.feign.feign.UserClient               : [UserClient#queryById] <--- HTTP/1.1 200  (5ms)
+2022-07-21 19:17:36.048 DEBUG 14684 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-21 19:17:36.049 DEBUG 14684 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : ==> Parameters: 102(Long)
+2022-07-21 19:17:36.050 DEBUG 14684 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-21 19:17:36.051 DEBUG 14684 --- [nio-8081-exec-6] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/2 HTTP/1.1
+2022-07-21 19:17:36.074 DEBUG 14684 --- [nio-8081-exec-6] mao.feign.feign.UserClient               : [UserClient#queryById] <--- HTTP/1.1 500  (22ms)
+2022-07-21 19:17:36.076 ERROR 14684 --- [nio-8081-exec-6] m.f.fallback.UserClientFallbackFactory   : 查询用户失败！[500 ] during [GET] to [http://userservice/user/2] [UserClient#queryById(Long)]: [{"timestamp":"2022-07-21T11:17:36.069+00:00","status":500,"error":"Internal Server Error","message":"","path":"/user/2"}]
+```
+
+
+
+
+
+4. 进入sentinel控制台
+
+
+
+![image-20220721192017089](img/image-20220721192017089.png)
+
+
+
+5. 添加降级逻辑
+
+
+
+![image-20220721192036383](img/image-20220721192036383.png)
+
+
+
+6. 编写降级策略
+
+
+
+![image-20220721192121787](img/image-20220721192121787.png)
+
+
+
+7. 保存
+
+
+
+![image-20220721192149654](img/image-20220721192149654.png)
+
+
+
+
+
+8. 进入jmeter
+
+
+
+9. 设置http请求
+
+
+
+http://localhost:8081/order/102
+
+
+
+![image-20220721192247774](img/image-20220721192247774.png)
+
+
+
+
+
+10. 发起请求
+
+
+
+11. 结果
+
+
+
+![image-20220721192407795](img/image-20220721192407795.png)
+
+
+
+![image-20220721192427742](img/image-20220721192427742.png)
+
+
+
+
+
+![image-20220721192632466](img/image-20220721192632466.png)
+
+
+
+
+
+```sh
+2022-07-21 19:23:52.866 DEBUG 14684 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-21 19:23:52.866 DEBUG 14684 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : ==> Parameters: 102(Long)
+2022-07-21 19:23:52.868 DEBUG 14684 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-21 19:23:52.868 DEBUG 14684 --- [nio-8081-exec-3] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/2 HTTP/1.1
+2022-07-21 19:23:52.874 DEBUG 14684 --- [nio-8081-exec-3] mao.feign.feign.UserClient               : [UserClient#queryById] <--- HTTP/1.1 500  (6ms)
+2022-07-21 19:23:52.875 ERROR 14684 --- [nio-8081-exec-3] m.f.fallback.UserClientFallbackFactory   : 查询用户失败！[500 ] during [GET] to [http://userservice/user/2] [UserClient#queryById(Long)]: [{"timestamp":"2022-07-21T11:23:52.873+00:00","status":500,"error":"Internal Server Error","message":"","path":"/user/2"}]
+2022-07-21 19:23:52.934 DEBUG 14684 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-21 19:23:52.934 DEBUG 14684 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : ==> Parameters: 102(Long)
+2022-07-21 19:23:52.936 DEBUG 14684 --- [nio-8081-exec-5] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-21 19:23:52.936 DEBUG 14684 --- [nio-8081-exec-5] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/2 HTTP/1.1
+2022-07-21 19:23:52.942 DEBUG 14684 --- [nio-8081-exec-5] mao.feign.feign.UserClient               : [UserClient#queryById] <--- HTTP/1.1 500  (5ms)
+2022-07-21 19:23:52.942 ERROR 14684 --- [nio-8081-exec-5] m.f.fallback.UserClientFallbackFactory   : 查询用户失败！[500 ] during [GET] to [http://userservice/user/2] [UserClient#queryById(Long)]: [{"timestamp":"2022-07-21T11:23:52.941+00:00","status":500,"error":"Internal Server Error","message":"","path":"/user/2"}]
+2022-07-21 19:23:53.034 DEBUG 14684 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-21 19:23:53.034 DEBUG 14684 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : ==> Parameters: 102(Long)
+2022-07-21 19:23:53.036 DEBUG 14684 --- [nio-8081-exec-6] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-21 19:23:53.037 DEBUG 14684 --- [nio-8081-exec-6] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/2 HTTP/1.1
+2022-07-21 19:23:53.043 DEBUG 14684 --- [nio-8081-exec-6] mao.feign.feign.UserClient               : [UserClient#queryById] <--- HTTP/1.1 500  (6ms)
+2022-07-21 19:23:53.044 ERROR 14684 --- [nio-8081-exec-6] m.f.fallback.UserClientFallbackFactory   : 查询用户失败！[500 ] during [GET] to [http://userservice/user/2] [UserClient#queryById(Long)]: [{"timestamp":"2022-07-21T11:23:53.042+00:00","status":500,"error":"Internal Server Error","message":"","path":"/user/2"}]
+2022-07-21 19:23:53.134 DEBUG 14684 --- [io-8081-exec-10] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-21 19:23:53.135 DEBUG 14684 --- [io-8081-exec-10] m.o.mapper.OrderMapper.findById          : ==> Parameters: 102(Long)
+2022-07-21 19:23:53.136 DEBUG 14684 --- [io-8081-exec-10] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-21 19:23:53.136 DEBUG 14684 --- [io-8081-exec-10] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/2 HTTP/1.1
+2022-07-21 19:23:53.172 DEBUG 14684 --- [io-8081-exec-10] mao.feign.feign.UserClient               : [UserClient#queryById] <--- HTTP/1.1 200  (35ms)
+2022-07-21 19:23:53.236 DEBUG 14684 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-21 19:23:53.236 DEBUG 14684 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==> Parameters: 102(Long)
+2022-07-21 19:23:53.238 DEBUG 14684 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-21 19:23:53.239 DEBUG 14684 --- [nio-8081-exec-2] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/2 HTTP/1.1
+2022-07-21 19:23:53.243 DEBUG 14684 --- [nio-8081-exec-2] mao.feign.feign.UserClient               : [UserClient#queryById] <--- HTTP/1.1 500  (5ms)
+2022-07-21 19:23:53.244 ERROR 14684 --- [nio-8081-exec-2] m.f.fallback.UserClientFallbackFactory   : 查询用户失败！[500 ] during [GET] to [http://userservice/user/2] [UserClient#queryById(Long)]: [{"timestamp":"2022-07-21T11:23:53.242+00:00","status":500,"error":"Internal Server Error","message":"","path":"/user/2"}]
+2022-07-21 19:23:53.335 DEBUG 14684 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-21 19:23:53.336 DEBUG 14684 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : ==> Parameters: 102(Long)
+2022-07-21 19:23:53.337 DEBUG 14684 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-21 19:23:53.337 DEBUG 14684 --- [nio-8081-exec-4] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/2 HTTP/1.1
+2022-07-21 19:23:53.342 DEBUG 14684 --- [nio-8081-exec-4] mao.feign.feign.UserClient               : [UserClient#queryById] <--- HTTP/1.1 200  (4ms)
+2022-07-21 19:23:53.435 DEBUG 14684 --- [nio-8081-exec-7] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-21 19:23:53.435 DEBUG 14684 --- [nio-8081-exec-7] m.o.mapper.OrderMapper.findById          : ==> Parameters: 102(Long)
+2022-07-21 19:23:53.436 DEBUG 14684 --- [nio-8081-exec-7] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-21 19:23:53.437 DEBUG 14684 --- [nio-8081-exec-7] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/2 HTTP/1.1
+2022-07-21 19:23:53.441 DEBUG 14684 --- [nio-8081-exec-7] mao.feign.feign.UserClient               : [UserClient#queryById] <--- HTTP/1.1 200  (4ms)
+2022-07-21 19:23:53.536 DEBUG 14684 --- [nio-8081-exec-8] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-21 19:23:53.536 DEBUG 14684 --- [nio-8081-exec-8] m.o.mapper.OrderMapper.findById          : ==> Parameters: 102(Long)
+2022-07-21 19:23:53.537 DEBUG 14684 --- [nio-8081-exec-8] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-21 19:23:53.538 DEBUG 14684 --- [nio-8081-exec-8] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/2 HTTP/1.1
+2022-07-21 19:23:53.543 DEBUG 14684 --- [nio-8081-exec-8] mao.feign.feign.UserClient               : [UserClient#queryById] <--- HTTP/1.1 200  (4ms)
+2022-07-21 19:23:53.637 DEBUG 14684 --- [io-8081-exec-10] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-21 19:23:53.638 DEBUG 14684 --- [io-8081-exec-10] m.o.mapper.OrderMapper.findById          : ==> Parameters: 102(Long)
+2022-07-21 19:23:53.639 DEBUG 14684 --- [io-8081-exec-10] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-21 19:23:53.639 DEBUG 14684 --- [io-8081-exec-10] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/2 HTTP/1.1
+2022-07-21 19:23:53.645 DEBUG 14684 --- [io-8081-exec-10] mao.feign.feign.UserClient               : [UserClient#queryById] <--- HTTP/1.1 200  (4ms)
+2022-07-21 19:23:53.739 DEBUG 14684 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-21 19:23:53.739 DEBUG 14684 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : ==> Parameters: 102(Long)
+2022-07-21 19:23:53.742 DEBUG 14684 --- [nio-8081-exec-2] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-21 19:23:53.743 DEBUG 14684 --- [nio-8081-exec-2] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/2 HTTP/1.1
+2022-07-21 19:23:53.750 DEBUG 14684 --- [nio-8081-exec-2] mao.feign.feign.UserClient               : [UserClient#queryById] <--- HTTP/1.1 500  (7ms)
+2022-07-21 19:23:53.751 ERROR 14684 --- [nio-8081-exec-2] m.f.fallback.UserClientFallbackFactory   : 查询用户失败！[500 ] during [GET] to [http://userservice/user/2] [UserClient#queryById(Long)]: [{"timestamp":"2022-07-21T11:23:53.749+00:00","status":500,"error":"Internal Server Error","message":"","path":"/user/2"}]
+2022-07-21 19:23:53.835 DEBUG 14684 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-21 19:23:53.836 DEBUG 14684 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : ==> Parameters: 102(Long)
+2022-07-21 19:23:53.839 DEBUG 14684 --- [nio-8081-exec-4] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-21 19:23:53.840 DEBUG 14684 --- [nio-8081-exec-4] mao.feign.feign.UserClient               : [UserClient#queryById] ---> GET http://userservice/user/2 HTTP/1.1
+2022-07-21 19:23:53.845 DEBUG 14684 --- [nio-8081-exec-4] mao.feign.feign.UserClient               : [UserClient#queryById] <--- HTTP/1.1 500  (5ms)
+2022-07-21 19:23:53.846 ERROR 14684 --- [nio-8081-exec-4] m.f.fallback.UserClientFallbackFactory   : 查询用户失败！[500 ] during [GET] to [http://userservice/user/2] [UserClient#queryById(Long)]: [{"timestamp":"2022-07-21T11:23:53.844+00:00","status":500,"error":"Internal Server Error","message":"","path":"/user/2"}]
+2022-07-21 19:23:53.934 DEBUG 14684 --- [nio-8081-exec-7] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-21 19:23:53.934 DEBUG 14684 --- [nio-8081-exec-7] m.o.mapper.OrderMapper.findById          : ==> Parameters: 102(Long)
+2022-07-21 19:23:53.936 DEBUG 14684 --- [nio-8081-exec-7] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-21 19:23:53.949 ERROR 14684 --- [nio-8081-exec-7] m.f.fallback.UserClientFallbackFactory   : 查询用户失败！null
+2022-07-21 19:23:54.033 DEBUG 14684 --- [nio-8081-exec-8] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-21 19:23:54.033 DEBUG 14684 --- [nio-8081-exec-8] m.o.mapper.OrderMapper.findById          : ==> Parameters: 102(Long)
+2022-07-21 19:23:54.035 DEBUG 14684 --- [nio-8081-exec-8] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-21 19:23:54.035 ERROR 14684 --- [nio-8081-exec-8] m.f.fallback.UserClientFallbackFactory   : 查询用户失败！null
+2022-07-21 19:23:54.134 DEBUG 14684 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-21 19:23:54.134 DEBUG 14684 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : ==> Parameters: 102(Long)
+2022-07-21 19:23:54.135 DEBUG 14684 --- [nio-8081-exec-1] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-21 19:23:54.135 ERROR 14684 --- [nio-8081-exec-1] m.f.fallback.UserClientFallbackFactory   : 查询用户失败！null
+2022-07-21 19:23:54.234 DEBUG 14684 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : ==>  Preparing: select * from tb_order where id = ?
+2022-07-21 19:23:54.235 DEBUG 14684 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : ==> Parameters: 102(Long)
+2022-07-21 19:23:54.236 DEBUG 14684 --- [nio-8081-exec-3] m.o.mapper.OrderMapper.findById          : <==      Total: 1
+2022-07-21 19:23:54.236 ERROR 14684 --- [nio-8081-exec-3] m.f.fallback.UserClientFallbackFactory   : 查询用户失败！null
+...
+...
+...
+```
+
+
+
+
+
+|  ID  | 执行时间 | 线程组 | lable | 请求时间ms | 状态 | bytes | sent bytes | latency | 连接时间 |
+| :--: | :------: | :----: | :---: | :--------: | :--: | :---: | :--------: | :-----: | :------: |
+| 1    | 19:23:52.833 | setUp线程组 1-1   | HTTP请求 | 44   | Success | 308  | 125  | 44   | 2    |
+| 2    | 19:23:52.933 | setUp线程组 1-2   | HTTP请求 | 11   | Success | 308  | 125  | 11   | 1    |
+| 3    | 19:23:53.033 | setUp线程组 1-3   | HTTP请求 | 13   | Success | 308  | 125  | 13   | 1    |
+| 4    | 19:23:53.133 | setUp线程组 1-4   | HTTP请求 | 41   | Success | 328  | 125  | 41   | 0    |
+| 5    | 19:23:53.234 | setUp线程组 1-5   | HTTP请求 | 12   | Success | 308  | 125  | 11   | 1    |
+| 6    | 19:23:53.334 | setUp线程组 1-6   | HTTP请求 | 10   | Success | 328  | 125  | 10   | 0    |
+| 7    | 19:23:53.434 | setUp线程组 1-7   | HTTP请求 | 9    | Success | 328  | 125  | 9    | 0    |
+| 8    | 19:23:53.534 | setUp线程组 1-8   | HTTP请求 | 12   | Success | 328  | 125  | 11   | 1    |
+| 9    | 19:23:53.636 | setUp线程组 1-9   | HTTP请求 | 11   | Success | 328  | 125  | 10   | 0    |
+| 10   | 19:23:53.737 | setUp线程组 1-10  | HTTP请求 | 15   | Success | 308  | 125  | 15   | 1    |
+| 11   | 19:23:53.834 | setUp线程组 1-11  | HTTP请求 | 15   | Success | 308  | 125  | 15   | 0    |
+| 12   | 19:23:53.932 | setUp线程组 1-12  | HTTP请求 | 19   | Success | 308  | 125  | 19   | 1    |
+| 13   | 19:23:54.032 | setUp线程组 1-13  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 0    |
+| 14   | 19:23:54.133 | setUp线程组 1-14  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 0    |
+| 15   | 19:23:54.233 | setUp线程组 1-15  | HTTP请求 | 5    | Success | 308  | 125  | 5    | 1    |
+| 16   | 19:23:54.333 | setUp线程组 1-16  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 0    |
+| 17   | 19:23:54.434 | setUp线程组 1-17  | HTTP请求 | 7    | Success | 308  | 125  | 7    | 1    |
+| 18   | 19:23:54.534 | setUp线程组 1-18  | HTTP请求 | 5    | Success | 308  | 125  | 5    | 0    |
+| 19   | 19:23:54.634 | setUp线程组 1-19  | HTTP请求 | 5    | Success | 308  | 125  | 5    | 1    |
+| 20   | 19:23:54.732 | setUp线程组 1-20  | HTTP请求 | 5    | Success | 308  | 125  | 5    | 1    |
+| 21   | 19:23:54.834 | setUp线程组 1-21  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 0    |
+| 22   | 19:23:54.934 | setUp线程组 1-22  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 0    |
+| 23   | 19:23:55.034 | setUp线程组 1-23  | HTTP请求 | 6    | Success | 308  | 125  | 6    | 2    |
+| 24   | 19:23:55.133 | setUp线程组 1-24  | HTTP请求 | 5    | Success | 308  | 125  | 4    | 1    |
+| 25   | 19:23:55.232 | setUp线程组 1-25  | HTTP请求 | 4    | Success | 308  | 125  | 3    | 0    |
+| 26   | 19:23:55.332 | setUp线程组 1-26  | HTTP请求 | 5    | Success | 308  | 125  | 5    | 1    |
+| 27   | 19:23:55.434 | setUp线程组 1-27  | HTTP请求 | 5    | Success | 308  | 125  | 5    | 0    |
+| 28   | 19:23:55.534 | setUp线程组 1-28  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 0    |
+| 29   | 19:23:55.635 | setUp线程组 1-29  | HTTP请求 | 5    | Success | 308  | 125  | 5    | 0    |
+| 30   | 19:23:55.732 | setUp线程组 1-30  | HTTP请求 | 5    | Success | 308  | 125  | 5    | 1    |
+| 31   | 19:23:55.832 | setUp线程组 1-31  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 1    |
+| 32   | 19:23:55.933 | setUp线程组 1-32  | HTTP请求 | 5    | Success | 308  | 125  | 5    | 1    |
+| 33   | 19:23:56.032 | setUp线程组 1-33  | HTTP请求 | 7    | Success | 308  | 125  | 6    | 1    |
+| 34   | 19:23:56.134 | setUp线程组 1-34  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 1    |
+| 35   | 19:23:56.233 | setUp线程组 1-35  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 1    |
+| 36   | 19:23:56.334 | setUp线程组 1-36  | HTTP请求 | 6    | Success | 308  | 125  | 6    | 1    |
+| 37   | 19:23:56.436 | setUp线程组 1-37  | HTTP请求 | 5    | Success | 308  | 125  | 5    | 1    |
+| 38   | 19:23:56.534 | setUp线程组 1-38  | HTTP请求 | 5    | Success | 308  | 125  | 5    | 1    |
+| 39   | 19:23:56.634 | setUp线程组 1-39  | HTTP请求 | 5    | Success | 308  | 125  | 4    | 1    |
+| 40   | 19:23:56.734 | setUp线程组 1-40  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 1    |
+| 41   | 19:23:56.832 | setUp线程组 1-41  | HTTP请求 | 5    | Success | 308  | 125  | 5    | 0    |
+| 42   | 19:23:56.933 | setUp线程组 1-42  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 1    |
+| 43   | 19:23:57.032 | setUp线程组 1-43  | HTTP请求 | 6    | Success | 308  | 125  | 6    | 1    |
+| 44   | 19:23:57.132 | setUp线程组 1-44  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 1    |
+| 45   | 19:23:57.232 | setUp线程组 1-45  | HTTP请求 | 5    | Success | 308  | 125  | 5    | 1    |
+| 46   | 19:23:57.333 | setUp线程组 1-46  | HTTP请求 | 6    | Success | 308  | 125  | 5    | 1    |
+| 47   | 19:23:57.434 | setUp线程组 1-47  | HTTP请求 | 11   | Success | 308  | 125  | 10   | 1    |
+| 48   | 19:23:57.534 | setUp线程组 1-48  | HTTP请求 | 5    | Success | 308  | 125  | 5    | 1    |
+| 49   | 19:23:57.633 | setUp线程组 1-49  | HTTP请求 | 5    | Success | 308  | 125  | 4    | 1    |
+| 50   | 19:23:57.734 | setUp线程组 1-50  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 0    |
+| 51   | 19:23:57.833 | setUp线程组 1-51  | HTTP请求 | 5    | Success | 308  | 125  | 4    | 1    |
+| 52   | 19:23:57.932 | setUp线程组 1-52  | HTTP请求 | 5    | Success | 308  | 125  | 4    | 1    |
+| 53   | 19:23:58.035 | setUp线程组 1-53  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 1    |
+| 54   | 19:23:58.136 | setUp线程组 1-54  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 1    |
+| 55   | 19:23:58.233 | setUp线程组 1-55  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 1    |
+| 56   | 19:23:58.333 | setUp线程组 1-56  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 0    |
+| 57   | 19:23:58.434 | setUp线程组 1-57  | HTTP请求 | 5    | Success | 308  | 125  | 5    | 1    |
+| 58   | 19:23:58.532 | setUp线程组 1-58  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 1    |
+| 59   | 19:23:58.633 | setUp线程组 1-59  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 0    |
+| 60   | 19:23:58.733 | setUp线程组 1-60  | HTTP请求 | 5    | Success | 308  | 125  | 5    | 1    |
+| 61   | 19:23:58.832 | setUp线程组 1-61  | HTTP请求 | 5    | Success | 308  | 125  | 5    | 2    |
+| 62   | 19:23:58.933 | setUp线程组 1-62  | HTTP请求 | 11   | Success | 328  | 125  | 11   | 1    |
+| 63   | 19:23:59.033 | setUp线程组 1-63  | HTTP请求 | 13   | Success | 308  | 125  | 13   | 1    |
+| 64   | 19:23:59.134 | setUp线程组 1-64  | HTTP请求 | 12   | Success | 308  | 125  | 12   | 1    |
+| 65   | 19:23:59.234 | setUp线程组 1-65  | HTTP请求 | 11   | Success | 308  | 125  | 11   | 1    |
+| 66   | 19:23:59.333 | setUp线程组 1-66  | HTTP请求 | 10   | Success | 308  | 125  | 10   | 1    |
+| 67   | 19:23:59.434 | setUp线程组 1-67  | HTTP请求 | 12   | Success | 308  | 125  | 12   | 0    |
+| 68   | 19:23:59.532 | setUp线程组 1-68  | HTTP请求 | 3    | Success | 308  | 125  | 3    | 0    |
+| 69   | 19:23:59.634 | setUp线程组 1-69  | HTTP请求 | 3    | Success | 308  | 125  | 3    | 1    |
+| 70   | 19:23:59.733 | setUp线程组 1-70  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 1    |
+| 71   | 19:23:59.833 | setUp线程组 1-71  | HTTP请求 | 6    | Success | 308  | 125  | 6    | 1    |
+| 72   | 19:23:59.933 | setUp线程组 1-72  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 1    |
+| 73   | 19:24:00.033 | setUp线程组 1-73  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 0    |
+| 74   | 19:24:00.134 | setUp线程组 1-74  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 0    |
+| 75   | 19:24:00.234 | setUp线程组 1-75  | HTTP请求 | 3    | Success | 308  | 125  | 3    | 1    |
+| 76   | 19:24:00.334 | setUp线程组 1-76  | HTTP请求 | 5    | Success | 308  | 125  | 5    | 1    |
+| 77   | 19:24:00.433 | setUp线程组 1-77  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 1    |
+| 78   | 19:24:00.532 | setUp线程组 1-78  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 0    |
+| 79   | 19:24:00.632 | setUp线程组 1-79  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 1    |
+| 80   | 19:24:00.733 | setUp线程组 1-80  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 0    |
+| 81   | 19:24:00.833 | setUp线程组 1-81  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 1    |
+| 82   | 19:24:00.935 | setUp线程组 1-82  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 1    |
+| 83   | 19:24:01.033 | setUp线程组 1-83  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 1    |
+| 84   | 19:24:01.134 | setUp线程组 1-84  | HTTP请求 | 6    | Success | 308  | 125  | 5    | 1    |
+| 85   | 19:24:01.234 | setUp线程组 1-85  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 0    |
+| 86   | 19:24:01.334 | setUp线程组 1-86  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 1    |
+| 87   | 19:24:01.432 | setUp线程组 1-87  | HTTP请求 | 5    | Success | 308  | 125  | 4    | 1    |
+| 88   | 19:24:01.533 | setUp线程组 1-88  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 0    |
+| 89   | 19:24:01.633 | setUp线程组 1-89  | HTTP请求 | 4    | Success | 308  | 125  | 3    | 1    |
+| 90   | 19:24:01.732 | setUp线程组 1-90  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 0    |
+| 91   | 19:24:01.832 | setUp线程组 1-91  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 1    |
+| 92   | 19:24:01.933 | setUp线程组 1-92  | HTTP请求 | 5    | Success | 308  | 125  | 4    | 1    |
+| 93   | 19:24:02.033 | setUp线程组 1-93  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 1    |
+| 94   | 19:24:02.133 | setUp线程组 1-94  | HTTP请求 | 4    | Success | 308  | 125  | 4    | 1    |
+| 95   | 19:24:02.234 | setUp线程组 1-95  | HTTP请求 | 4    | Success | 308  | 125  | 3    | 0    |
+| 96   | 19:24:02.332 | setUp线程组 1-96  | HTTP请求 | 5    | Success | 308  | 125  | 5    | 1    |
+| 97   | 19:24:02.432 | setUp线程组 1-97  | HTTP请求 | 5    | Success | 308  | 125  | 5    | 1    |
+| 98   | 19:24:02.533 | setUp线程组 1-98  | HTTP请求 | 5    | Success | 308  | 125  | 5    | 1    |
+| 99   | 19:24:02.632 | setUp线程组 1-99  | HTTP请求 | 5    | Success | 308  | 125  | 5    | 1    |
+| 100  | 19:24:02.733 | setUp线程组 1-100 | HTTP请求 | 4    | Success | 308  | 125  | 4    | 1    |
+
+
+
+
+
+
+
+### 熔断策略-异常数
+
+统计指定时间内的调用，如果调用次数超过指定请求数，并且出现异常数量超过指定异常数量，则触发熔断。
+
+
+
+![image-20220721193448143](img/image-20220721193448143.png)
+
+
+
+### 实现熔断策略-异常数
+
+
+
