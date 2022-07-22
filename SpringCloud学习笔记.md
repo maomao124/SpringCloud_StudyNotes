@@ -19682,3 +19682,150 @@ http://localhost:10010/order/101?authorization=admin
 
 
 
+
+
+## 自定义异常结果
+
+
+
+默认情况下，发生限流、降级、授权拦截时，都会抛出异常到调用方。如果要自定义异常时的返回结果，需要实现 BlockExceptionHandler接口
+
+
+
+```java
+public interface BlockExceptionHandler 
+{
+  /**
+  * 处理请求被限流、降级、授权拦截时抛出的异常：BlockException
+  */
+  void handle(HttpServletRequest request, HttpServletResponse response, BlockException e) throws Exception;
+}
+
+```
+
+
+
+而BlockException包含很多个子类，分别对应不同的场景：
+
+
+
+|       **异常**       |      **说明**      |
+| :------------------: | :----------------: |
+|    FlowException     |      限流异常      |
+|  ParamFlowException  | 热点参数限流的异常 |
+|   DegradeException   |      降级异常      |
+|  AuthorityException  |    授权规则异常    |
+| SystemBlockException |    系统规则异常    |
+
+
+
+
+
+在order_service中定义类，实现BlockExceptionHandler接口
+
+
+
+```java
+package mao.order_service.exceptionHandler;
+
+import com.alibaba.csp.sentinel.adapter.spring.webmvc.callback.BlockExceptionHandler;
+import com.alibaba.csp.sentinel.slots.block.BlockException;
+import com.alibaba.csp.sentinel.slots.block.authority.AuthorityException;
+import com.alibaba.csp.sentinel.slots.block.degrade.DegradeException;
+import com.alibaba.csp.sentinel.slots.block.flow.FlowException;
+import com.alibaba.csp.sentinel.slots.block.flow.param.ParamFlowException;
+import org.springframework.stereotype.Component;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+/**
+ * Project name(项目名称)：spring_cloud_demo_Sentinel
+ * Package(包名): mao.order_service.exceptionHandler
+ * Class(类名): SentinelBlockExceptionHandler
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/22
+ * Time(创建时间)： 13:38
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+@Component
+public class SentinelBlockExceptionHandler implements BlockExceptionHandler
+{
+
+    @Override
+    public void handle(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, BlockException e)
+            throws Exception
+    {
+        String msg = "未知异常";
+        int status = 429;
+        if (e instanceof FlowException)
+        {
+            msg = "请求被限流了！";
+        }
+        else if (e instanceof DegradeException)
+        {
+            msg = "请求被降级了！";
+        }
+        else if (e instanceof ParamFlowException)
+        {
+            msg = "热点参数限流！";
+        }
+        else if (e instanceof AuthorityException)
+        {
+            msg = "请求没有权限！";
+            status = 401;
+        }
+
+        //设置返回的类型为json
+        httpServletResponse.setContentType("application/json;charset=utf-8");
+        //设置响应状态码
+        httpServletResponse.setStatus(status);
+        //写
+        httpServletResponse.getWriter().write("{\"message\": \"" + msg + "\" , \"status\": " + status + "}");
+
+    }
+}
+```
+
+
+
+
+
+重启服务
+
+
+
+添加规则
+
+
+
+访问
+
+http://localhost:8081/order/101
+
+
+
+![image-20220722135155987](img/image-20220722135155987.png)
+
+
+
+
+
+http://localhost:10010/order/101?authorization=admin
+
+
+
+![image-20220722135658711](img/image-20220722135658711.png)
+
+
+
+
+
+
+
+## 规则持久化
+
