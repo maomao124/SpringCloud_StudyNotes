@@ -19374,3 +19374,311 @@ http://localhost:8081/order/103
 
 ## 授权规则
 
+授权规则可以对调用方的来源做控制，有白名单和黑名单两种方式
+
+* 白名单：来源（origin）在白名单内的调用者允许访问
+* 黑名单：来源（origin）在黑名单内的调用者不允许访问
+
+
+
+我们限定只允许从网关来的请求访问order-service，那么流控应用中就填写网关的名称
+
+
+
+![image-20220722125901479](img/image-20220722125901479.png)
+
+
+
+
+
+Sentinel是通过RequestOriginParser这个接口的parseOrigin来获取请求的来源的
+
+
+
+```java
+public interface RequestOriginParser 
+{
+  /**
+  * 从请求request对象中获取origin，获取方式自定义
+  */
+  String parseOrigin(HttpServletRequest request);
+}
+```
+
+
+
+尝试从request中获取一个名为origin的请求头，作为origin的值：
+
+```java
+package mao.order_service.originParser;
+
+import com.alibaba.csp.sentinel.adapter.spring.webmvc.callback.RequestOriginParser;
+import org.springframework.stereotype.Component;
+
+import javax.servlet.http.HttpServletRequest;
+
+/**
+ * Project name(项目名称)：spring_cloud_demo_Sentinel
+ * Package(包名): mao.order_service.originParser
+ * Class(类名): HeaderOriginParser
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/22
+ * Time(创建时间)： 13:10
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+
+@Component
+public class HeaderOriginParser implements RequestOriginParser
+{
+
+    @Override
+    public String parseOrigin(HttpServletRequest httpServletRequest)
+    {
+        //获取头origin的信息
+        String origin = httpServletRequest.getHeader("origin");
+        //判断是否为空
+        if (origin==null||origin.equals(""))
+        {
+            return "no";
+        }
+        return origin;
+    }
+}
+```
+
+
+
+
+
+在gateway服务中，利用网关的过滤器添加名为gateway的origin头
+
+
+
+```yaml
+# gateway 网关配置文件
+
+spring:
+  application:
+    name: gateway
+
+
+  cloud:
+    nacos:
+        discovery:
+          # nacos 服务端地址
+          server-addr: localhost:8848
+          # 配置集群名称，也就是机房位置
+          # cluster-name: HZ
+          # namespace: 5544c4b1-2899-4915-94af-f9940c01c2b9
+          # 是否为临时实例，true为临时实例
+          ephemeral: false
+
+    # 网关配置
+    gateway:
+      # 网关路由配置，list集合
+      routes:
+          # 路由的id，唯一
+        - id: user-service
+          # 路由的目标地址 lb就是负载均衡，后面跟服务名称
+          uri: lb://userservice
+          # 路由断言，也就是判断请求是否符合路由规则的条件，list集合
+          predicates:
+              # 按照路径匹配，只要以/user开头就符合要求
+            - Path=/user/**
+          # 路由过滤器，list集合
+          #filters:
+              # 添加请求头
+            #- AddRequestHeader=key1,value1
+        - id: order-service
+          # 路由的目标地址 lb就是负载均衡，后面跟服务名称
+          uri: lb://orderservice
+          # 路由断言，也就是判断请求是否符合路由规则的条件，list集合
+          predicates:
+            # 按照路径匹配
+            - Path=/order/**
+          # 路由过滤器，list集合
+          filters:
+          # 添加请求头
+            - AddRequestHeader=origin,gateway
+
+      # 默认过滤器，会对所有的路由请求都生效，list集合
+      default-filters:
+        # 添加请求头
+        - AddRequestHeader=key1,value1
+
+
+
+      # 全局的跨域处理
+      globalcors:
+        # 解决options请求被拦截问题
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
+          '[/**]':
+            # 允许哪些网站的跨域请求
+            allowedOrigins:
+              - "http://localhost:8080"
+              - "http://localhost:8082"
+              - "http://localhost:8093"
+            # 允许的跨域ajax的请求方式
+            allowedMethods:
+              - "GET"
+              - "POST"
+              - "DELETE"
+              - "PUT"
+              - "OPTIONS"
+            # 允许在请求中携带的头信息
+            allowedHeaders: "*"
+            # 是否允许携带cookie
+            allowCredentials: true
+            # 这次跨域检测的有效期
+            maxAge: 30000
+
+
+
+
+
+
+
+server:
+  port: 10010
+
+
+
+# 设置日志级别，root表示根节点，即整体应用日志级别
+logging:
+  # 日志输出到文件的文件名
+  file:
+    name: gateway.log
+  # 设置日志组
+  group:
+    # 自定义组名，设置当前组中所包含的包
+    mao_pro: mao
+  level:
+    root: info
+    # 为对应组设置日志级别
+    mao_pro: debug
+    # 日志输出格式
+  # pattern:
+  # console: "%d %clr(%p) --- [%16t] %clr(%-40.40c){cyan} : %m %n"
+```
+
+
+
+
+
+启动服务
+
+
+
+![image-20220722132032789](img/image-20220722132032789.png)
+
+
+
+
+
+访问一次
+
+
+
+http://localhost:8081/order/101
+
+
+
+能正常访问
+
+
+
+进入sentinel控制台
+
+
+
+
+
+![image-20220722132152286](img/image-20220722132152286.png)
+
+
+
+
+
+点击授权
+
+
+
+![image-20220722132241942](img/image-20220722132241942.png)
+
+
+
+
+
+填写流控应用
+
+
+
+![image-20220722132405731](img/image-20220722132405731.png)
+
+
+
+点击新增
+
+
+
+![image-20220722132431346](img/image-20220722132431346.png)
+
+
+
+访问
+
+
+
+http://localhost:8081/order/101
+
+
+
+结果：
+
+
+
+![image-20220722132510092](img/image-20220722132510092.png)
+
+
+
+
+
+![image-20220722132536183](img/image-20220722132536183.png)
+
+
+
+
+
+访问
+
+
+
+http://localhost:10010/order/101?authorization=admin
+
+
+
+结果：
+
+
+
+![image-20220722132813904](img/image-20220722132813904.png)
+
+
+
+
+
+![image-20220722132845118](img/image-20220722132845118.png)
+
+
+
+
+
+
+
+
+
