@@ -865,7 +865,7 @@ public class User
 
 #### UserMapper
 
-```sh
+```java
 package mao.user_service.mapper;
 
 import mao.user_service.entity.User;
@@ -19828,4 +19828,1302 @@ http://localhost:10010/order/101?authorization=admin
 
 
 ## 规则持久化
+
+
+
+ - [Sentinel 实战-规则持久化](https://mp.weixin.qq.com/s/twMFiBfRawKLR-1-N-f1yw)
+
+
+
+Sentinel的控制台规则管理有三种模式：
+
+|                         **推送模式**                         |                           **说明**                           |           **优点**           |                           **缺点**                           |
+| :----------------------------------------------------------: | :----------------------------------------------------------: | :--------------------------: | :----------------------------------------------------------: |
+| [原始模式](https://github.com/alibaba/Sentinel/wiki/在生产环境中使用-Sentinel) | API 将规则推送至客户端并直接更新到内存中，扩展写数据源（[WritableDataSource](https://github.com/alibaba/Sentinel/wiki/动态规则扩展)），默认就是这种 |       简单，无任何依赖       | 不保证一致性；规则保存在内存中，重启即消失。严重不建议用于生产环境 |
+| [Pull   ](https://github.com/alibaba/Sentinel/wiki/在生产环境中使用-Sentinel)[模式](https://github.com/alibaba/Sentinel/wiki/在生产环境中使用-Sentinel) | 扩展写数据源（[WritableDataSource](https://github.com/alibaba/Sentinel/wiki/动态规则扩展)），  客户端主动向某个规则管理中心定期轮询拉取规则，这个规则中心可以是 RDBMS、文件 等 | 简单，无任何依赖；规则持久化 | 不保证一致性；实时性不保证，拉取过于频繁也可能会有性能问题。 |
+| **[Push   ](https://github.com/alibaba/Sentinel/wiki/在生产环境中使用-Sentinel)**[模式](https://github.com/alibaba/Sentinel/wiki/在生产环境中使用-Sentinel) | 扩展读数据源（[ReadableDataSource](https://github.com/alibaba/Sentinel/wiki/动态规则扩展)），规则中心统一推送，客户端通过注册监听器的方式时刻监听变化，比如使用  Nacos、Zookeeper  等配置中心。这种方式有更好的实时性和一致性保证。**生产环境下一般采用**  **push**  **模式的数据源。** |     规则持久化；一致性；     |                        引入第三方依赖                        |
+
+
+
+
+
+### 原始模式
+
+控制台配置的规则直接推送到Sentinel客户端，也就是我们的应用。然后保存在内存中，服务重启则丢失
+
+
+
+![image-20220723135439661](img/image-20220723135439661.png)
+
+
+
+
+
+### pull模式
+
+
+
+控制台将配置的规则推送到Sentinel客户端，而客户端会将配置规则保存在本地文件或数据库中。以后会定时去本地文件或数据库中查询，更新本地规则。
+
+
+
+![image-20220723135542557](img/image-20220723135542557.png)
+
+
+
+### push模式
+
+
+
+控制台将配置规则推送到远程配置中心，例如Nacos。Sentinel客户端监听Nacos，获取配置变更的推送消息，完成本地配置更新。
+
+
+
+![image-20220723135705784](img/image-20220723135705784.png)
+
+
+
+
+
+
+
+### 基于nacos实现push模式
+
+
+
+1. 引入依赖
+
+在order_service服务中，引入依赖
+
+
+
+```xml
+        <!--sentinel基于nacos实现规则持久化 依赖-->
+        <dependency>
+            <groupId>com.alibaba.csp</groupId>
+            <artifactId>sentinel-datasource-nacos</artifactId>
+        </dependency>
+```
+
+
+
+
+
+全部
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>mao</groupId>
+        <artifactId>spring_cloud_demo</artifactId>
+        <version>0.0.1</version>
+        <relativePath>../pom.xml</relativePath> <!-- lookup parent from repository -->
+    </parent>
+
+    <artifactId>order_service</artifactId>
+    <version>0.0.1</version>
+    <name>order_service</name>
+    <description>order_service</description>
+
+    <properties>
+        <java.version>11</java.version>
+    </properties>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!--mysql依赖 spring-boot-->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+        </dependency>
+
+        <!--spring-boot druid连接池依赖-->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid-spring-boot-starter</artifactId>
+        </dependency>
+
+        <!--spring-boot mybatis依赖-->
+        <dependency>
+            <groupId>org.mybatis.spring.boot</groupId>
+            <artifactId>mybatis-spring-boot-starter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!--eureka-client 依赖-->
+        <!--<dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+        </dependency>-->
+
+        <!-- nacos 客户端依赖 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+
+        <!--feign 依赖-->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+
+        <!--httpClient的依赖 主要用于feign连接池-->
+        <dependency>
+            <groupId>io.github.openfeign</groupId>
+            <artifactId>feign-httpclient</artifactId>
+        </dependency>
+
+        <!--feign_api 依赖-->
+        <dependency>
+            <groupId>mao</groupId>
+            <artifactId>feign_api</artifactId>
+            <version>0.0.1</version>
+        </dependency>
+
+        <!--sentinel 依赖-->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-sentinel</artifactId>
+        </dependency>
+
+        <!--sentinel基于nacos实现规则持久化 依赖-->
+        <dependency>
+            <groupId>com.alibaba.csp</groupId>
+            <artifactId>sentinel-datasource-nacos</artifactId>
+        </dependency>
+
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
+```
+
+
+
+
+
+2. 配置nacos地址
+
+
+
+```yaml
+# order 业务 配置文件
+
+spring:
+
+
+  # 配置数据源
+  datasource:
+
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/cloud_order
+      username: root
+      password: 20010713
+
+
+
+
+  application:
+    name: orderservice
+
+#eureka:
+#  client:
+#    service-url:
+#      defaultZone: http://127.0.0.1:10080/eureka/
+
+
+  cloud:
+    nacos:
+      discovery:
+        # nacos 服务端地址
+        server-addr: localhost:8848
+        # 配置集群名称，也就是机房位置
+        cluster-name: HZ
+        # namespace: 5544c4b1-2899-4915-94af-f9940c01c2b9
+        # 是否为临时实例，true为临时实例
+        ephemeral: false
+
+
+
+    sentinel:
+      transport:
+        dashboard: localhost:8099
+      # 关闭context整合
+      web-context-unify: false
+      # 配置sentinel持久化
+      datasource:
+        flow:
+          # 使用nacos 持久化
+          nacos:
+            # nacos地址
+            server-addr: localhost:8848
+            dataId: orderservice-flow-rules
+            groupId: SENTINEL_GROUP
+            # flow、 degrade、authority、param-flow
+            rule-type: flow
+
+
+
+# 负载均衡
+#userservice:
+#  ribbon:
+#    # 负载均衡规则
+#    NFLoadBalancerRuleClassName: com.alibaba.cloud.nacos.ribbon.NacosRule
+
+
+
+# 开启debug模式，输出调试信息，常用于检查系统运行状况
+#debug: true
+
+# 设置日志级别，root表示根节点，即整体应用日志级别
+logging:
+ # 日志输出到文件的文件名
+  file:
+     name: order_server.log
+  # 设置日志组
+  group:
+  # 自定义组名，设置当前组中所包含的包
+    mao_pro: mao
+  level:
+    root: info
+    # 为对应组设置日志级别
+    mao_pro: debug
+    # 日志输出格式
+# pattern:
+  # console: "%d %clr(%p) --- [%16t] %clr(%-40.40c){cyan} : %m %n"
+
+
+# 配置负载均衡规则
+#userservice:
+#  ribbon:
+#    NFLoadBalancerRuleClassName: com.netflix.loadbalancer.RandomRule
+
+
+ribbon:
+  eager-load:
+    # 开启饥饿加载
+    enabled: true
+    # 指定对 userservice 这个服务饥饿加载
+    clients: userservice
+
+
+server:
+  port: 8081
+
+
+mybatis:
+  type-aliases-package: mao.order_service
+  configuration:
+    map-underscore-to-camel-case: true
+
+
+
+feign:
+  # 配置连接池
+  httpclient:
+    # 开启feign对HttpClient的支持
+    enabled: true
+    # 最大的连接数
+    max-connections: 200
+    # 每个路径的最大连接数
+    max-connections-per-route: 50
+
+  client:
+    config:
+      # default是全局配置，如果是写服务名称，则是针对某个微服务的配置
+      default:
+         #日志级别，包含四种不同的级别：NONE、BASIC、HEADERS、FULL
+        loggerLevel: BASIC
+        # 连接超时时间
+        #connectTimeout:
+        # 响应结果的解析器，http远程调用的结果做解析，例如解析json字符串为java对象
+        #decoder:
+        # 请求参数编码，将请求参数编码，便于通过http请求发送
+        #encoder:
+        # 支持的注解格式，默认是SpringMVC的注解
+        #contract:
+        # 失败重试机制，请求失败的重试机制，默认是没有，不过会使用Ribbon的重试
+        #retryer:
+
+  # 开启Feign的Sentinel功能
+  sentinel:
+    enabled: true
+```
+
+
+
+
+
+3. 下载源码
+
+
+
+4. 解压源码
+
+
+
+5. 使用idea打开
+
+
+
+
+
+6. 更改pom文件
+
+1.修改sentinel-dashboard源码的pom文件，将sentinel-datasource-nacos依赖的scope去掉
+
+
+
+![image-20220723141314861](img/image-20220723141314861.png)
+
+
+
+更改后：
+
+
+
+![image-20220723141450931](img/image-20220723141450931.png)
+
+
+
+
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.alibaba.csp</groupId>
+        <artifactId>sentinel-parent</artifactId>
+        <version>1.8.1</version>
+    </parent>
+
+    <artifactId>sentinel-dashboard</artifactId>
+    <packaging>jar</packaging>
+
+    <properties>
+        <spring.boot.version>2.0.5.RELEASE</spring.boot.version>
+        <curator.version>4.0.1</curator.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.alibaba.csp</groupId>
+            <artifactId>sentinel-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.csp</groupId>
+            <artifactId>sentinel-web-servlet</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.csp</groupId>
+            <artifactId>sentinel-transport-simple-http</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.csp</groupId>
+            <artifactId>sentinel-parameter-flow-control</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.csp</groupId>
+            <artifactId>sentinel-api-gateway-adapter-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <version>${spring.boot.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-logging</artifactId>
+            <version>${spring.boot.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <version>${spring.boot.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.14</version>
+        </dependency>
+
+        <dependency>
+            <groupId>commons-lang</groupId>
+            <artifactId>commons-lang</artifactId>
+            <version>2.6</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpcore</artifactId>
+            <version>4.4.5</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpasyncclient</artifactId>
+            <version>4.1.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpcore-nio</artifactId>
+            <version>4.4.6</version>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>fastjson</artifactId>
+        </dependency>
+
+        <!-- for Nacos rule publisher sample -->
+        <dependency>
+            <groupId>com.alibaba.csp</groupId>
+            <artifactId>sentinel-datasource-nacos</artifactId>
+            <!--<scope>test</scope>-->
+        </dependency>
+        <!-- for Apollo rule publisher sample -->
+        <dependency>
+            <groupId>com.ctrip.framework.apollo</groupId>
+            <artifactId>apollo-openapi</artifactId>
+            <version>1.2.0</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!--for Zookeeper rule publisher sample-->
+        <dependency>
+            <groupId>org.apache.curator</groupId>
+            <artifactId>curator-recipes</artifactId>
+            <version>${curator.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+           <groupId>com.github.stefanbirkner</groupId>
+           <artifactId>system-rules</artifactId>
+           <version>1.16.1</version>
+           <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>sentinel-dashboard</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring.boot.version}</version>
+                <configuration>
+                    <fork>true</fork>
+                    <mainClass>com.alibaba.csp.sentinel.dashboard.DashboardApplication</mainClass>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>${maven.deploy.version}</version>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+        </plugins>
+
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+
+            <resource>
+                <directory>src/main/webapp/</directory>
+                <excludes>
+                    <exclude>resources/node_modules/**</exclude>
+                </excludes>
+            </resource>
+        </resources>
+    </build>
+</project>
+```
+
+
+
+
+
+7. 查找包
+
+
+
+src/test/java/com/alibaba/csp/sentinel/dashboard/rule/nacos
+
+
+
+![image-20220723141957473](img/image-20220723141957473.png)
+
+
+
+![image-20220723142010762](img/image-20220723142010762.png)
+
+
+
+8. 复制包
+
+
+
+拷贝test目录下的nacos代码到main下的com.alibaba.csp.sentinel.dashboard.rule包
+
+
+
+![image-20220723142144633](img/image-20220723142144633.png)
+
+
+
+
+
+![image-20220723142238170](img/image-20220723142238170.png)
+
+
+
+
+
+9. 修改NacosConfig类
+
+
+
+修改刚刚拷贝的nacos包下的NacosConfig类，修改其中的nacos地址
+
+
+
+修改前：
+
+```java
+package com.alibaba.csp.sentinel.dashboard.rule.nacos;
+
+import com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.FlowRuleEntity;
+import com.alibaba.csp.sentinel.datasource.Converter;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.nacos.api.config.ConfigFactory;
+import com.alibaba.nacos.api.config.ConfigService;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
+
+/**
+ * @author Eric Zhao
+ * @since 1.4.0
+ */
+@Configuration
+public class NacosConfig {
+
+    @Bean
+    public Converter<List<FlowRuleEntity>, String> flowRuleEntityEncoder() {
+        return JSON::toJSONString;
+    }
+
+    @Bean
+    public Converter<String, List<FlowRuleEntity>> flowRuleEntityDecoder() {
+        return s -> JSON.parseArray(s, FlowRuleEntity.class);
+    }
+
+    @Bean
+    public ConfigService nacosConfigService() throws Exception {
+        return ConfigFactory.createConfigService("localhost");
+    }
+}
+```
+
+
+
+
+
+修改后：
+
+```java
+package com.alibaba.csp.sentinel.dashboard.rule.nacos;
+
+import com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.FlowRuleEntity;
+import com.alibaba.csp.sentinel.datasource.Converter;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.nacos.api.config.ConfigFactory;
+import com.alibaba.nacos.api.config.ConfigService;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
+
+/**
+ * @author Eric Zhao
+ * @since 1.4.0
+ */
+@Configuration
+public class NacosConfig {
+
+    @Bean
+    public Converter<List<FlowRuleEntity>, String> flowRuleEntityEncoder() {
+        return JSON::toJSONString;
+    }
+
+    @Bean
+    public Converter<String, List<FlowRuleEntity>> flowRuleEntityDecoder() {
+        return s -> JSON.parseArray(s, FlowRuleEntity.class);
+    }
+
+    @Bean
+    public ConfigService nacosConfigService() throws Exception {
+        return ConfigFactory.createConfigService("localhost:8848");
+    }
+}
+```
+
+
+
+
+
+
+
+10. 修改FlowControllerV2类
+
+修改 com.alibaba.csp.sentinel.dashboard.controller.v2包下的FlowControllerV2类：
+
+
+
+修改前：
+
+```java
+/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.csp.sentinel.dashboard.controller.v2;
+
+import java.util.Date;
+import java.util.List;
+
+import com.alibaba.csp.sentinel.dashboard.auth.AuthAction;
+import com.alibaba.csp.sentinel.dashboard.auth.AuthService;
+import com.alibaba.csp.sentinel.dashboard.auth.AuthService.PrivilegeType;
+import com.alibaba.csp.sentinel.util.StringUtil;
+
+import com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.FlowRuleEntity;
+import com.alibaba.csp.sentinel.dashboard.repository.rule.InMemoryRuleRepositoryAdapter;
+import com.alibaba.csp.sentinel.dashboard.rule.DynamicRuleProvider;
+import com.alibaba.csp.sentinel.dashboard.rule.DynamicRulePublisher;
+import com.alibaba.csp.sentinel.dashboard.domain.Result;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * Flow rule controller (v2).
+ *
+ * @author Eric Zhao
+ * @since 1.4.0
+ */
+@RestController
+@RequestMapping(value = "/v2/flow")
+public class FlowControllerV2
+{
+
+    private final Logger logger = LoggerFactory.getLogger(FlowControllerV2.class);
+
+    @Autowired
+    private InMemoryRuleRepositoryAdapter<FlowRuleEntity> repository;
+
+    @Autowired
+    @Qualifier("flowRuleDefaultProvider")
+    private DynamicRuleProvider<List<FlowRuleEntity>> ruleProvider;
+    @Autowired
+    @Qualifier("flowRuleDefaultPublisher")
+    private DynamicRulePublisher<List<FlowRuleEntity>> rulePublisher;
+
+    @GetMapping("/rules")
+    @AuthAction(PrivilegeType.READ_RULE)
+    public Result<List<FlowRuleEntity>> apiQueryMachineRules(@RequestParam String app)
+    {
+
+        if (StringUtil.isEmpty(app))
+        {
+            return Result.ofFail(-1, "app can't be null or empty");
+        }
+        try
+        {
+            List<FlowRuleEntity> rules = ruleProvider.getRules(app);
+            if (rules != null && !rules.isEmpty())
+            {
+                for (FlowRuleEntity entity : rules)
+                {
+                    entity.setApp(app);
+                    if (entity.getClusterConfig() != null && entity.getClusterConfig().getFlowId() != null)
+                    {
+                        entity.setId(entity.getClusterConfig().getFlowId());
+                    }
+                }
+            }
+            rules = repository.saveAll(rules);
+            return Result.ofSuccess(rules);
+        }
+        catch (Throwable throwable)
+        {
+            logger.error("Error when querying flow rules", throwable);
+            return Result.ofThrowable(-1, throwable);
+        }
+    }
+
+    private <R> Result<R> checkEntityInternal(FlowRuleEntity entity)
+    {
+        if (entity == null)
+        {
+            return Result.ofFail(-1, "invalid body");
+        }
+        if (StringUtil.isBlank(entity.getApp()))
+        {
+            return Result.ofFail(-1, "app can't be null or empty");
+        }
+        if (StringUtil.isBlank(entity.getLimitApp()))
+        {
+            return Result.ofFail(-1, "limitApp can't be null or empty");
+        }
+        if (StringUtil.isBlank(entity.getResource()))
+        {
+            return Result.ofFail(-1, "resource can't be null or empty");
+        }
+        if (entity.getGrade() == null)
+        {
+            return Result.ofFail(-1, "grade can't be null");
+        }
+        if (entity.getGrade() != 0 && entity.getGrade() != 1)
+        {
+            return Result.ofFail(-1, "grade must be 0 or 1, but " + entity.getGrade() + " got");
+        }
+        if (entity.getCount() == null || entity.getCount() < 0)
+        {
+            return Result.ofFail(-1, "count should be at lease zero");
+        }
+        if (entity.getStrategy() == null)
+        {
+            return Result.ofFail(-1, "strategy can't be null");
+        }
+        if (entity.getStrategy() != 0 && StringUtil.isBlank(entity.getRefResource()))
+        {
+            return Result.ofFail(-1, "refResource can't be null or empty when strategy!=0");
+        }
+        if (entity.getControlBehavior() == null)
+        {
+            return Result.ofFail(-1, "controlBehavior can't be null");
+        }
+        int controlBehavior = entity.getControlBehavior();
+        if (controlBehavior == 1 && entity.getWarmUpPeriodSec() == null)
+        {
+            return Result.ofFail(-1, "warmUpPeriodSec can't be null when controlBehavior==1");
+        }
+        if (controlBehavior == 2 && entity.getMaxQueueingTimeMs() == null)
+        {
+            return Result.ofFail(-1, "maxQueueingTimeMs can't be null when controlBehavior==2");
+        }
+        if (entity.isClusterMode() && entity.getClusterConfig() == null)
+        {
+            return Result.ofFail(-1, "cluster config should be valid");
+        }
+        return null;
+    }
+
+    @PostMapping("/rule")
+    @AuthAction(value = AuthService.PrivilegeType.WRITE_RULE)
+    public Result<FlowRuleEntity> apiAddFlowRule(@RequestBody FlowRuleEntity entity)
+    {
+
+        Result<FlowRuleEntity> checkResult = checkEntityInternal(entity);
+        if (checkResult != null)
+        {
+            return checkResult;
+        }
+        entity.setId(null);
+        Date date = new Date();
+        entity.setGmtCreate(date);
+        entity.setGmtModified(date);
+        entity.setLimitApp(entity.getLimitApp().trim());
+        entity.setResource(entity.getResource().trim());
+        try
+        {
+            entity = repository.save(entity);
+            publishRules(entity.getApp());
+        }
+        catch (Throwable throwable)
+        {
+            logger.error("Failed to add flow rule", throwable);
+            return Result.ofThrowable(-1, throwable);
+        }
+        return Result.ofSuccess(entity);
+    }
+
+    @PutMapping("/rule/{id}")
+    @AuthAction(AuthService.PrivilegeType.WRITE_RULE)
+
+    public Result<FlowRuleEntity> apiUpdateFlowRule(@PathVariable("id") Long id,
+                                                    @RequestBody FlowRuleEntity entity)
+    {
+        if (id == null || id <= 0)
+        {
+            return Result.ofFail(-1, "Invalid id");
+        }
+        FlowRuleEntity oldEntity = repository.findById(id);
+        if (oldEntity == null)
+        {
+            return Result.ofFail(-1, "id " + id + " does not exist");
+        }
+        if (entity == null)
+        {
+            return Result.ofFail(-1, "invalid body");
+        }
+
+        entity.setApp(oldEntity.getApp());
+        entity.setIp(oldEntity.getIp());
+        entity.setPort(oldEntity.getPort());
+        Result<FlowRuleEntity> checkResult = checkEntityInternal(entity);
+        if (checkResult != null)
+        {
+            return checkResult;
+        }
+
+        entity.setId(id);
+        Date date = new Date();
+        entity.setGmtCreate(oldEntity.getGmtCreate());
+        entity.setGmtModified(date);
+        try
+        {
+            entity = repository.save(entity);
+            if (entity == null)
+            {
+                return Result.ofFail(-1, "save entity fail");
+            }
+            publishRules(oldEntity.getApp());
+        }
+        catch (Throwable throwable)
+        {
+            logger.error("Failed to update flow rule", throwable);
+            return Result.ofThrowable(-1, throwable);
+        }
+        return Result.ofSuccess(entity);
+    }
+
+    @DeleteMapping("/rule/{id}")
+    @AuthAction(PrivilegeType.DELETE_RULE)
+    public Result<Long> apiDeleteRule(@PathVariable("id") Long id)
+    {
+        if (id == null || id <= 0)
+        {
+            return Result.ofFail(-1, "Invalid id");
+        }
+        FlowRuleEntity oldEntity = repository.findById(id);
+        if (oldEntity == null)
+        {
+            return Result.ofSuccess(null);
+        }
+
+        try
+        {
+            repository.delete(id);
+            publishRules(oldEntity.getApp());
+        }
+        catch (Exception e)
+        {
+            return Result.ofFail(-1, e.getMessage());
+        }
+        return Result.ofSuccess(id);
+    }
+
+    private void publishRules(/*@NonNull*/ String app) throws Exception
+    {
+        List<FlowRuleEntity> rules = repository.findAllByApp(app);
+        rulePublisher.publish(app, rules);
+    }
+}
+```
+
+
+
+
+
+![image-20220723142952140](img/image-20220723142952140.png)
+
+
+
+修改后：
+
+![image-20220723143056434](img/image-20220723143056434.png)
+
+
+
+```java
+/*
+ * Copyright 1999-2018 Alibaba Group Holding Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.csp.sentinel.dashboard.controller.v2;
+
+import java.util.Date;
+import java.util.List;
+
+import com.alibaba.csp.sentinel.dashboard.auth.AuthAction;
+import com.alibaba.csp.sentinel.dashboard.auth.AuthService;
+import com.alibaba.csp.sentinel.dashboard.auth.AuthService.PrivilegeType;
+import com.alibaba.csp.sentinel.util.StringUtil;
+
+import com.alibaba.csp.sentinel.dashboard.datasource.entity.rule.FlowRuleEntity;
+import com.alibaba.csp.sentinel.dashboard.repository.rule.InMemoryRuleRepositoryAdapter;
+import com.alibaba.csp.sentinel.dashboard.rule.DynamicRuleProvider;
+import com.alibaba.csp.sentinel.dashboard.rule.DynamicRulePublisher;
+import com.alibaba.csp.sentinel.dashboard.domain.Result;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * Flow rule controller (v2).
+ *
+ * @author Eric Zhao
+ * @since 1.4.0
+ */
+@RestController
+@RequestMapping(value = "/v2/flow")
+public class FlowControllerV2
+{
+
+    private final Logger logger = LoggerFactory.getLogger(FlowControllerV2.class);
+
+    @Autowired
+    private InMemoryRuleRepositoryAdapter<FlowRuleEntity> repository;
+
+    @Autowired
+    @Qualifier("flowRuleNacosProvider")
+    private DynamicRuleProvider<List<FlowRuleEntity>> ruleProvider;
+    @Autowired
+    @Qualifier("flowRuleNacosPublisher")
+    private DynamicRulePublisher<List<FlowRuleEntity>> rulePublisher;
+
+    @GetMapping("/rules")
+    @AuthAction(PrivilegeType.READ_RULE)
+    public Result<List<FlowRuleEntity>> apiQueryMachineRules(@RequestParam String app)
+    {
+
+        if (StringUtil.isEmpty(app))
+        {
+            return Result.ofFail(-1, "app can't be null or empty");
+        }
+        try
+        {
+            List<FlowRuleEntity> rules = ruleProvider.getRules(app);
+            if (rules != null && !rules.isEmpty())
+            {
+                for (FlowRuleEntity entity : rules)
+                {
+                    entity.setApp(app);
+                    if (entity.getClusterConfig() != null && entity.getClusterConfig().getFlowId() != null)
+                    {
+                        entity.setId(entity.getClusterConfig().getFlowId());
+                    }
+                }
+            }
+            rules = repository.saveAll(rules);
+            return Result.ofSuccess(rules);
+        }
+        catch (Throwable throwable)
+        {
+            logger.error("Error when querying flow rules", throwable);
+            return Result.ofThrowable(-1, throwable);
+        }
+    }
+
+    private <R> Result<R> checkEntityInternal(FlowRuleEntity entity)
+    {
+        if (entity == null)
+        {
+            return Result.ofFail(-1, "invalid body");
+        }
+        if (StringUtil.isBlank(entity.getApp()))
+        {
+            return Result.ofFail(-1, "app can't be null or empty");
+        }
+        if (StringUtil.isBlank(entity.getLimitApp()))
+        {
+            return Result.ofFail(-1, "limitApp can't be null or empty");
+        }
+        if (StringUtil.isBlank(entity.getResource()))
+        {
+            return Result.ofFail(-1, "resource can't be null or empty");
+        }
+        if (entity.getGrade() == null)
+        {
+            return Result.ofFail(-1, "grade can't be null");
+        }
+        if (entity.getGrade() != 0 && entity.getGrade() != 1)
+        {
+            return Result.ofFail(-1, "grade must be 0 or 1, but " + entity.getGrade() + " got");
+        }
+        if (entity.getCount() == null || entity.getCount() < 0)
+        {
+            return Result.ofFail(-1, "count should be at lease zero");
+        }
+        if (entity.getStrategy() == null)
+        {
+            return Result.ofFail(-1, "strategy can't be null");
+        }
+        if (entity.getStrategy() != 0 && StringUtil.isBlank(entity.getRefResource()))
+        {
+            return Result.ofFail(-1, "refResource can't be null or empty when strategy!=0");
+        }
+        if (entity.getControlBehavior() == null)
+        {
+            return Result.ofFail(-1, "controlBehavior can't be null");
+        }
+        int controlBehavior = entity.getControlBehavior();
+        if (controlBehavior == 1 && entity.getWarmUpPeriodSec() == null)
+        {
+            return Result.ofFail(-1, "warmUpPeriodSec can't be null when controlBehavior==1");
+        }
+        if (controlBehavior == 2 && entity.getMaxQueueingTimeMs() == null)
+        {
+            return Result.ofFail(-1, "maxQueueingTimeMs can't be null when controlBehavior==2");
+        }
+        if (entity.isClusterMode() && entity.getClusterConfig() == null)
+        {
+            return Result.ofFail(-1, "cluster config should be valid");
+        }
+        return null;
+    }
+
+    @PostMapping("/rule")
+    @AuthAction(value = AuthService.PrivilegeType.WRITE_RULE)
+    public Result<FlowRuleEntity> apiAddFlowRule(@RequestBody FlowRuleEntity entity)
+    {
+
+        Result<FlowRuleEntity> checkResult = checkEntityInternal(entity);
+        if (checkResult != null)
+        {
+            return checkResult;
+        }
+        entity.setId(null);
+        Date date = new Date();
+        entity.setGmtCreate(date);
+        entity.setGmtModified(date);
+        entity.setLimitApp(entity.getLimitApp().trim());
+        entity.setResource(entity.getResource().trim());
+        try
+        {
+            entity = repository.save(entity);
+            publishRules(entity.getApp());
+        }
+        catch (Throwable throwable)
+        {
+            logger.error("Failed to add flow rule", throwable);
+            return Result.ofThrowable(-1, throwable);
+        }
+        return Result.ofSuccess(entity);
+    }
+
+    @PutMapping("/rule/{id}")
+    @AuthAction(AuthService.PrivilegeType.WRITE_RULE)
+
+    public Result<FlowRuleEntity> apiUpdateFlowRule(@PathVariable("id") Long id,
+                                                    @RequestBody FlowRuleEntity entity)
+    {
+        if (id == null || id <= 0)
+        {
+            return Result.ofFail(-1, "Invalid id");
+        }
+        FlowRuleEntity oldEntity = repository.findById(id);
+        if (oldEntity == null)
+        {
+            return Result.ofFail(-1, "id " + id + " does not exist");
+        }
+        if (entity == null)
+        {
+            return Result.ofFail(-1, "invalid body");
+        }
+
+        entity.setApp(oldEntity.getApp());
+        entity.setIp(oldEntity.getIp());
+        entity.setPort(oldEntity.getPort());
+        Result<FlowRuleEntity> checkResult = checkEntityInternal(entity);
+        if (checkResult != null)
+        {
+            return checkResult;
+        }
+
+        entity.setId(id);
+        Date date = new Date();
+        entity.setGmtCreate(oldEntity.getGmtCreate());
+        entity.setGmtModified(date);
+        try
+        {
+            entity = repository.save(entity);
+            if (entity == null)
+            {
+                return Result.ofFail(-1, "save entity fail");
+            }
+            publishRules(oldEntity.getApp());
+        }
+        catch (Throwable throwable)
+        {
+            logger.error("Failed to update flow rule", throwable);
+            return Result.ofThrowable(-1, throwable);
+        }
+        return Result.ofSuccess(entity);
+    }
+
+    @DeleteMapping("/rule/{id}")
+    @AuthAction(PrivilegeType.DELETE_RULE)
+    public Result<Long> apiDeleteRule(@PathVariable("id") Long id)
+    {
+        if (id == null || id <= 0)
+        {
+            return Result.ofFail(-1, "Invalid id");
+        }
+        FlowRuleEntity oldEntity = repository.findById(id);
+        if (oldEntity == null)
+        {
+            return Result.ofSuccess(null);
+        }
+
+        try
+        {
+            repository.delete(id);
+            publishRules(oldEntity.getApp());
+        }
+        catch (Exception e)
+        {
+            return Result.ofFail(-1, e.getMessage());
+        }
+        return Result.ofSuccess(id);
+    }
+
+    private void publishRules(/*@NonNull*/ String app) throws Exception
+    {
+        List<FlowRuleEntity> rules = repository.findAllByApp(app);
+        rulePublisher.publish(app, rules);
+    }
+}
+```
+
+
+
+
+
+11. 修改前端页面
+
+
+
+
+
+
+
+
+
+## 控制台监控数据持久化
+
+
+
+- [Sentinel 控制台监控数据持久化【InfluxDB】](https://www.cnblogs.com/cdfive2018/p/9914838.html)https://github.com/cdfive)
+- [Sentinel 控制台监控数据持久化【Apollo】](https://blog.csdn.net/caodegao/article/details/100009618)https://github.com/cookiejoo)
+- [Sentinel一体化监控解决方案 CrateDB + Grafana](https://blog.csdn.net/huyong1990/article/details/82392386)
+
+
 
