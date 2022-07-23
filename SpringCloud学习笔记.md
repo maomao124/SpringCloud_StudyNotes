@@ -19891,7 +19891,7 @@ Sentinel的控制台规则管理有三种模式：
 
 
 
-1. 引入依赖
+#### 1. 引入依赖
 
 在order_service服务中，引入依赖
 
@@ -20026,7 +20026,7 @@ Sentinel的控制台规则管理有三种模式：
 
 
 
-2. 配置nacos地址
+#### 2. 配置nacos地址
 
 
 
@@ -20179,21 +20179,21 @@ feign:
 
 
 
-3. 下载源码
+#### 3. 下载源码
 
 
 
-4. 解压源码
+#### 4. 解压源码
 
 
 
-5. 使用idea打开
+#### 5. 使用idea打开
 
 
 
 
 
-6. 更改pom文件
+#### 6. 更改pom文件
 
 1.修改sentinel-dashboard源码的pom文件，将sentinel-datasource-nacos依赖的scope去掉
 
@@ -20403,7 +20403,7 @@ feign:
 
 
 
-7. 查找包
+#### 7. 查找包
 
 
 
@@ -20419,7 +20419,7 @@ src/test/java/com/alibaba/csp/sentinel/dashboard/rule/nacos
 
 
 
-8. 复制包
+#### 8. 复制包
 
 
 
@@ -20439,7 +20439,7 @@ src/test/java/com/alibaba/csp/sentinel/dashboard/rule/nacos
 
 
 
-9. 修改NacosConfig类
+#### 9. 修改NacosConfig类
 
 
 
@@ -20559,7 +20559,7 @@ public class NacosConfig
 
 
 
-10. 修改FlowControllerV2类
+#### 10. 修改FlowControllerV2类
 
 修改 com.alibaba.csp.sentinel.dashboard.controller.v2包下的FlowControllerV2类：
 
@@ -21131,7 +21131,7 @@ public class FlowControllerV2
 
 
 
-11. 修改前端页面
+#### 11. 修改前端页面
 
 
 
@@ -21365,7 +21365,7 @@ public class FlowControllerV2
 
 
 
-12. 修改配置
+#### 12. 修改配置
 
 
 
@@ -21427,7 +21427,7 @@ auth.password=sentinel
 
 
 
-13. 跳过测试
+#### 13. 跳过测试
 
 
 
@@ -21437,7 +21437,7 @@ auth.password=sentinel
 
 
 
-14. 打包
+#### 14. 打包
 
 
 
@@ -21508,7 +21508,7 @@ C:\Users\mao\.jdks\openjdk-16.0.2\bin\java.exe -Dmaven.multiModuleProjectDirecto
 
 
 
-15. 进入jar包所在目录
+#### 15. 进入jar包所在目录
 
 
 
@@ -21538,7 +21538,7 @@ PS H:\程序\大三暑假\Sentinel-1.8.1\sentinel-dashboard\target>
 
 
 
-16. 运行
+#### 16. 运行
 
 
 
@@ -21669,7 +21669,7 @@ INFO: Sentinel log name use pid is: false
 
 
 
-17. 启动自己的服务
+#### 17. 启动自己的服务
 
 
 
@@ -21679,7 +21679,7 @@ INFO: Sentinel log name use pid is: false
 
 
 
-18. 访问
+#### 18. 访问
 
 
 
@@ -21687,7 +21687,7 @@ http://localhost:8081/order/101
 
 
 
-19. 进入sentinel控制台
+#### 19. 进入sentinel控制台
 
 
 
@@ -21697,7 +21697,7 @@ http://localhost:8081/order/101
 
 
 
-20. 点击流控规则-Nacos
+#### 20. 点击流控规则-Nacos
 
 
 
@@ -21707,7 +21707,7 @@ http://localhost:8081/order/101
 
 
 
-21. 添加规则
+#### 21. 添加规则
 
 
 
@@ -21721,7 +21721,7 @@ http://localhost:8081/order/101
 
 
 
-22. 进入nacos控制台
+#### 22. 进入nacos控制台
 
 
 
@@ -21733,7 +21733,7 @@ http://localhost:8081/order/101
 
 
 
-23. 查看配置
+#### 23. 查看配置
 
 
 
@@ -21743,15 +21743,15 @@ http://localhost:8081/order/101
 
 
 
-24. 重启order_service服务
+#### 24. 重启order_service服务
 
 
 
-25. 重启sentinel
+#### 25. 重启sentinel
 
 
 
-26. 访问
+#### 26. 访问
 
 
 
@@ -21759,7 +21759,7 @@ http://localhost:8081/order/101
 
 
 
-27. 进入sentinel控制台
+#### 27. 进入sentinel控制台
 
 
 
@@ -21777,13 +21777,59 @@ http://localhost:8081/order/101
 
 
 
+
+
+
+
 ## 控制台监控数据持久化
 
 
 
-- [Sentinel 控制台监控数据持久化【InfluxDB】](https://www.cnblogs.com/cdfive2018/p/9914838.html)https://github.com/cdfive)
-- [Sentinel 控制台监控数据持久化【Apollo】](https://blog.csdn.net/caodegao/article/details/100009618)https://github.com/cookiejoo)
+- [Sentinel 控制台监控数据持久化【MySQL】](https://www.cnblogs.com/cdfive2018/p/9838577.html)
+
+- [Sentinel 控制台监控数据持久化【InfluxDB】](https://www.cnblogs.com/cdfive2018/p/9914838.html)
+- [Sentinel 控制台监控数据持久化【Apollo】](https://blog.csdn.net/caodegao/article/details/100009618)
 - [Sentinel一体化监控解决方案 CrateDB + Grafana](https://blog.csdn.net/huyong1990/article/details/82392386)
+
+
+
+
+
+
+
+## 项目地址
+
+https://github.com/maomao124/spring_cloud_demo_Sentinel.git
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# 分布式事务
 
 
 
