@@ -22183,7 +22183,1495 @@ mysql>
 
 ### 创建项目
 
+名字为spring_cloud_distributed_transaction_seata
 
 
 
+![image-20220724134519394](img/image-20220724134519394.png)
+
+
+
+
+
+
+
+### 修改pom文件
+
+
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>2.3.9.RELEASE</version>
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+
+
+    <groupId>mao</groupId>
+    <artifactId>spring_cloud_distributed_transaction_seata</artifactId>
+    <version>0.0.1</version>
+    <name>spring_cloud_distributed_transaction_seata</name>
+    <description>spring_cloud_distributed_transaction_seata</description>
+    <packaging>pom</packaging>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <java.version>11</java.version>
+
+    </properties>
+
+
+    <modules>
+        <module>storage-service</module>
+        <module>account-service</module>
+        <module>order-service</module>
+    </modules>
+
+
+    <dependencyManagement>
+        <dependencies>
+
+            <!--spring-cloud项目依赖-->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>Hoxton.SR10</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!--spring-cloud-alilbaba管理依赖-->
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-alibaba-dependencies</artifactId>
+                <version>2.2.6.RELEASE</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!--mysql依赖 spring-boot-->
+            <dependency>
+                <groupId>mysql</groupId>
+                <artifactId>mysql-connector-java</artifactId>
+                <scope>runtime</scope>
+                <version>8.0.27</version>
+            </dependency>
+
+            <!--spring-boot mybatis-plus依赖-->
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-boot-starter</artifactId>
+                <version>3.5.1</version>
+            </dependency>
+
+            <!--spring-boot druid连接池依赖-->
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>druid-spring-boot-starter</artifactId>
+                <version>1.2.8</version>
+            </dependency>
+
+        </dependencies>
+    </dependencyManagement>
+
+
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.4</version>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+
+</project>
+```
+
+
+
+
+
+### 创建子工程
+
+
+
+分别创建
+
+* storage-service
+* account-service
+* order-service
+
+
+
+spring boot项目
+
+
+
+![image-20220724135441411](img/image-20220724135441411.png)
+
+
+
+
+
+
+
+### 修改子项目的pom文件
+
+
+
+#### account-service
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+
+    <parent>
+        <groupId>mao</groupId>
+        <artifactId>spring_cloud_distributed_transaction_seata</artifactId>
+        <version>0.0.1</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>account-service</artifactId>
+    <name>account-service</name>
+    <description>account-service</description>
+
+    <properties>
+        <java.version>11</java.version>
+    </properties>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!--mysql依赖 spring-boot-->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+        </dependency>
+
+        <!--spring-boot mybatis-plus依赖-->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-boot-starter</artifactId>
+        </dependency>
+
+        <!--spring-boot druid连接池依赖-->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid-spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- nacos 客户端依赖 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
+```
+
+
+
+
+
+#### order-service
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>mao</groupId>
+        <artifactId>spring_cloud_distributed_transaction_seata</artifactId>
+        <version>0.0.1</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>order-service</artifactId>
+    <name>order-service</name>
+    <description>order-service</description>
+
+
+    <properties>
+        <java.version>11</java.version>
+    </properties>
+
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!--mysql依赖 spring-boot-->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+        </dependency>
+
+        <!--spring-boot mybatis-plus依赖-->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-boot-starter</artifactId>
+        </dependency>
+
+        <!--spring-boot druid连接池依赖-->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid-spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- nacos 客户端依赖 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+
+        <!--feign 依赖-->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+
+        <!--httpClient的依赖 主要用于feign连接池-->
+        <dependency>
+            <groupId>io.github.openfeign</groupId>
+            <artifactId>feign-httpclient</artifactId>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
+```
+
+
+
+
+
+#### storage-service
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>mao</groupId>
+        <artifactId>spring_cloud_distributed_transaction_seata</artifactId>
+        <version>0.0.1</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>storage-service</artifactId>
+    <name>storage-service</name>
+    <description>storage-service</description>
+
+
+    <properties>
+        <java.version>11</java.version>
+    </properties>
+
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!--mysql依赖 spring-boot-->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+        </dependency>
+
+        <!--spring-boot mybatis-plus依赖-->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-boot-starter</artifactId>
+        </dependency>
+
+        <!--spring-boot druid连接池依赖-->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid-spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- nacos 客户端依赖 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
+```
+
+
+
+
+
+
+
+### 添加配置
+
+#### account-service
+
+```yaml
+# account-service 配置文件
+
+spring:
+
+  application:
+    name: account-service
+
+
+  # 配置数据源
+  datasource:
+    # 配置数据源-druid
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false
+      username: root
+      password: 20010713
+
+
+
+  cloud:
+      nacos:
+        discovery:
+          # nacos 服务端地址
+          server-addr: localhost:8848
+          # 配置集群名称，也就是机房位置
+          #cluster-name: HZ
+          # namespace: 5544c4b1-2899-4915-94af-f9940c01c2b9
+          # 是否为临时实例，true为临时实例
+          ephemeral: false
+
+
+
+ribbon:
+  eager-load:
+    # 开启饥饿加载
+    enabled: true
+
+
+
+# 设置日志级别，root表示根节点，即整体应用日志级别
+logging:
+ # 日志输出到文件的文件名
+  file:
+     name: account_server.log
+
+  # 设置日志组
+  group:
+  # 自定义组名，设置当前组中所包含的包
+    mao_pro: mao
+  level:
+    org.springframework.cloud.alibaba.seata.web: debug
+    root: info
+    # 为对应组设置日志级别
+    mao_pro: debug
+    # 日志输出格式
+# pattern:
+  # console: "%d %clr(%p) --- [%16t] %clr(%-40.40c){cyan} : %m %n"
+
+
+
+
+mybatis-plus:
+  global-config:
+    db-config:
+      id-type: auto
+
+
+server:
+  port: 8083
+```
+
+
+
+
+
+#### order-service
+
+```yaml
+# order-service 配置文件
+
+spring:
+
+  application:
+    name: order-service
+
+
+  # 配置数据源
+  datasource:
+    # 配置数据源-druid
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false
+      username: root
+      password: 20010713
+
+
+
+  cloud:
+    nacos:
+      discovery:
+        # nacos 服务端地址
+        server-addr: localhost:8848
+        # 配置集群名称，也就是机房位置
+        #cluster-name: HZ
+        # namespace: 5544c4b1-2899-4915-94af-f9940c01c2b9
+        # 是否为临时实例，true为临时实例
+        ephemeral: false
+
+
+
+ribbon:
+  eager-load:
+    # 开启饥饿加载
+    enabled: true
+
+
+
+# 设置日志级别，root表示根节点，即整体应用日志级别
+logging:
+  # 日志输出到文件的文件名
+  file:
+    name: order_server.log
+
+  # 设置日志组
+  group:
+    # 自定义组名，设置当前组中所包含的包
+    mao_pro: mao
+  level:
+    org.springframework.cloud.alibaba.seata.web: debug
+    root: info
+    # 为对应组设置日志级别
+    mao_pro: debug
+    # 日志输出格式
+  # pattern:
+  # console: "%d %clr(%p) --- [%16t] %clr(%-40.40c){cyan} : %m %n"
+
+
+
+
+mybatis-plus:
+  global-config:
+    db-config:
+      id-type: auto
+
+
+server:
+  port: 8082
+  
+  
+feign:
+  # 配置连接池
+  httpclient:
+    # 开启feign对HttpClient的支持
+    enabled: true
+    # 最大的连接数
+    max-connections: 200
+    # 每个路径的最大连接数
+    max-connections-per-route: 50
+
+  client:
+    config:
+      # default是全局配置，如果是写服务名称，则是针对某个微服务的配置
+      default:
+         #日志级别，包含四种不同的级别：NONE、BASIC、HEADERS、FULL
+        loggerLevel: BASIC
+        # 连接超时时间
+        #connectTimeout:
+        # 响应结果的解析器，http远程调用的结果做解析，例如解析json字符串为java对象
+        #decoder:
+        # 请求参数编码，将请求参数编码，便于通过http请求发送
+        #encoder:
+        # 支持的注解格式，默认是SpringMVC的注解
+        #contract:
+        # 失败重试机制，请求失败的重试机制，默认是没有，不过会使用Ribbon的重试
+        #retryer:
+
+
+```
+
+
+
+
+
+#### storage-service
+
+```yaml
+# storage-service 配置文件
+
+spring:
+
+  application:
+    name: storage-service
+
+
+  # 配置数据源
+  datasource:
+    # 配置数据源-druid
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false
+      username: root
+      password: 20010713
+
+
+
+  cloud:
+    nacos:
+      discovery:
+        # nacos 服务端地址
+        server-addr: localhost:8848
+        # 配置集群名称，也就是机房位置
+        #cluster-name: HZ
+        # namespace: 5544c4b1-2899-4915-94af-f9940c01c2b9
+        # 是否为临时实例，true为临时实例
+        ephemeral: false
+
+
+
+ribbon:
+  eager-load:
+    # 开启饥饿加载
+    enabled: true
+
+
+
+# 设置日志级别，root表示根节点，即整体应用日志级别
+logging:
+  # 日志输出到文件的文件名
+  file:
+    name: storage_server.log
+
+  # 设置日志组
+  group:
+    # 自定义组名，设置当前组中所包含的包
+    mao_pro: mao
+  level:
+    org.springframework.cloud.alibaba.seata.web: debug
+    root: info
+    # 为对应组设置日志级别
+    mao_pro: debug
+    # 日志输出格式
+  # pattern:
+  # console: "%d %clr(%p) --- [%16t] %clr(%-40.40c){cyan} : %m %n"
+
+
+
+
+mybatis-plus:
+  global-config:
+    db-config:
+      id-type: auto
+
+
+server:
+  port: 8081
+```
+
+
+
+
+
+
+
+### 编写业务类
+
+#### account-service
+
+##### Account
+
+```java
+package mao.accountservice.entity;
+
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+
+/**
+ * Project name(项目名称)：spring_cloud_distributed_transaction_seata
+ * Package(包名): mao.accountservice.entity
+ * Class(类名): Account
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/24
+ * Time(创建时间)： 20:26
+ * Version(版本): 1.0
+ * Description(描述)： 账户表
+ */
+
+@TableName("account_tbl")
+public class Account
+{
+    @TableId
+    private Long id;
+    private String userId;
+    private Integer money;
+
+    /**
+     * Instantiates a new Account.
+     */
+    public Account()
+    {
+
+    }
+
+    /**
+     * Instantiates a new Account.
+     *
+     * @param id     the id
+     * @param userId the user id
+     * @param money  the money
+     */
+    public Account(Long id, String userId, Integer money)
+    {
+        this.id = id;
+        this.userId = userId;
+        this.money = money;
+    }
+
+    /**
+     * Gets id.
+     *
+     * @return the id
+     */
+    public Long getId()
+    {
+        return id;
+    }
+
+    /**
+     * Sets id.
+     *
+     * @param id the id
+     */
+    public void setId(Long id)
+    {
+        this.id = id;
+    }
+
+    /**
+     * Gets user id.
+     *
+     * @return the user id
+     */
+    public String getUserId()
+    {
+        return userId;
+    }
+
+    /**
+     * Sets user id.
+     *
+     * @param userId the user id
+     */
+    public void setUserId(String userId)
+    {
+        this.userId = userId;
+    }
+
+    /**
+     * Gets money.
+     *
+     * @return the money
+     */
+    public Integer getMoney()
+    {
+        return money;
+    }
+
+    /**
+     * Sets money.
+     *
+     * @param money the money
+     */
+    public void setMoney(Integer money)
+    {
+        this.money = money;
+    }
+
+    @Override
+    @SuppressWarnings("all")
+    public String toString()
+    {
+        final StringBuilder stringbuilder = new StringBuilder();
+        stringbuilder.append("id：").append(id).append('\n');
+        stringbuilder.append("userId：").append(userId).append('\n');
+        stringbuilder.append("money：").append(money).append('\n');
+        return stringbuilder.toString();
+    }
+}
+```
+
+
+
+##### AccountMapper
+
+```java
+package mao.accountservice.mapper;
+
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import mao.accountservice.entity.Account;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Update;
+
+/**
+ * Project name(项目名称)：spring_cloud_distributed_transaction_seata
+ * Package(包名): mao.accountservice.mapper
+ * Interface(接口名): AccountMapper
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/24
+ * Time(创建时间)： 20:31
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+@Mapper
+public interface AccountMapper extends BaseMapper<Account>
+{
+    /**
+     * 扣钱
+     *
+     * @param userId 要扣钱的用户id
+     * @param money  扣的钱的数量
+     * @return 影响行数
+     */
+    @Update("update account_tbl set money = money - ${money} where user_id = #{userId}")
+    int deduct(@Param("userId") String userId, @Param("money") int money);
+
+    /**
+     * 退款
+     *
+     * @param userId 要退款的用户id
+     * @param money  钱的数量
+     * @return 影响行数
+     */
+    @Update("update account_tbl set money = money + ${money} where user_id = #{userId}")
+    int refund(@Param("userId") String userId, @Param("money") int money);
+}
+```
+
+
+
+
+
+##### AccountService
+
+```java
+package mao.accountservice.service;
+
+/**
+ * Project name(项目名称)：spring_cloud_distributed_transaction_seata
+ * Package(包名): mao.accountservice.service
+ * Interface(接口名): AccountService
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/24
+ * Time(创建时间)： 20:35
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public interface AccountService
+{
+    /**
+     * 扣款
+     *
+     * @param userId 要扣钱的用户id
+     * @param money  扣的钱的数量
+     */
+    void deduct(String userId, int money);
+}
+```
+
+
+
+##### AccountServiceImpl
+
+```java
+package mao.accountservice.service.impl;
+
+import lombok.extern.slf4j.Slf4j;
+import mao.accountservice.mapper.AccountMapper;
+import mao.accountservice.service.AccountService;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import javax.annotation.Resource;
+
+/**
+ * Project name(项目名称)：spring_cloud_distributed_transaction_seata
+ * Package(包名): mao.accountservice.service.impl
+ * Class(类名): AccountServiceImpl
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/24
+ * Time(创建时间)： 20:36
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+@Service
+@Slf4j
+public class AccountServiceImpl implements AccountService
+{
+
+    @Resource
+    private AccountMapper accountMapper;
+
+    @Override
+    @Transactional
+    public void deduct(String userId, int money)
+    {
+        log.info("开始扣款");
+        try
+        {
+            accountMapper.deduct(userId, money);
+        }
+        catch (Exception e)
+        {
+            throw new RuntimeException("扣款失败！", e);
+        }
+        log.info("扣款成功");
+    }
+}
+```
+
+
+
+
+
+##### AccountController
+
+```java
+package mao.accountservice.controller;
+
+import mao.accountservice.service.AccountService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import javax.annotation.Resource;
+
+/**
+ * Project name(项目名称)：spring_cloud_distributed_transaction_seata
+ * Package(包名): mao.accountservice.controller
+ * Class(类名): AccountController
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/24
+ * Time(创建时间)： 20:41
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+@RestController
+@RequestMapping("account")
+public class AccountController
+{
+    @Resource
+    private AccountService accountService;
+
+    /**
+     * 扣钱
+     *
+     * @param userId 要扣钱的用户id
+     * @param money  扣的钱的数量
+     * @return ResponseEntity
+     */
+    @PutMapping("/{userId}/{money}")
+    public ResponseEntity<Void> deduct(@PathVariable("userId") String userId, @PathVariable("money") Integer money)
+    {
+        accountService.deduct(userId, money);
+        return ResponseEntity.noContent().build();
+    }
+}
+```
+
+
+
+
+
+##### AccountServiceApplication
+
+```java
+package mao.accountservice;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class AccountServiceApplication
+{
+
+    public static void main(String[] args)
+    {
+        SpringApplication.run(AccountServiceApplication.class, args);
+    }
+
+}
+```
+
+
+
+#### order-service
+
+
+
+##### Order
+
+```java
+package mao.orderservice.entity;
+
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+
+/**
+ * Project name(项目名称)：spring_cloud_distributed_transaction_seata
+ * Package(包名): mao.orderservice.entity
+ * Class(类名): Order
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/24
+ * Time(创建时间)： 20:46
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+@TableName("order_tbl")
+public class Order
+{
+    @TableId(type = IdType.AUTO)
+    private Long id;
+    private String userId;
+    private String commodityCode;
+    private Integer count;
+    private Integer money;
+
+    /**
+     * Instantiates a new Order.
+     */
+    public Order()
+    {
+
+    }
+
+    /**
+     * Instantiates a new Order.
+     *
+     * @param id            the id
+     * @param userId        the user id
+     * @param commodityCode the commodity code
+     * @param count         the count
+     * @param money         the money
+     */
+    public Order(Long id, String userId, String commodityCode, Integer count, Integer money)
+    {
+        this.id = id;
+        this.userId = userId;
+        this.commodityCode = commodityCode;
+        this.count = count;
+        this.money = money;
+    }
+
+    /**
+     * Gets id.
+     *
+     * @return the id
+     */
+    public Long getId()
+    {
+        return id;
+    }
+
+    /**
+     * Sets id.
+     *
+     * @param id the id
+     */
+    public void setId(Long id)
+    {
+        this.id = id;
+    }
+
+    /**
+     * Gets user id.
+     *
+     * @return the user id
+     */
+    public String getUserId()
+    {
+        return userId;
+    }
+
+    /**
+     * Sets user id.
+     *
+     * @param userId the user id
+     */
+    public void setUserId(String userId)
+    {
+        this.userId = userId;
+    }
+
+    /**
+     * Gets commodity code.
+     *
+     * @return the commodity code
+     */
+    public String getCommodityCode()
+    {
+        return commodityCode;
+    }
+
+    /**
+     * Sets commodity code.
+     *
+     * @param commodityCode the commodity code
+     */
+    public void setCommodityCode(String commodityCode)
+    {
+        this.commodityCode = commodityCode;
+    }
+
+    /**
+     * Gets count.
+     *
+     * @return the count
+     */
+    public Integer getCount()
+    {
+        return count;
+    }
+
+    /**
+     * Sets count.
+     *
+     * @param count the count
+     */
+    public void setCount(Integer count)
+    {
+        this.count = count;
+    }
+
+    /**
+     * Gets money.
+     *
+     * @return the money
+     */
+    public Integer getMoney()
+    {
+        return money;
+    }
+
+    /**
+     * Sets money.
+     *
+     * @param money the money
+     */
+    public void setMoney(Integer money)
+    {
+        this.money = money;
+    }
+
+    @Override
+    @SuppressWarnings("all")
+    public String toString()
+    {
+        final StringBuilder stringbuilder = new StringBuilder();
+        stringbuilder.append("id：").append(id).append('\n');
+        stringbuilder.append("userId：").append(userId).append('\n');
+        stringbuilder.append("commodityCode：").append(commodityCode).append('\n');
+        stringbuilder.append("count：").append(count).append('\n');
+        stringbuilder.append("money：").append(money).append('\n');
+        return stringbuilder.toString();
+    }
+}
+```
+
+
+
+
+
+##### OrderMapper
+
+```java
+package mao.orderservice.mapper;
+
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import mao.orderservice.entity.Order;
+import org.apache.ibatis.annotations.Mapper;
+
+/**
+ * Project name(项目名称)：spring_cloud_distributed_transaction_seata
+ * Package(包名): mao.orderservice.mapper
+ * Interface(接口名): OrderMapper
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/24
+ * Time(创建时间)： 20:47
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+@Mapper
+public interface OrderMapper extends BaseMapper<Order>
+{
+
+}
+```
+
+
+
+
+
+##### OrderService
+
+```java
+package mao.orderservice.service;
+
+import mao.orderservice.entity.Order;
+
+/**
+ * Project name(项目名称)：spring_cloud_distributed_transaction_seata
+ * Package(包名): mao.orderservice.service
+ * Interface(接口名): OrderService
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/24
+ * Time(创建时间)： 20:48
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public interface OrderService
+{
+    /**
+     * 创建订单
+     * @param order 订单对象
+     * @return 订单的id
+     */
+    Long create(Order order);
+}
+```
+
+
+
+
+
+##### OrderServiceImpl
+
+```java
+package mao.orderservice.service.impl;
+
+import feign.FeignException;
+import lombok.extern.slf4j.Slf4j;
+import mao.orderservice.entity.Order;
+import mao.orderservice.feign.AccountFeignClient;
+import mao.orderservice.feign.StorageFeignClient;
+import mao.orderservice.mapper.OrderMapper;
+import mao.orderservice.service.OrderService;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import javax.annotation.Resource;
+
+/**
+ * Project name(项目名称)：spring_cloud_distributed_transaction_seata
+ * Package(包名): mao.orderservice.service.impl
+ * Class(类名): OrderServiceImpl
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/24
+ * Time(创建时间)： 20:49
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+@Service
+@Slf4j
+public class OrderServiceImpl implements OrderService
+{
+
+    @Resource
+    private AccountFeignClient accountFeignClient;
+    @Resource
+    private StorageFeignClient storageFeignClient;
+    @Resource
+    private OrderMapper orderMapper;
+
+    @Override
+    @Transactional
+    public Long create(Order order)
+    {
+        try
+        {
+            // 创建订单
+            orderMapper.insert(order);
+            // 扣用户余额
+            accountFeignClient.deduct(order.getUserId(), order.getMoney());
+            // 扣库存
+            storageFeignClient.deduct(order.getCommodityCode(), order.getCount());
+
+        }
+        catch (FeignException e)
+        {
+            log.error("下单失败，原因:{}", e.contentUTF8(), e);
+            throw new RuntimeException(e.contentUTF8(), e);
+        }
+        catch (Exception e)
+        {
+            log.error("下单失败");
+            throw new RuntimeException(e);
+        }
+        return order.getId();
+    }
+}
+```
+
+
+
+
+
+##### OrderController
+
+```java
+package mao.orderservice.controller;
+
+import mao.orderservice.entity.Order;
+import mao.orderservice.service.OrderService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import javax.annotation.Resource;
+
+/**
+ * Project name(项目名称)：spring_cloud_distributed_transaction_seata
+ * Package(包名): mao.orderservice.controller
+ * Class(类名): OrderController
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/24
+ * Time(创建时间)： 20:53
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+@RestController
+@RequestMapping("order")
+public class OrderController
+{
+    @Resource
+    private OrderService orderService;
+
+    /**
+     * 创建订单
+     * @param order 订单对象
+     * @return ResponseEntity
+     */
+    @PostMapping
+    public ResponseEntity<Long> createOrder(Order order)
+    {
+        Long orderId = orderService.create(order);
+        return ResponseEntity.status(HttpStatus.CREATED).body(orderId);
+    }
+}
+```
+
+
+
+
+
+##### AccountFeignClient
+
+```java
+package mao.orderservice.feign;
+
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+
+/**
+ * Project name(项目名称)：spring_cloud_distributed_transaction_seata
+ * Package(包名): mao.orderservice.feign
+ * Interface(接口名): AccountFeignClient
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/24
+ * Time(创建时间)： 21:04
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+@FeignClient("account-service")
+public interface AccountFeignClient
+{
+    /**
+     * 扣钱
+     *
+     * @param userId 要扣钱的用户id
+     * @param money  扣的钱的数量
+     * @return ResponseEntity
+     */
+    @PutMapping("/account/{userId}/{money}")
+    ResponseEntity<Void> deduct(@PathVariable("userId") String userId, @PathVariable("money") Integer money);
+}
+```
+
+
+
+
+
+##### StorageFeignClient
+
+```java
+package mao.orderservice.feign;
+
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+
+/**
+ * Project name(项目名称)：spring_cloud_distributed_transaction_seata
+ * Package(包名): mao.orderservice.feign
+ * Interface(接口名): StorageFeignClient
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/24
+ * Time(创建时间)： 21:06
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+@FeignClient("storage-service")
+public interface StorageFeignClient
+{
+    /**
+     * 扣减库存
+     * @param code code
+     * @param count 数量
+     */
+    @PutMapping("/storage/{code}/{count}")
+    void deduct(@PathVariable("code") String code, @PathVariable("count") Integer count);
+}
+```
+
+
+
+
+
+
+
+##### OrderServiceApplication
+
+```java
+package mao.orderservice;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.openfeign.EnableFeignClients;
+
+@SpringBootApplication
+@EnableFeignClients
+public class OrderServiceApplication
+{
+
+    public static void main(String[] args)
+    {
+        SpringApplication.run(OrderServiceApplication.class, args);
+    }
+
+}
+```
+
+
+
+
+
+
+
+#### storage-service
 
