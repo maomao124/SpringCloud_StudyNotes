@@ -24257,7 +24257,7 @@ Project name(项目名称)：spring_cloud_distributed_transaction_seata
 <br>
 <br>
 
-<button id="button" onclick="get()">点击发送ajax请求</button>
+<button id="button" onclick="post()">点击发送ajax请求</button>
 
 <br>
 <br>
@@ -24275,7 +24275,7 @@ Project name(项目名称)：spring_cloud_distributed_transaction_seata
     var count = document.getElementById("count")
     var money = document.getElementById("money")
 
-    function get()
+    function post()
     {
         console.log("发起ajax请求")
 
@@ -24303,7 +24303,7 @@ Project name(项目名称)：spring_cloud_distributed_transaction_seata
             alert("请求超时，请稍后再试！");
         }
         //初始化，设置请求方式和url
-        xhr.open("get", "http://localhost:8082/order?userId=" + userId.value + "&commodityCode=" + commodityCode.value + "&count=" + count.value + "&money=" + money.value);
+        xhr.open("post", "http://localhost:8082/order?userId=" + userId.value + "&commodityCode=" + commodityCode.value + "&count=" + count.value + "&money=" + money.value);
         //设置状态为正在发送
         isSending = true;
         //发送异步请求
@@ -24336,7 +24336,7 @@ Project name(项目名称)：spring_cloud_distributed_transaction_seata
         //axios发起ajax请求
         axios({
             //请求的方式：
-            method: "get",
+            method: "post",
             //请求的url:
             url: "http://localhost:8082/order?userId=user202103032042012&commodityCode=100202003032041&count=2&money=200",
             //url参数：
@@ -24371,7 +24371,7 @@ Project name(项目名称)：spring_cloud_distributed_transaction_seata
                 data:
                     {},
                 //请求类型：
-                type: "get",
+                type: "post",
                 //响应的数据类型：
                 dataType: "json",
                 //请求成功的回调函数：
@@ -24414,4 +24414,377 @@ Project name(项目名称)：spring_cloud_distributed_transaction_seata
 
 
 ### 启动
+
+#### account-service
+
+
+
+```sh
+
+OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::        (v2.3.9.RELEASE)
+
+2022-07-24 22:20:38.292  INFO 14644 --- [           main] m.a.AccountServiceApplication            : No active profile set, falling back to default profiles: default
+2022-07-24 22:20:38.830  INFO 14644 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=8e5668a4-fb1e-3217-9b53-be37c3acce01
+2022-07-24 22:20:39.044  INFO 14644 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8083 (http)
+2022-07-24 22:20:39.053  INFO 14644 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-07-24 22:20:39.054  INFO 14644 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.43]
+2022-07-24 22:20:39.179  INFO 14644 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-07-24 22:20:39.179  INFO 14644 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 872 ms
+2022-07-24 22:20:39.251  INFO 14644 --- [           main] c.a.d.s.b.a.DruidDataSourceAutoConfigure : Init DruidDataSource
+2022-07-24 22:20:39.354  INFO 14644 --- [           main] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+ _ _   |_  _ _|_. ___ _ |    _ 
+| | |\/|_)(_| | |_\  |_)||_|_\ 
+     /               |         
+                        3.5.1 
+2022-07-24 22:20:39.708  WARN 14644 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-24 22:20:39.708  INFO 14644 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-24 22:20:39.710  WARN 14644 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-24 22:20:39.711  INFO 14644 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-24 22:20:39.826  INFO 14644 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-24 22:20:40.057  INFO 14644 --- [           main] o.s.s.c.ThreadPoolTaskScheduler          : Initializing ExecutorService 'Nacos-Watch-Task-Scheduler'
+2022-07-24 22:20:40.514  INFO 14644 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8083 (http) with context path ''
+2022-07-24 22:20:40.525  INFO 14644 --- [           main] c.a.c.n.registry.NacosServiceRegistry    : nacos registry, DEFAULT_GROUP account-service 192.168.202.1:8083 register finished
+2022-07-24 22:20:40.645  INFO 14644 --- [           main] m.a.AccountServiceApplication            : Started AccountServiceApplication in 3.137 seconds (JVM running for 3.646)
+```
+
+
+
+
+
+#### order-service
+
+
+
+```sh
+
+OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::        (v2.3.9.RELEASE)
+
+2022-07-24 22:20:40.579  INFO 13640 --- [           main] m.orderservice.OrderServiceApplication   : No active profile set, falling back to default profiles: default
+2022-07-24 22:20:41.314  INFO 13640 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=20c2df8f-f06f-3cd0-be15-f7ef5fafa39c
+2022-07-24 22:20:41.645  INFO 13640 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8082 (http)
+2022-07-24 22:20:41.655  INFO 13640 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-07-24 22:20:41.656  INFO 13640 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.43]
+2022-07-24 22:20:41.816  INFO 13640 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-07-24 22:20:41.816  INFO 13640 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1221 ms
+2022-07-24 22:20:42.235  INFO 13640 --- [           main] c.a.d.s.b.a.DruidDataSourceAutoConfigure : Init DruidDataSource
+2022-07-24 22:20:42.350  INFO 13640 --- [           main] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+ _ _   |_  _ _|_. ___ _ |    _ 
+| | |\/|_)(_| | |_\  |_)||_|_\ 
+     /               |         
+                        3.5.1 
+2022-07-24 22:20:42.666  WARN 13640 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-24 22:20:42.666  INFO 13640 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-24 22:20:42.669  WARN 13640 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-24 22:20:42.669  INFO 13640 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-24 22:20:42.757  INFO 13640 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-24 22:20:42.807  INFO 13640 --- [           main] o.s.b.a.w.s.WelcomePageHandlerMapping    : Adding welcome page: class path resource [static/index.html]
+2022-07-24 22:20:42.942  INFO 13640 --- [           main] o.s.s.c.ThreadPoolTaskScheduler          : Initializing ExecutorService 'Nacos-Watch-Task-Scheduler'
+2022-07-24 22:20:43.380  INFO 13640 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8082 (http) with context path ''
+2022-07-24 22:20:43.389  INFO 13640 --- [           main] c.a.c.n.registry.NacosServiceRegistry    : nacos registry, DEFAULT_GROUP order-service 192.168.202.1:8082 register finished
+2022-07-24 22:20:43.499  INFO 13640 --- [           main] m.orderservice.OrderServiceApplication   : Started OrderServiceApplication in 3.774 seconds (JVM running for 4.344)
+```
+
+
+
+#### storage-service
+
+
+
+```sh
+
+OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::        (v2.3.9.RELEASE)
+
+2022-07-24 22:20:42.958  INFO 16052 --- [           main] m.s.StorageServiceApplication            : No active profile set, falling back to default profiles: default
+2022-07-24 22:20:43.472  INFO 16052 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=550ed7f5-f52a-3b86-afcf-54a2360fbd7c
+2022-07-24 22:20:43.661  INFO 16052 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8081 (http)
+2022-07-24 22:20:43.668  INFO 16052 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-07-24 22:20:43.668  INFO 16052 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.43]
+2022-07-24 22:20:43.775  INFO 16052 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-07-24 22:20:43.776  INFO 16052 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 804 ms
+2022-07-24 22:20:43.835  INFO 16052 --- [           main] c.a.d.s.b.a.DruidDataSourceAutoConfigure : Init DruidDataSource
+2022-07-24 22:20:43.921  INFO 16052 --- [           main] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+ _ _   |_  _ _|_. ___ _ |    _ 
+| | |\/|_)(_| | |_\  |_)||_|_\ 
+     /               |         
+                        3.5.1 
+2022-07-24 22:20:44.216  WARN 16052 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-24 22:20:44.216  INFO 16052 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-24 22:20:44.218  WARN 16052 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-24 22:20:44.219  INFO 16052 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-24 22:20:44.314  INFO 16052 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-24 22:20:44.492  INFO 16052 --- [           main] o.s.s.c.ThreadPoolTaskScheduler          : Initializing ExecutorService 'Nacos-Watch-Task-Scheduler'
+2022-07-24 22:20:44.894  INFO 16052 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8081 (http) with context path ''
+2022-07-24 22:20:44.902  INFO 16052 --- [           main] c.a.c.n.registry.NacosServiceRegistry    : nacos registry, DEFAULT_GROUP storage-service 192.168.202.1:8081 register finished
+2022-07-24 22:20:45.001  INFO 16052 --- [           main] m.s.StorageServiceApplication            : Started StorageServiceApplication in 2.836 seconds (JVM running for 3.465)
+```
+
+
+
+
+
+![image-20220724222250867](img/image-20220724222250867.png)
+
+
+
+
+
+
+
+### 访问
+
+
+
+http://localhost:8082/
+
+
+
+![image-20220724222339020](img/image-20220724222339020.png)
+
+
+
+
+
+
+
+
+
+## 项目测试
+
+1. 发起ajax请求
+
+
+
+![image-20220724223154709](img/image-20220724223154709.png)
+
+
+
+
+
+2. 查看日志
+
+
+
+account：
+
+```sh
+2022-07-24 22:20:39.826  INFO 14644 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-24 22:20:40.057  INFO 14644 --- [           main] o.s.s.c.ThreadPoolTaskScheduler          : Initializing ExecutorService 'Nacos-Watch-Task-Scheduler'
+2022-07-24 22:20:40.514  INFO 14644 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8083 (http) with context path ''
+2022-07-24 22:20:40.525  INFO 14644 --- [           main] c.a.c.n.registry.NacosServiceRegistry    : nacos registry, DEFAULT_GROUP account-service 192.168.202.1:8083 register finished
+2022-07-24 22:20:40.645  INFO 14644 --- [           main] m.a.AccountServiceApplication            : Started AccountServiceApplication in 3.137 seconds (JVM running for 3.646)
+2022-07-24 22:30:41.138  INFO 14644 --- [nio-8083-exec-2] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2022-07-24 22:30:41.138  INFO 14644 --- [nio-8083-exec-2] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2022-07-24 22:30:41.144  INFO 14644 --- [nio-8083-exec-2] o.s.web.servlet.DispatcherServlet        : Completed initialization in 6 ms
+2022-07-24 22:30:41.244  INFO 14644 --- [nio-8083-exec-2] m.a.service.impl.AccountServiceImpl      : 开始扣款
+2022-07-24 22:30:41.264 DEBUG 14644 --- [nio-8083-exec-2] m.a.mapper.AccountMapper.deduct          : ==>  Preparing: update account_tbl set money = money - 200 where user_id = ?
+2022-07-24 22:30:41.279 DEBUG 14644 --- [nio-8083-exec-2] m.a.mapper.AccountMapper.deduct          : ==> Parameters: user202103032042012(String)
+2022-07-24 22:30:41.283 DEBUG 14644 --- [nio-8083-exec-2] m.a.mapper.AccountMapper.deduct          : <==    Updates: 1
+2022-07-24 22:30:41.283  INFO 14644 --- [nio-8083-exec-2] m.a.service.impl.AccountServiceImpl      : 扣款成功
+```
+
+
+
+order:
+
+```sh
+2022-07-24 22:30:02.623  WARN 4440 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-24 22:30:02.624  INFO 4440 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-24 22:30:02.626  WARN 4440 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-24 22:30:02.626  INFO 4440 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-24 22:30:02.707  INFO 4440 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-24 22:30:02.755  INFO 4440 --- [           main] o.s.b.a.w.s.WelcomePageHandlerMapping    : Adding welcome page: class path resource [static/index.html]
+2022-07-24 22:30:02.892  INFO 4440 --- [           main] o.s.s.c.ThreadPoolTaskScheduler          : Initializing ExecutorService 'Nacos-Watch-Task-Scheduler'
+2022-07-24 22:30:03.228  INFO 4440 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8082 (http) with context path ''
+2022-07-24 22:30:03.236  INFO 4440 --- [           main] c.a.c.n.registry.NacosServiceRegistry    : nacos registry, DEFAULT_GROUP order-service 192.168.202.1:8082 register finished
+2022-07-24 22:30:03.338  INFO 4440 --- [           main] m.orderservice.OrderServiceApplication   : Started OrderServiceApplication in 3.014 seconds (JVM running for 3.609)
+2022-07-24 22:30:36.540  INFO 4440 --- [nio-8082-exec-9] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2022-07-24 22:30:36.541  INFO 4440 --- [nio-8082-exec-9] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2022-07-24 22:30:36.547  INFO 4440 --- [nio-8082-exec-9] o.s.web.servlet.DispatcherServlet        : Completed initialization in 6 ms
+2022-07-24 22:30:40.863 DEBUG 4440 --- [io-8082-exec-10] m.o.mapper.OrderMapper.insert            : ==>  Preparing: INSERT INTO order_tbl ( user_id, commodity_code, count, money ) VALUES ( ?, ?, ?, ? )
+2022-07-24 22:30:40.878 DEBUG 4440 --- [io-8082-exec-10] m.o.mapper.OrderMapper.insert            : ==> Parameters: user202103032042012(String), 100202003032041(String), 2(Integer), 200(Integer)
+2022-07-24 22:30:40.882 DEBUG 4440 --- [io-8082-exec-10] m.o.mapper.OrderMapper.insert            : <==    Updates: 1
+2022-07-24 22:30:40.891 DEBUG 4440 --- [io-8082-exec-10] m.orderservice.feign.AccountFeignClient  : [AccountFeignClient#deduct] ---> PUT http://account-service/account/user202103032042012/200 HTTP/1.1
+2022-07-24 22:30:40.978  INFO 4440 --- [io-8082-exec-10] c.netflix.config.ChainedDynamicProperty  : Flipping property: account-service.ribbon.ActiveConnectionsLimit to use NEXT property: niws.loadbalancer.availabilityFilteringRule.activeConnectionsLimit = 2147483647
+2022-07-24 22:30:41.000  INFO 4440 --- [io-8082-exec-10] c.netflix.loadbalancer.BaseLoadBalancer  : Client: account-service instantiated a LoadBalancer: DynamicServerListLoadBalancer:{NFLoadBalancer:name=account-service,current list of Servers=[],Load balancer stats=Zone stats: {},Server stats: []}ServerList:null
+2022-07-24 22:30:41.012  INFO 4440 --- [io-8082-exec-10] c.n.l.DynamicServerListLoadBalancer      : Using serverListUpdater PollingServerListUpdater
+2022-07-24 22:30:41.035  INFO 4440 --- [io-8082-exec-10] c.netflix.config.ChainedDynamicProperty  : Flipping property: account-service.ribbon.ActiveConnectionsLimit to use NEXT property: niws.loadbalancer.availabilityFilteringRule.activeConnectionsLimit = 2147483647
+2022-07-24 22:30:41.040  INFO 4440 --- [io-8082-exec-10] c.n.l.DynamicServerListLoadBalancer      : DynamicServerListLoadBalancer for client account-service initialized: DynamicServerListLoadBalancer:{NFLoadBalancer:name=account-service,current list of Servers=[192.168.202.1:8083],Load balancer stats=Zone stats: {unknown=[Zone:unknown;	Instance count:1;	Active connections count: 0;	Circuit breaker tripped count: 0;	Active connections per server: 0.0;]
+},Server stats: [[Server:192.168.202.1:8083;	Zone:UNKNOWN;	Total Requests:0;	Successive connection failure:0;	Total blackout seconds:0;	Last connection made:Thu Jan 01 08:00:00 CST 1970;	First connection made: Thu Jan 01 08:00:00 CST 1970;	Active Connections:0;	total failure count in last (1000) msecs:0;	average resp time:0.0;	90 percentile resp time:0.0;	95 percentile resp time:0.0;	min resp time:0.0;	max resp time:0.0;	stddev resp time:0.0]
+]}ServerList:com.alibaba.cloud.nacos.ribbon.NacosServerList@5bc67866
+2022-07-24 22:30:41.307 DEBUG 4440 --- [io-8082-exec-10] m.orderservice.feign.AccountFeignClient  : [AccountFeignClient#deduct] <--- HTTP/1.1 204  (415ms)
+2022-07-24 22:30:41.310 DEBUG 4440 --- [io-8082-exec-10] m.orderservice.feign.StorageFeignClient  : [StorageFeignClient#deduct] ---> PUT http://storage-service/storage/100202003032041/2 HTTP/1.1
+2022-07-24 22:30:41.329  INFO 4440 --- [io-8082-exec-10] c.netflix.config.ChainedDynamicProperty  : Flipping property: storage-service.ribbon.ActiveConnectionsLimit to use NEXT property: niws.loadbalancer.availabilityFilteringRule.activeConnectionsLimit = 2147483647
+2022-07-24 22:30:41.331  INFO 4440 --- [io-8082-exec-10] c.netflix.loadbalancer.BaseLoadBalancer  : Client: storage-service instantiated a LoadBalancer: DynamicServerListLoadBalancer:{NFLoadBalancer:name=storage-service,current list of Servers=[],Load balancer stats=Zone stats: {},Server stats: []}ServerList:null
+2022-07-24 22:30:41.338  INFO 4440 --- [io-8082-exec-10] c.n.l.DynamicServerListLoadBalancer      : Using serverListUpdater PollingServerListUpdater
+2022-07-24 22:30:41.349  INFO 4440 --- [io-8082-exec-10] c.netflix.config.ChainedDynamicProperty  : Flipping property: storage-service.ribbon.ActiveConnectionsLimit to use NEXT property: niws.loadbalancer.availabilityFilteringRule.activeConnectionsLimit = 2147483647
+2022-07-24 22:30:41.352  INFO 4440 --- [io-8082-exec-10] c.n.l.DynamicServerListLoadBalancer      : DynamicServerListLoadBalancer for client storage-service initialized: DynamicServerListLoadBalancer:{NFLoadBalancer:name=storage-service,current list of Servers=[192.168.202.1:8081],Load balancer stats=Zone stats: {unknown=[Zone:unknown;	Instance count:1;	Active connections count: 0;	Circuit breaker tripped count: 0;	Active connections per server: 0.0;]
+},Server stats: [[Server:192.168.202.1:8081;	Zone:UNKNOWN;	Total Requests:0;	Successive connection failure:0;	Total blackout seconds:0;	Last connection made:Thu Jan 01 08:00:00 CST 1970;	First connection made: Thu Jan 01 08:00:00 CST 1970;	Active Connections:0;	total failure count in last (1000) msecs:0;	average resp time:0.0;	90 percentile resp time:0.0;	95 percentile resp time:0.0;	min resp time:0.0;	max resp time:0.0;	stddev resp time:0.0]
+]}ServerList:com.alibaba.cloud.nacos.ribbon.NacosServerList@53252fde
+2022-07-24 22:30:41.555 DEBUG 4440 --- [io-8082-exec-10] m.orderservice.feign.StorageFeignClient  : [StorageFeignClient#deduct] <--- HTTP/1.1 204  (245ms)
+2022-07-24 22:30:42.028  INFO 4440 --- [erListUpdater-0] c.netflix.config.ChainedDynamicProperty  : Flipping property: account-service.ribbon.ActiveConnectionsLimit to use NEXT property: niws.loadbalancer.availabilityFilteringRule.activeConnectionsLimit = 2147483647
+2022-07-24 22:30:42.344  INFO 4440 --- [erListUpdater-1] c.netflix.config.ChainedDynamicProperty  : Flipping property: storage-service.ribbon.ActiveConnectionsLimit to use NEXT property: niws.loadbalancer.availabilityFilteringRule.activeConnectionsLimit = 2147483647
+```
+
+
+
+Storage：
+
+```sh
+2022-07-24 22:20:44.216  WARN 16052 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-24 22:20:44.216  INFO 16052 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-24 22:20:44.218  WARN 16052 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-24 22:20:44.219  INFO 16052 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-24 22:20:44.314  INFO 16052 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-24 22:20:44.492  INFO 16052 --- [           main] o.s.s.c.ThreadPoolTaskScheduler          : Initializing ExecutorService 'Nacos-Watch-Task-Scheduler'
+2022-07-24 22:20:44.894  INFO 16052 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8081 (http) with context path ''
+2022-07-24 22:20:44.902  INFO 16052 --- [           main] c.a.c.n.registry.NacosServiceRegistry    : nacos registry, DEFAULT_GROUP storage-service 192.168.202.1:8081 register finished
+2022-07-24 22:20:45.001  INFO 16052 --- [           main] m.s.StorageServiceApplication            : Started StorageServiceApplication in 2.836 seconds (JVM running for 3.465)
+2022-07-24 22:30:41.396  INFO 16052 --- [nio-8081-exec-4] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2022-07-24 22:30:41.396  INFO 16052 --- [nio-8081-exec-4] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2022-07-24 22:30:41.400  INFO 16052 --- [nio-8081-exec-4] o.s.web.servlet.DispatcherServlet        : Completed initialization in 4 ms
+2022-07-24 22:30:41.504  INFO 16052 --- [nio-8081-exec-4] m.s.service.impl.StorageServiceImpl      : 开始扣减库存
+2022-07-24 22:30:41.519 DEBUG 16052 --- [nio-8081-exec-4] m.s.mapper.StorageMapper.deduct          : ==>  Preparing: update storage_tbl set `count` = `count` - ? where commodity_code = ?
+2022-07-24 22:30:41.536 DEBUG 16052 --- [nio-8081-exec-4] m.s.mapper.StorageMapper.deduct          : ==> Parameters: 2(Integer), 100202003032041(String)
+2022-07-24 22:30:41.538 DEBUG 16052 --- [nio-8081-exec-4] m.s.mapper.StorageMapper.deduct          : <==    Updates: 1
+2022-07-24 22:30:41.539  INFO 16052 --- [nio-8081-exec-4] m.s.service.impl.StorageServiceImpl      : 扣减库存成功
+```
+
+
+
+
+
+3. 查看数据库
+
+
+
+![image-20220724223535607](img/image-20220724223535607.png)
+
+
+
+![image-20220724223553076](img/image-20220724223553076.png)
+
+
+
+![image-20220724223605480](img/image-20220724223605480.png)
+
+
+
+
+
+成功
+
+
+
+4.设置金额
+
+
+
+![image-20220724223704230](img/image-20220724223704230.png)
+
+
+
+5. 发起ajax请求
+
+
+
+![image-20220724223818770](img/image-20220724223818770.png)
+
+
+
+
+
+
+
+6. 查看日志
+
+
+
+account
+
+```sh
+2022-07-24 22:37:23.008  WARN 14644 --- [nio-8083-exec-2] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false, version : 1.2.8, lastPacketReceivedIdleMillis : 401715
+2022-07-24 22:37:23.011  INFO 14644 --- [nio-8083-exec-2] m.a.service.impl.AccountServiceImpl      : 开始扣款
+2022-07-24 22:37:23.011 DEBUG 14644 --- [nio-8083-exec-2] m.a.mapper.AccountMapper.deduct          : ==>  Preparing: update account_tbl set money = money - 900 where user_id = ?
+2022-07-24 22:37:23.011 DEBUG 14644 --- [nio-8083-exec-2] m.a.mapper.AccountMapper.deduct          : ==> Parameters: user202103032042012(String)
+2022-07-24 22:37:23.062 ERROR 14644 --- [nio-8083-exec-2] o.a.c.c.C.[.[.[/].[dispatcherServlet]    : Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is java.lang.RuntimeException: 扣款失败！] with root cause
+
+com.mysql.cj.jdbc.exceptions.MysqlDataTruncation: Data truncation: BIGINT UNSIGNED value is out of range in '(`seata_demo`.`account_tbl`.`money` - 900)'
+	at com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping.translateException(SQLExceptionsMapping.java:104) ~[mysql-connector-java-8.0.27.jar:8.0.27]
+	at com.mysql.cj.jdbc.ClientPreparedStatement.executeInternal(ClientPreparedStatement.java:953) ~[mysql-connector-java-8.0.27.jar:8.0.27]
+```
+
+
+
+order
+
+```sh
+2022-07-24 22:37:23.079 DEBUG 4440 --- [nio-8082-exec-1] m.orderservice.feign.AccountFeignClient  : [AccountFeignClient#deduct] <--- HTTP/1.1 500  (81ms)
+2022-07-24 22:37:23.083 ERROR 4440 --- [nio-8082-exec-1] m.o.service.impl.OrderServiceImpl        : 下单失败，原因:{"timestamp":"2022-07-24T14:37:23.070+00:00","status":500,"error":"Internal Server Error","message":"","path":"/account/user202103032042012/900"}
+```
+
+
+
+7. 查看数据库
+
+
+
+![image-20220724224245861](img/image-20220724224245861.png)
+
+
+
+![image-20220724224307370](img/image-20220724224307370.png)
+
+
+
+
+
+![image-20220724224319215](img/image-20220724224319215.png)
+
+
+
+
+
+回滚正常，因为是先扣用户余额再扣库存，扣用户余额的时候抛出异常，扣库存的业务并没有执行到，订单业务回滚，扣减余额的业务回滚
+
+
+
+
+
+8. 设置页面参数
+
+
+
+![image-20220724224658617](img/image-20220724224658617.png)
+
+
+
+
+
+9. 发起请求
+
+
 
