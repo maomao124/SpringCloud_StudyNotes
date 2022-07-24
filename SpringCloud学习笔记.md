@@ -22588,7 +22588,7 @@ spring:
     # 配置数据源-druid
     druid:
       driver-class-name: com.mysql.cj.jdbc.Driver
-      url: jdbc:mysql://seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false
+      url: jdbc:mysql://localhost:3306/seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false
       username: root
       password: 20010713
 
@@ -22644,6 +22644,9 @@ mybatis-plus:
 
 server:
   port: 8083
+
+
+
 ```
 
 
@@ -22666,7 +22669,7 @@ spring:
     # 配置数据源-druid
     druid:
       driver-class-name: com.mysql.cj.jdbc.Driver
-      url: jdbc:mysql://seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false
+      url: jdbc:mysql://localhost:3306/seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false
       username: root
       password: 20010713
 
@@ -22722,8 +22725,8 @@ mybatis-plus:
 
 server:
   port: 8082
-  
-  
+
+
 feign:
   # 配置连接池
   httpclient:
@@ -22752,6 +22755,8 @@ feign:
         #retryer:
 
 
+
+
 ```
 
 
@@ -22774,7 +22779,7 @@ spring:
     # 配置数据源-druid
     druid:
       driver-class-name: com.mysql.cj.jdbc.Driver
-      url: jdbc:mysql://seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false
+      url: jdbc:mysql://localhost:3306/seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false
       username: root
       password: 20010713
 
@@ -22830,6 +22835,8 @@ mybatis-plus:
 
 server:
   port: 8081
+
+
 ```
 
 
@@ -23674,4 +23681,351 @@ public class OrderServiceApplication
 
 
 #### storage-service
+
+
+
+##### Storage
+
+```java
+package mao.storageservice.entity;
+
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+
+/**
+ * Project name(项目名称)：spring_cloud_distributed_transaction_seata
+ * Package(包名): mao.storageservice.entity
+ * Class(类名): Storage
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/24
+ * Time(创建时间)： 21:21
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+@TableName("storage_tbl")
+public class Storage
+{
+    @TableId
+    private Long id;
+    private String commodityCode;
+    private Integer count;
+
+    /**
+     * Instantiates a new Storage.
+     */
+    public Storage()
+    {
+
+    }
+
+    /**
+     * Instantiates a new Storage.
+     *
+     * @param id            the id
+     * @param commodityCode the commodity code
+     * @param count         the count
+     */
+    public Storage(Long id, String commodityCode, Integer count)
+    {
+        this.id = id;
+        this.commodityCode = commodityCode;
+        this.count = count;
+    }
+
+    /**
+     * Gets id.
+     *
+     * @return the id
+     */
+    public Long getId()
+    {
+        return id;
+    }
+
+    /**
+     * Sets id.
+     *
+     * @param id the id
+     */
+    public void setId(Long id)
+    {
+        this.id = id;
+    }
+
+    /**
+     * Gets commodity code.
+     *
+     * @return the commodity code
+     */
+    public String getCommodityCode()
+    {
+        return commodityCode;
+    }
+
+    /**
+     * Sets commodity code.
+     *
+     * @param commodityCode the commodity code
+     */
+    public void setCommodityCode(String commodityCode)
+    {
+        this.commodityCode = commodityCode;
+    }
+
+    /**
+     * Gets count.
+     *
+     * @return the count
+     */
+    public Integer getCount()
+    {
+        return count;
+    }
+
+    /**
+     * Sets count.
+     *
+     * @param count the count
+     */
+    public void setCount(Integer count)
+    {
+        this.count = count;
+    }
+
+    @Override
+    @SuppressWarnings("all")
+    public String toString()
+    {
+        final StringBuilder stringbuilder = new StringBuilder();
+        stringbuilder.append("id：").append(id).append('\n');
+        stringbuilder.append("commodityCode：").append(commodityCode).append('\n');
+        stringbuilder.append("count：").append(count).append('\n');
+        return stringbuilder.toString();
+    }
+}
+```
+
+
+
+
+
+##### StorageMapper
+
+```java
+package mao.storageservice.mapper;
+
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import mao.storageservice.entity.Storage;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Update;
+
+/**
+ * Project name(项目名称)：spring_cloud_distributed_transaction_seata
+ * Package(包名): mao.storageservice.mapper
+ * Interface(接口名): StorageMapper
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/24
+ * Time(创建时间)： 21:23
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+@Mapper
+public interface StorageMapper extends BaseMapper<Storage>
+{
+
+    /**
+     * 扣减库存
+     *
+     * @param commodityCode 商品编码
+     * @param count         扣减的数量
+     * @return 影响行数
+     */
+    @Update("update storage_tbl set `count` = `count` - #{count} where commodity_code = #{code}")
+    int deduct(@Param("code") String commodityCode, @Param("count") int count);
+
+}
+```
+
+
+
+
+
+##### StorageService
+
+```java
+package mao.storageservice.service;
+
+/**
+ * Project name(项目名称)：spring_cloud_distributed_transaction_seata
+ * Package(包名): mao.storageservice.service
+ * Interface(接口名): StorageService
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/24
+ * Time(创建时间)： 21:24
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public interface StorageService
+{
+    /**
+     * 扣减库存
+     *
+     * @param commodityCode 商品编码
+     * @param count         扣减的数量
+     */
+    void deduct(String commodityCode, int count);
+}
+```
+
+
+
+
+
+##### StorageServiceImpl
+
+```java
+package mao.storageservice.service.impl;
+
+import lombok.extern.slf4j.Slf4j;
+import mao.storageservice.mapper.StorageMapper;
+import mao.storageservice.service.StorageService;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import javax.annotation.Resource;
+
+/**
+ * Project name(项目名称)：spring_cloud_distributed_transaction_seata
+ * Package(包名): mao.storageservice.service.impl
+ * Class(类名): StorageServiceImpl
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/24
+ * Time(创建时间)： 21:26
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+@Service
+@Slf4j
+public class StorageServiceImpl implements StorageService
+{
+
+    @Resource
+    private StorageMapper storageMapper;
+
+    @Override
+    @Transactional
+    public void deduct(String commodityCode, int count)
+    {
+        log.info("开始扣减库存");
+        try
+        {
+            storageMapper.deduct(commodityCode, count);
+        }
+        catch (Exception e)
+        {
+            throw new RuntimeException("扣减库存失败！", e);
+        }
+        log.info("扣减库存成功");
+    }
+}
+```
+
+
+
+
+
+##### StorageController
+
+```java
+package mao.storageservice.controller;
+
+import mao.storageservice.service.StorageService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import javax.annotation.Resource;
+
+/**
+ * Project name(项目名称)：spring_cloud_distributed_transaction_seata
+ * Package(包名): mao.storageservice.controller
+ * Class(类名): StorageController
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/24
+ * Time(创建时间)： 21:28
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+@RestController
+@RequestMapping("storage")
+public class StorageController
+{
+    @Resource
+    private StorageService storageService;
+
+    /**
+     * 扣减库存
+     *
+     * @param code  商品编号
+     * @param count 要扣减的数量
+     * @return 无
+     */
+    @PutMapping("/{code}/{count}")
+    public ResponseEntity<Void> deduct(@PathVariable("code") String code, @PathVariable("count") Integer count)
+    {
+        storageService.deduct(code, count);
+        return ResponseEntity.noContent().build();
+    }
+}
+```
+
+
+
+
+
+##### StorageServiceApplication
+
+```java
+package mao.storageservice;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class StorageServiceApplication
+{
+
+    public static void main(String[] args)
+    {
+        SpringApplication.run(StorageServiceApplication.class, args);
+    }
+
+}
+```
+
+
+
+
+
+
+
+
 
