@@ -21833,3 +21833,357 @@ https://github.com/maomao124/spring_cloud_demo_Sentinel.git
 
 
 
+## 事务的ACID原则
+
+* **原子性**：事务中的所有操作，要么全部成功，要么全部失败
+* **一致性**：要保证数据库内部完整性约束、声明性约束
+* **隔离性**：对同一资源操作的事务不能同时发生
+* **持久性**：对数据库做的一切修改将永久保存，不管是否出现故障
+
+
+
+
+
+## CAP定理
+
+1998年，加州大学的计算机科学家 Eric Brewer 提出，分布式系统有三个指标：
+
+* Consistency（一致性）
+
+* Availability（可用性）
+
+* Partition tolerance （分区容错性）
+
+Eric Brewer 说，分布式系统无法同时满足这三个指标。
+
+这个结论就叫做 CAP 定理。
+
+
+
+CAP原则的精髓就是要么AP，要么CP，要么AC，但是不存在CAP。如果在某个分布式系统中数据无副本， 那么系统必然满足强一致性条件， 因为只有独一数据，不会出现数据不一致的情况，此时C和P两要素具备，但是如果系统发生了网络分区状况或者宕机，必然导致某些数据不可以访问，此时可用性条件就不能被满足，即在此情况下获得了CP系统，但是CAP不可同时满足。
+
+
+
+### Consistency
+
+Consistency（一致性）：用户访问分布式系统中的任意节点，得到的数据必须一致
+
+
+
+
+
+### Availability
+
+Availability （可用性）：用户访问集群中的任意健康节点，必须能得到响应，而不是超时或拒绝
+
+
+
+
+
+### Partition tolerance
+
+Partition（分区）：因为网络故障或其它原因导致分布式系统中的部分节点与其它节点失去连接，形成独立分区。
+
+Tolerance（容错）：在集群出现分区时，整个系统也要持续对外提供服务
+
+
+
+![image-20220724125916174](img/image-20220724125916174.png)
+
+
+
+
+
+
+
+
+
+## BASE理论
+
+BASE理论是对CAP的一种解决思路，包含三个思想：
+
+* **Basically Available** **（基本可用）**：分布式系统在出现故障时，允许损失部分可用性，即保证核心可用。
+* **Soft State（软状态）**：在一定时间内，允许出现中间状态，比如临时的不一致状态。
+* **Eventually Consistent（最终一致性）**：虽然无法保证强一致性，但是在软状态结束后，最终达到数据一致。
+
+
+
+而分布式事务最大的问题是各个子事务的一致性问题，因此可以借鉴CAP定理和BASE理论：
+
+* AP模式：各子事务分别执行和提交，允许出现结果不一致，然后采用弥补措施恢复数据即可，实现最终一致。
+
+* CP模式：各个子事务执行后互相等待，同时提交，同时回滚，达成强一致。但事务等待过程中，处于弱可用状态。
+
+
+
+
+
+## 分布式服务的事务问题
+
+在分布式系统下，一个业务跨越多个服务或数据源，每个服务都是一个分支事务，要保证所有分支事务最终状态一致，这样的事务就是分布式事务。
+
+
+
+![image-20220724130908263](img/image-20220724130908263.png)
+
+
+
+
+
+
+
+## 分布式事务模型
+
+
+
+解决分布式事务，各个子系统之间必须能感知到彼此的事务状态，才能保证状态一致，因此需要一个事务协调者来协调每一个事务的参与者（子系统事务）。
+
+这里的子系统事务，称为分支事务；有关联的各个分支事务在一起称为全局事务
+
+
+
+![image-20220724131012397](img/image-20220724131012397.png)
+
+
+
+
+
+
+
+## 项目准备
+
+### 创建数据库
+
+名字为seata_demo
+
+
+
+```sql
+create database seata_demo;
+```
+
+
+
+```sh
+C:\Users\mao>mysql -u root -p
+Enter password: ********
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 9
+Server version: 8.0.27 MySQL Community Server - GPL
+
+Copyright (c) 2000, 2021, Oracle and/or its affiliates.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> create database seata_demo
+    -> ;
+Query OK, 1 row affected (0.00 sec)
+
+mysql>
+```
+
+
+
+
+
+### 使用数据库
+
+
+
+```sql
+use seata_demo
+```
+
+
+
+```sh
+mysql> use seata_demo;
+Database changed
+mysql>
+```
+
+
+
+
+
+### 导入数据
+
+
+
+```sql
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- ----------------------------
+-- Table structure for account_tbl
+-- ----------------------------
+DROP TABLE IF EXISTS `account_tbl`;
+CREATE TABLE `account_tbl`  (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+  `money` int(11) UNSIGNED NULL DEFAULT 0,
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = COMPACT;
+
+-- ----------------------------
+-- Records of account_tbl
+-- ----------------------------
+INSERT INTO `account_tbl` VALUES (1, 'user202103032042012', 1000);
+
+-- ----------------------------
+-- Table structure for order_tbl
+-- ----------------------------
+DROP TABLE IF EXISTS `order_tbl`;
+CREATE TABLE `order_tbl`  (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+  `commodity_code` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+  `count` int(11) NULL DEFAULT 0,
+  `money` int(11) NULL DEFAULT 0,
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = COMPACT;
+
+-- ----------------------------
+-- Records of order_tbl
+-- ----------------------------
+
+-- ----------------------------
+-- Table structure for storage_tbl
+-- ----------------------------
+DROP TABLE IF EXISTS `storage_tbl`;
+CREATE TABLE `storage_tbl`  (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `commodity_code` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+  `count` int(11) UNSIGNED NULL DEFAULT 0,
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `commodity_code`(`commodity_code`) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = COMPACT;
+
+-- ----------------------------
+-- Records of storage_tbl
+-- ----------------------------
+INSERT INTO `storage_tbl` VALUES (1, '100202003032041', 10);
+
+SET FOREIGN_KEY_CHECKS = 1;
+```
+
+
+
+```sh
+mysql> SET NAMES utf8mb4;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> SET FOREIGN_KEY_CHECKS = 0;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql>
+mysql> -- ----------------------------
+mysql> -- Table structure for account_tbl
+mysql> -- ----------------------------
+mysql> DROP TABLE IF EXISTS `account_tbl`;
+Query OK, 0 rows affected, 1 warning (0.00 sec)
+
+mysql> CREATE TABLE `account_tbl`  (
+    ->   `id` int(11) NOT NULL AUTO_INCREMENT,
+    ->   `user_id` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+    ->   `money` int(11) UNSIGNED NULL DEFAULT 0,
+    ->   PRIMARY KEY (`id`) USING BTREE
+    -> ) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = COMPACT;
+Query OK, 0 rows affected, 6 warnings (0.03 sec)
+
+mysql>
+mysql> -- ----------------------------
+mysql> -- Records of account_tbl
+mysql> -- ----------------------------
+mysql> INSERT INTO `account_tbl` VALUES (1, 'user202103032042012', 1000);
+Query OK, 1 row affected (0.01 sec)
+
+mysql>
+mysql> -- ----------------------------
+mysql> -- Table structure for order_tbl
+mysql> -- ----------------------------
+mysql> DROP TABLE IF EXISTS `order_tbl`;
+Query OK, 0 rows affected, 1 warning (0.00 sec)
+
+mysql> CREATE TABLE `order_tbl`  (
+    ->   `id` int(11) NOT NULL AUTO_INCREMENT,
+    ->   `user_id` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+    ->   `commodity_code` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+    ->   `count` int(11) NULL DEFAULT 0,
+    ->   `money` int(11) NULL DEFAULT 0,
+    ->   PRIMARY KEY (`id`) USING BTREE
+    -> ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = COMPACT;
+Query OK, 0 rows affected, 9 warnings (0.01 sec)
+
+mysql>
+mysql> -- ----------------------------
+mysql> -- Records of order_tbl
+mysql> -- ----------------------------
+mysql>
+mysql> -- ----------------------------
+mysql> -- Table structure for storage_tbl
+mysql> -- ----------------------------
+mysql> DROP TABLE IF EXISTS `storage_tbl`;
+Query OK, 0 rows affected, 1 warning (0.00 sec)
+
+mysql> CREATE TABLE `storage_tbl`  (
+    ->   `id` int(11) NOT NULL AUTO_INCREMENT,
+    ->   `commodity_code` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+    ->   `count` int(11) UNSIGNED NULL DEFAULT 0,
+    ->   PRIMARY KEY (`id`) USING BTREE,
+    ->   UNIQUE INDEX `commodity_code`(`commodity_code`) USING BTREE
+    -> ) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = COMPACT;
+Query OK, 0 rows affected, 6 warnings (0.02 sec)
+
+mysql>
+mysql> -- ----------------------------
+mysql> -- Records of storage_tbl
+mysql> -- ----------------------------
+mysql> INSERT INTO `storage_tbl` VALUES (1, '100202003032041', 10);
+Query OK, 1 row affected (0.00 sec)
+
+mysql>
+mysql> SET FOREIGN_KEY_CHECKS = 1;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql>
+```
+
+```sh
+mysql> show tables;
++----------------------+
+| Tables_in_seata_demo |
++----------------------+
+| account_tbl          |
+| order_tbl            |
+| storage_tbl          |
++----------------------+
+3 rows in set (0.01 sec)
+
+mysql> select * from storage_tbl;
++----+-----------------+-------+
+| id | commodity_code  | count |
++----+-----------------+-------+
+|  1 | 100202003032041 |    10 |
++----+-----------------+-------+
+1 row in set (0.00 sec)
+
+mysql>
+```
+
+
+
+
+
+
+
+### 创建项目
+
+
+
+
+
