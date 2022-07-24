@@ -24768,7 +24768,7 @@ order
 
 
 
-回滚正常，因为是先扣用户余额再扣库存，扣用户余额的时候抛出异常，扣库存的业务并没有执行到，订单业务回滚，扣减余额的业务回滚
+**回滚正常，因为是先扣用户余额再扣库存，扣用户余额的时候抛出异常，扣库存的业务并没有执行到，订单业务回滚，扣减余额的业务回滚**
 
 
 
@@ -24788,3 +24788,123 @@ order
 
 
 
+![image-20220724224904705](img/image-20220724224904705.png)
+
+
+
+
+
+10. 查看日志
+
+
+
+account
+
+```sh
+2022-07-24 22:48:44.503  WARN 14644 --- [nio-8083-exec-9] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false, version : 1.2.8, lastPacketReceivedIdleMillis : 681447
+2022-07-24 22:48:44.508  INFO 14644 --- [nio-8083-exec-9] m.a.service.impl.AccountServiceImpl      : 开始扣款
+2022-07-24 22:48:44.509 DEBUG 14644 --- [nio-8083-exec-9] m.a.mapper.AccountMapper.deduct          : ==>  Preparing: update account_tbl set money = money - 450 where user_id = ?
+2022-07-24 22:48:44.509 DEBUG 14644 --- [nio-8083-exec-9] m.a.mapper.AccountMapper.deduct          : ==> Parameters: user202103032042012(String)
+2022-07-24 22:48:44.512 DEBUG 14644 --- [nio-8083-exec-9] m.a.mapper.AccountMapper.deduct          : <==    Updates: 1
+2022-07-24 22:48:44.512  INFO 14644 --- [nio-8083-exec-9] m.a.service.impl.AccountServiceImpl      : 扣款成功
+
+```
+
+
+
+
+
+order
+
+```sh
+2022-07-24 22:48:44.490  WARN 4440 --- [nio-8082-exec-8] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false, version : 1.2.8, lastPacketReceivedIdleMillis : 681403
+2022-07-24 22:48:44.496 DEBUG 4440 --- [nio-8082-exec-8] m.o.mapper.OrderMapper.insert            : ==>  Preparing: INSERT INTO order_tbl ( user_id, commodity_code, count, money ) VALUES ( ?, ?, ?, ? )
+2022-07-24 22:48:44.497 DEBUG 4440 --- [nio-8082-exec-8] m.o.mapper.OrderMapper.insert            : ==> Parameters: user202103032042012(String), 100202003032041(String), 9(Integer), 450(Integer)
+2022-07-24 22:48:44.498 DEBUG 4440 --- [nio-8082-exec-8] m.o.mapper.OrderMapper.insert            : <==    Updates: 1
+2022-07-24 22:48:44.499 DEBUG 4440 --- [nio-8082-exec-8] m.orderservice.feign.AccountFeignClient  : [AccountFeignClient#deduct] ---> PUT http://account-service/account/user202103032042012/450 HTTP/1.1
+2022-07-24 22:48:44.518 DEBUG 4440 --- [nio-8082-exec-8] m.orderservice.feign.AccountFeignClient  : [AccountFeignClient#deduct] <--- HTTP/1.1 204  (17ms)
+2022-07-24 22:48:44.519 DEBUG 4440 --- [nio-8082-exec-8] m.orderservice.feign.StorageFeignClient  : [StorageFeignClient#deduct] ---> PUT http://storage-service/storage/100202003032041/9 HTTP/1.1
+2022-07-24 22:48:44.609 DEBUG 4440 --- [nio-8082-exec-8] m.orderservice.feign.StorageFeignClient  : [StorageFeignClient#deduct] <--- HTTP/1.1 500  (89ms)
+2022-07-24 22:48:44.610 ERROR 4440 --- [nio-8082-exec-8] m.o.service.impl.OrderServiceImpl        : 下单失败，原因:{"timestamp":"2022-07-24T14:48:44.600+00:00","status":500,"error":"Internal Server Error","message":"","path":"/storage/100202003032041/9"}
+
+feign.FeignException$InternalServerError: [500 ] during [PUT] to [http://storage-service/storage/100202003032041/9] [StorageFeignClient#deduct(String,Integer)]: [{"timestamp":"2022-07-24T14:48:44.600+00:00","status":500,"error":"Internal Server Error","message":"","path":"/storage/100202003032041/9"}]
+	at feign.FeignException.serverErrorStatus(FeignException.java:231) ~[feign-core-10.10.1.jar:na]
+	at feign.FeignException.errorStatus(FeignException.java:180) ~[feign-core-10.10.1.jar:na]
+	at feign.FeignException.errorStatus(FeignException.java:169) ~[feign-core-10.10.1.jar:na]
+	at feign.codec.ErrorDecoder$Default.decode(ErrorDecoder.java:92) ~[feign-core-10.10.1.jar:na]
+...
+...
+...
+
+2022-07-24 22:48:44.613 ERROR 4440 --- [nio-8082-exec-8] o.a.c.c.C.[.[.[/].[dispatcherServlet]    : Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is java.lang.RuntimeException: {"timestamp":"2022-07-24T14:48:44.600+00:00","status":500,"error":"Internal Server Error","message":"","path":"/storage/100202003032041/9"}] with root cause
+
+feign.FeignException$InternalServerError: [500 ] during [PUT] to [http://storage-service/storage/100202003032041/9] [StorageFeignClient#deduct(String,Integer)]: [{"timestamp":"2022-07-24T14:48:44.600+00:00","status":500,"error":"Internal Server Error","message":"","path":"/storage/100202003032041/9"}]
+	at feign.FeignException.serverErrorStatus(FeignException.java:231) ~[feign-core-10.10.1.jar:na]
+	at feign.FeignException.errorStatus(FeignException.java:180) ~[feign-core-10.10.1.jar:na]
+...
+...
+...
+
+
+```
+
+
+
+Storage
+
+```sh
+2022-07-24 22:48:44.536  WARN 16052 --- [nio-8081-exec-3] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false, version : 1.2.8, lastPacketReceivedIdleMillis : 1082986
+2022-07-24 22:48:44.539  INFO 16052 --- [nio-8081-exec-3] m.s.service.impl.StorageServiceImpl      : 开始扣减库存
+2022-07-24 22:48:44.540 DEBUG 16052 --- [nio-8081-exec-3] m.s.mapper.StorageMapper.deduct          : ==>  Preparing: update storage_tbl set `count` = `count` - ? where commodity_code = ?
+2022-07-24 22:48:44.540 DEBUG 16052 --- [nio-8081-exec-3] m.s.mapper.StorageMapper.deduct          : ==> Parameters: 9(Integer), 100202003032041(String)
+2022-07-24 22:48:44.590 ERROR 16052 --- [nio-8081-exec-3] o.a.c.c.C.[.[.[/].[dispatcherServlet]    : Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is java.lang.RuntimeException: 扣减库存失败！] with root cause
+
+com.mysql.cj.jdbc.exceptions.MysqlDataTruncation: Data truncation: BIGINT UNSIGNED value is out of range in '(`seata_demo`.`storage_tbl`.`count` - 9)'
+	at com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping.translateException(SQLExceptionsMapping.java:104) ~[mysql-connector-java-8.0.27.jar:8.0.27]
+	at com.mysql.cj.jdbc.ClientPreparedStatement.executeInternal(ClientPreparedStatement.java:953) ~[mysql-connector-java-8.0.27.jar:8.0.27]
+	at com.mysql.cj.jdbc.ClientPreparedStatement.execute(ClientPreparedStatement.java:371) ~[mysql-connector-java-8.0.27.jar:8.0.27]
+	at com.alibaba.druid.pool.DruidPooledPreparedStatement.execute(DruidPooledPreparedStatement.java:497) ~[druid-1.2.8.jar:1.2.8]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[na:na]
+...
+...
+...
+
+```
+
+
+
+
+
+
+
+11. 查看数据库
+
+
+
+![image-20220724225212746](img/image-20220724225212746.png)
+
+
+
+![image-20220724225225531](img/image-20220724225225531.png)
+
+
+
+
+
+![image-20220724225237647](img/image-20220724225237647.png)
+
+
+
+
+
+12. 结论
+
+
+
+**扣减余额先执行，余额扣减成功，事务提交，库存不够，事务回滚，导致订单业务回滚，但是扣减余额的事务并没有回滚，这就是分布式环境下产生的事务问题**
+
+
+
+
+
+![image-20220724225618504](img/image-20220724225618504.png)
