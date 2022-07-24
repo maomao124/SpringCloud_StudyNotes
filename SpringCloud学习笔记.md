@@ -24574,7 +24574,7 @@ http://localhost:8082/
 
 ## 项目测试
 
-1. 发起ajax请求
+### 1. 发起ajax请求
 
 
 
@@ -24584,7 +24584,7 @@ http://localhost:8082/
 
 
 
-2. 查看日志
+### 2. 查看日志
 
 
 
@@ -24677,7 +24677,7 @@ Storage：
 
 
 
-3. 查看数据库
+### 3. 查看数据库
 
 
 
@@ -24699,7 +24699,7 @@ Storage：
 
 
 
-4.设置金额
+### 4.设置金额
 
 
 
@@ -24707,7 +24707,7 @@ Storage：
 
 
 
-5. 发起ajax请求
+### 5. 发起ajax请求
 
 
 
@@ -24719,7 +24719,7 @@ Storage：
 
 
 
-6. 查看日志
+### 6. 查看日志
 
 
 
@@ -24748,7 +24748,7 @@ order
 
 
 
-7. 查看数据库
+### 7. 查看数据库
 
 
 
@@ -24774,7 +24774,7 @@ order
 
 
 
-8. 设置页面参数
+### 8. 设置页面参数
 
 
 
@@ -24784,7 +24784,7 @@ order
 
 
 
-9. 发起请求
+### 9. 发起请求
 
 
 
@@ -24794,7 +24794,7 @@ order
 
 
 
-10. 查看日志
+### 10. 查看日志
 
 
 
@@ -24877,7 +24877,7 @@ com.mysql.cj.jdbc.exceptions.MysqlDataTruncation: Data truncation: BIGINT UNSIGN
 
 
 
-11. 查看数据库
+### 11. 查看数据库
 
 
 
@@ -24897,7 +24897,7 @@ com.mysql.cj.jdbc.exceptions.MysqlDataTruncation: Data truncation: BIGINT UNSIGN
 
 
 
-12. 结论
+### 12. 结论
 
 
 
@@ -24908,3 +24908,14 @@ com.mysql.cj.jdbc.exceptions.MysqlDataTruncation: Data truncation: BIGINT UNSIGN
 
 
 ![image-20220724225618504](img/image-20220724225618504.png)
+
+
+
+
+
+
+
+
+
+## Seata
+
