@@ -24029,3 +24029,389 @@ public class StorageServiceApplication
 
 
 
+### 编写测试类
+
+
+
+#### AccountMapperTest
+
+```java
+package mao.accountservice.mapper;
+
+import mao.accountservice.entity.Account;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import javax.annotation.Resource;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * Project name(项目名称)：spring_cloud_distributed_transaction_seata
+ * Package(包名): mao.accountservice.mapper
+ * Class(测试类名): AccountMapperTest
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/24
+ * Time(创建时间)： 21:35
+ * Version(版本): 1.0
+ * Description(描述)： 测试类
+ */
+
+@SpringBootTest
+class AccountMapperTest
+{
+    @Resource
+    private AccountMapper accountMapper;
+
+    @Test
+    void testQuery()
+    {
+        List<Account> accounts = accountMapper.selectList(null);
+        System.out.println(accounts);
+    }
+}
+```
+
+
+
+
+
+#### OrderMapperTest
+
+```java
+package mao.orderservice.mapper;
+
+import mao.orderservice.entity.Order;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import javax.annotation.Resource;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * Project name(项目名称)：spring_cloud_distributed_transaction_seata
+ * Package(包名): mao.orderservice.mapper
+ * Class(测试类名): OrderMapperTest
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/24
+ * Time(创建时间)： 21:43
+ * Version(版本): 1.0
+ * Description(描述)： 测试类
+ */
+
+@SpringBootTest
+class OrderMapperTest
+{
+
+    @Resource
+    private OrderMapper orderMapper;
+
+    @Test
+    void testQuery()
+    {
+        List<Order> orders = orderMapper.selectList(null);
+        System.out.println(orders);
+    }
+}
+```
+
+
+
+
+
+#### StorageMapperTest
+
+```java
+package mao.storageservice.mapper;
+
+import mao.storageservice.entity.Storage;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import javax.annotation.Resource;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * Project name(项目名称)：spring_cloud_distributed_transaction_seata
+ * Package(包名): mao.storageservice.mapper
+ * Class(测试类名): StorageMapperTest
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/24
+ * Time(创建时间)： 21:45
+ * Version(版本): 1.0
+ * Description(描述)： 测试类
+ */
+
+@SpringBootTest
+class StorageMapperTest
+{
+    @Resource
+    private StorageMapper storageMapper;
+
+    @Test
+    void testQuery()
+    {
+        List<Storage> storages = storageMapper.selectList(null);
+        System.out.println(storages);
+    }
+}
+```
+
+
+
+
+
+
+
+
+
+### 编写前端页面
+
+
+
+```html
+<!DOCTYPE html>
+
+<!--
+Project name(项目名称)：spring_cloud_distributed_transaction_seata
+  File name(文件名): index
+  Authors(作者）: mao
+  Author QQ：1296193245
+  GitHub：https://github.com/maomao124/
+  Date(创建日期)： 2022/7/24
+  Time(创建时间)： 21:51
+  Description(描述)： 无
+-->
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>分布式事务</title>
+    <style>
+        body {
+            background-color: skyblue;
+            font-size: 1.4em;
+        }
+
+        #button {
+            width: 300px;
+            height: 50px;
+            background-color: orchid;
+            font-size: 1.4em;
+        }
+
+        #textarea {
+            width: 700px;
+            height: 100px;
+            background-color: lightblue;
+            color: slateblue;
+            font-size: 1.4em;
+
+        }
+
+        #userId, #commodityCode, #money, #count {
+            font-size: 1.4em;
+            background-color: pink;
+        }
+    </style>
+</head>
+<body>
+
+<br>
+<label>请求的用户ID
+    <input id="userId" type="text" value="user202103032042012">
+</label>
+<br>
+
+<br>
+<label>请求的商品编码
+    <input id="commodityCode" type="number" step="1" value="100202003032041">
+</label>
+<br>
+
+<br>
+<label>购买的总数
+    <input id="count" type="number" min="1" max="99" step="1" value="2">
+</label>
+<br>
+
+<br>
+<label>金额
+    <input id="money" type="number" min="10" max="100000" step="1" value="200">
+</label>
+<br>
+<br>
+<br>
+
+<button id="button" onclick="get()">点击发送ajax请求</button>
+
+<br>
+<br>
+<br>
+
+<label for="textarea">响应结果:<br></label><textarea id="textarea">无</textarea>
+
+</body>
+
+<script>
+
+    var textarea = document.getElementById("textarea")
+    var userId = document.getElementById("userId")
+    var commodityCode = document.getElementById("commodityCode")
+    var count = document.getElementById("count")
+    var money = document.getElementById("money")
+
+    function get()
+    {
+        console.log("发起ajax请求")
+
+        //XMLHttpRequest对象
+        let xhr;
+        //是否正在发送请求
+        let isSending = false;
+
+        //如果正在发送请求
+        if (isSending === true)
+        {
+            //取消正在发送的请求
+            xhr.abort();
+        }
+
+        //发起异步请求
+        xhr = new XMLHttpRequest();
+        //设置响应信息为json
+        xhr.responseType = "json";
+        //超时设置，单位为毫秒
+        xhr.timeout = 5000;
+        //超时的回调函数
+        xhr.ontimeout = function ()
+        {
+            alert("请求超时，请稍后再试！");
+        }
+        //初始化，设置请求方式和url
+        xhr.open("get", "http://localhost:8082/order?userId=" + userId.value + "&commodityCode=" + commodityCode.value + "&count=" + count.value + "&money=" + money.value);
+        //设置状态为正在发送
+        isSending = true;
+        //发送异步请求
+        xhr.send();
+
+        xhr.onreadystatechange = function ()
+        {
+            //状态为4时处理
+            if (xhr.readyState === 4)
+            {
+                //落在200-300之间处理
+                if (xhr.status >= 200 && xhr.status < 300)
+                {
+                    //将状态设置成false
+                    isSending = false;
+                    console.log(xhr.response);
+                    textarea.innerHTML = JSON.stringify(xhr.response);
+
+                }
+                else
+                {
+                    alert("出现异常！状态码：" + xhr.status);
+                }
+            }
+        }
+    }
+
+    function ajaxByAxios()
+    {
+        //axios发起ajax请求
+        axios({
+            //请求的方式：
+            method: "get",
+            //请求的url:
+            url: "http://localhost:8082/order?userId=user202103032042012&commodityCode=100202003032041&count=2&money=200",
+            //url参数：
+            params:
+                {},
+            //头信息：
+            headers:
+                {},
+            //请求体参数：
+            data:
+                {},
+        }).then(response =>
+        {
+            console.log(response);
+
+        }).catch(error =>
+        {
+            //console.log(error);
+            alert("网络异常！");
+        })
+    }
+
+    function ajaxByJQuery()
+    {
+
+        //发起ajax请求
+        $.ajax(
+            {
+                //请求的url：
+                url: "http://localhost:8082/order?userId=user202103032042012&commodityCode=100202003032041&count=2&money=200",
+                //参数：
+                data:
+                    {},
+                //请求类型：
+                type: "get",
+                //响应的数据类型：
+                dataType: "json",
+                //请求成功的回调函数：
+                success: function (data)
+                {
+                    console.log(data);
+
+                },
+                //请求失败的回调函数：
+                error: function ()
+                {
+                    alert("网络错误！请稍后再试！");
+                },
+                //设置超时时间：
+                timeout: 2000,
+                //头信息：
+                headers:
+                    {},
+            }
+        )
+    }
+
+
+</script>
+</html>
+```
+
+
+
+
+
+
+
+![image-20220724221322199](img/image-20220724221322199.png)
+
+
+
+
+
+
+
+### 启动
+
