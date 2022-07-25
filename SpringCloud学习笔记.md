@@ -25299,9 +25299,9 @@ http://localhost:8848/nacos/
 
 
 
-点击配置列表
+**点击配置列表**
 
-点击新建配置
+**点击新建配置**
 
 
 
@@ -25311,7 +25311,7 @@ http://localhost:8848/nacos/
 
 
 
-填写配置
+**填写配置**
 
 
 
@@ -25321,7 +25321,7 @@ http://localhost:8848/nacos/
 
 
 
-填写配置内容
+**填写配置内容**
 
 
 
@@ -25380,7 +25380,7 @@ metrics.exporterPrometheusPort=9898
 
 
 
-发布配置
+**发布配置**
 
 
 
@@ -25400,4 +25400,476 @@ metrics.exporterPrometheusPort=9898
 
 
 
-7. 
+7. 创建数据库表
+
+
+
+tc服务在管理分布式事务时，需要记录事务相关数据到数据库中，所以需要建表
+
+
+
+**新建一个名为seata的数据库**
+
+
+
+**使用该数据库**
+
+```sh
+C:\Users\mao>mysql -u root -p
+Enter password: ********
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 8
+Server version: 8.0.27 MySQL Community Server - GPL
+
+Copyright (c) 2000, 2021, Oracle and/or its affiliates.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> create database seata;
+Query OK, 1 row affected (0.01 sec)
+
+mysql> use seata;
+Database changed
+mysql>
+```
+
+
+
+
+
+**导入数据表**
+
+```sql
+
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- ----------------------------
+-- 分支事务表
+-- ----------------------------
+DROP TABLE IF EXISTS `branch_table`;
+CREATE TABLE `branch_table`  (
+  `branch_id` bigint(20) NOT NULL,
+  `xid` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+  `transaction_id` bigint(20) NULL DEFAULT NULL,
+  `resource_group_id` varchar(32) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+  `resource_id` varchar(256) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+  `branch_type` varchar(8) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+  `status` tinyint(4) NULL DEFAULT NULL,
+  `client_id` varchar(64) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+  `application_data` varchar(2000) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+  `gmt_create` datetime(6) NULL DEFAULT NULL,
+  `gmt_modified` datetime(6) NULL DEFAULT NULL,
+  PRIMARY KEY (`branch_id`) USING BTREE,
+  INDEX `idx_xid`(`xid`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
+
+-- ----------------------------
+-- 全局事务表
+-- ----------------------------
+DROP TABLE IF EXISTS `global_table`;
+CREATE TABLE `global_table`  (
+  `xid` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+  `transaction_id` bigint(20) NULL DEFAULT NULL,
+  `status` tinyint(4) NOT NULL,
+  `application_id` varchar(32) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+  `transaction_service_group` varchar(32) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+  `transaction_name` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+  `timeout` int(11) NULL DEFAULT NULL,
+  `begin_time` bigint(20) NULL DEFAULT NULL,
+  `application_data` varchar(2000) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+  `gmt_create` datetime NULL DEFAULT NULL,
+  `gmt_modified` datetime NULL DEFAULT NULL,
+  PRIMARY KEY (`xid`) USING BTREE,
+  INDEX `idx_gmt_modified_status`(`gmt_modified`, `status`) USING BTREE,
+  INDEX `idx_transaction_id`(`transaction_id`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
+
+SET FOREIGN_KEY_CHECKS = 1;
+```
+
+
+
+
+
+```sh
+mysql> SET NAMES utf8mb4;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> SET FOREIGN_KEY_CHECKS = 0;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql>
+mysql> -- ----------------------------
+mysql> -- 分支事务表
+mysql> -- ----------------------------
+mysql> DROP TABLE IF EXISTS `branch_table`;
+Query OK, 0 rows affected, 1 warning (0.01 sec)
+
+mysql> CREATE TABLE `branch_table`  (
+    ->   `branch_id` bigint(20) NOT NULL,
+    ->   `xid` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+    ->   `transaction_id` bigint(20) NULL DEFAULT NULL,
+    ->   `resource_group_id` varchar(32) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+    ->   `resource_id` varchar(256) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+    ->   `branch_type` varchar(8) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+    ->   `status` tinyint(4) NULL DEFAULT NULL,
+    ->   `client_id` varchar(64) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+    ->   `application_data` varchar(2000) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+    ->   `gmt_create` datetime(6) NULL DEFAULT NULL,
+    ->   `gmt_modified` datetime(6) NULL DEFAULT NULL,
+    ->   PRIMARY KEY (`branch_id`) USING BTREE,
+    ->   INDEX `idx_xid`(`xid`) USING BTREE
+    -> ) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
+Query OK, 0 rows affected, 17 warnings (0.04 sec)
+
+mysql>
+mysql> -- ----------------------------
+mysql> -- 全局事务表
+mysql> -- ----------------------------
+mysql> DROP TABLE IF EXISTS `global_table`;
+Query OK, 0 rows affected, 1 warning (0.00 sec)
+
+mysql> CREATE TABLE `global_table`  (
+    ->   `xid` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+    ->   `transaction_id` bigint(20) NULL DEFAULT NULL,
+    ->   `status` tinyint(4) NOT NULL,
+    ->   `application_id` varchar(32) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+    ->   `transaction_service_group` varchar(32) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+    ->   `transaction_name` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+    ->   `timeout` int(11) NULL DEFAULT NULL,
+    ->   `begin_time` bigint(20) NULL DEFAULT NULL,
+    ->   `application_data` varchar(2000) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+    ->   `gmt_create` datetime NULL DEFAULT NULL,
+    ->   `gmt_modified` datetime NULL DEFAULT NULL,
+    ->   PRIMARY KEY (`xid`) USING BTREE,
+    ->   INDEX `idx_gmt_modified_status`(`gmt_modified`, `status`) USING BTREE,
+    ->   INDEX `idx_transaction_id`(`transaction_id`) USING BTREE
+    -> ) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
+Query OK, 0 rows affected, 16 warnings (0.04 sec)
+
+mysql>
+mysql> SET FOREIGN_KEY_CHECKS = 1;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql>
+```
+
+
+
+```sh
+mysql> show tables;
++-----------------+
+| Tables_in_seata |
++-----------------+
+| branch_table    |
+| global_table    |
++-----------------+
+2 rows in set (0.01 sec)
+
+mysql>
+```
+
+
+
+
+
+
+
+8. 启动TC服务
+
+
+
+```sh
+PS H:\opensoft\seata-server-1.4.2> ls
+
+
+    目录: H:\opensoft\seata-server-1.4.2
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----         2022/7/25     14:23                bin
+d-----         2022/7/25     13:43                conf
+d-----         2021/4/25     16:01                lib
+d-----         2021/4/25     16:01                logs
+------         2019/5/13     16:49          11365 LICENSE
+
+
+PS H:\opensoft\seata-server-1.4.2> cd bin
+PS H:\opensoft\seata-server-1.4.2\bin> ls
+
+
+    目录: H:\opensoft\seata-server-1.4.2\bin
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----         2022/7/25     14:23                sessionStore
+------         2021/4/25     16:01           3685 seata-server.bat
+------         2021/4/25     16:01           4212 seata-server.sh
+
+
+PS H:\opensoft\seata-server-1.4.2\bin>
+```
+
+
+
+错误：
+
+```sh
+PS H:\opensoft\seata-server-1.4.2\bin> .\seata-server.bat
+Unrecognized VM option 'CMSParallelRemarkEnabled'
+Error: Could not create the Java Virtual Machine.
+Error: A fatal exception has occurred. Program will exit.
+PS H:\opensoft\seata-server-1.4.2\bin>
+```
+
+
+
+问题：jdk版本太高，改成jdk8就可以运行
+
+**方法一**：修改环境变量
+
+
+
+**方法二**：
+
+用记事本打开seata-server.bat
+
+修改：
+
+```sh
+if "%JAVACMD%"=="" set JAVACMD=C:\Users\mao\.jdks\corretto-1.8.0_332\bin\java.exe
+```
+
+JAVACMD后面的是自己的jdk8的路径
+
+
+
+```sh
+@REM ----------------------------------------------------------------------------
+@REM  Copyright 2001-2006 The Apache Software Foundation.
+@REM
+@REM  Licensed under the Apache License, Version 2.0 (the "License");
+@REM  you may not use this file except in compliance with the License.
+@REM  You may obtain a copy of the License at
+@REM
+@REM       http://www.apache.org/licenses/LICENSE-2.0
+@REM
+@REM  Unless required by applicable law or agreed to in writing, software
+@REM  distributed under the License is distributed on an "AS IS" BASIS,
+@REM  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+@REM  See the License for the specific language governing permissions and
+@REM  limitations under the License.
+@REM ----------------------------------------------------------------------------
+@REM
+@REM   Copyright (c) 2001-2006 The Apache Software Foundation.  All rights
+@REM   reserved.
+
+@echo off
+
+set ERROR_CODE=0
+
+:init
+@REM Decide how to startup depending on the version of windows
+
+@REM -- Win98ME
+if NOT "%OS%"=="Windows_NT" goto Win9xArg
+
+@REM set local scope for the variables with windows NT shell
+if "%OS%"=="Windows_NT" @setlocal
+
+@REM -- 4NT shell
+if "%eval[2+2]" == "4" goto 4NTArgs
+
+@REM -- Regular WinNT shell
+set CMD_LINE_ARGS=%*
+goto WinNTGetScriptDir
+
+@REM The 4NT Shell from jp software
+:4NTArgs
+set CMD_LINE_ARGS=%$
+goto WinNTGetScriptDir
+
+:Win9xArg
+@REM Slurp the command line arguments.  This loop allows for an unlimited number
+@REM of arguments (up to the command line limit, anyway).
+set CMD_LINE_ARGS=
+:Win9xApp
+if %1a==a goto Win9xGetScriptDir
+set CMD_LINE_ARGS=%CMD_LINE_ARGS% %1
+shift
+goto Win9xApp
+
+:Win9xGetScriptDir
+set SAVEDIR=%CD%
+%0\
+cd %0\..\.. 
+set BASEDIR=%CD%
+cd %SAVEDIR%
+set SAVE_DIR=
+goto repoSetup
+
+:WinNTGetScriptDir
+set BASEDIR=%~dp0\..
+
+:repoSetup
+set REPO=
+
+
+if "%JAVACMD%"=="" set JAVACMD=C:\Users\mao\.jdks\corretto-1.8.0_332\bin\java.exe
+
+if "%REPO%"=="" set REPO=%BASEDIR%\lib
+
+set CLASSPATH="%BASEDIR%"\conf;"%REPO%"\*
+
+set ENDORSED_DIR=
+if NOT "%ENDORSED_DIR%" == "" set CLASSPATH="%BASEDIR%"\%ENDORSED_DIR%\*;%CLASSPATH%
+
+if NOT "%CLASSPATH_PREFIX%" == "" set CLASSPATH=%CLASSPATH_PREFIX%;%CLASSPATH%
+
+@REM Reaching here means variables are defined and arguments have been captured
+:endInit
+
+%JAVACMD% %JAVA_OPTS% -server -Xmx2048m -Xms2048m -Xmn1024m -Xss512k -XX:SurvivorRatio=10 -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=256m -XX:MaxDirectMemorySize=1024m -XX:-OmitStackTraceInFastThrow -XX:-UseAdaptiveSizePolicy -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath="%BASEDIR%"/logs/java_heapdump.hprof -XX:+DisableExplicitGC -XX:+CMSParallelRemarkEnabled -XX:+UseCMSInitiatingOccupancyOnly -XX:CMSInitiatingOccupancyFraction=75 -Xloggc:"%BASEDIR%"/logs/seata_gc.log -verbose:gc -Dio.netty.leakDetectionLevel=advanced -Dlogback.color.disable-for-bat=true -classpath %CLASSPATH% -Dapp.name="seata-server" -Dapp.repo="%REPO%" -Dapp.home="%BASEDIR%" -Dbasedir="%BASEDIR%" io.seata.server.Server %CMD_LINE_ARGS%
+if %ERRORLEVEL% NEQ 0 goto error
+goto end
+
+:error
+if "%OS%"=="Windows_NT" @endlocal
+set ERROR_CODE=%ERRORLEVEL%
+
+:end
+@REM set local scope for the variables with windows NT shell
+if "%OS%"=="Windows_NT" goto endNT
+
+@REM For old DOS remove the set variables from ENV - we assume they were not set
+@REM before we started - at least we don't leave any baggage around
+set CMD_LINE_ARGS=
+goto postExec
+
+:endNT
+@REM If error code is set to 1 then the endlocal was done already in :error.
+if %ERROR_CODE% EQU 0 @endlocal
+
+
+:postExec
+
+if "%FORCE_EXIT_ON_ERROR%" == "on" (
+  if %ERROR_CODE% NEQ 0 exit %ERROR_CODE%
+)
+
+exit /B %ERROR_CODE%
+```
+
+
+
+**方法三**：复制java8的jre到seata目录下
+
+更改配置：
+
+```sh
+if "%JAVACMD%"=="" set JAVACMD=.\..\jre\bin\java.exe
+```
+
+
+
+
+
+**再次启动**：
+
+```sh
+PS H:\opensoft\seata-server-1.4.2\bin> .\seata-server.bat
+14:36:36,154 |-INFO in ch.qos.logback.classic.LoggerContext[default] - Could NOT find resource [logback-test.xml]
+14:36:36,154 |-INFO in ch.qos.logback.classic.LoggerContext[default] - Could NOT find resource [logback.groovy]
+14:36:36,155 |-INFO in ch.qos.logback.classic.LoggerContext[default] - Found resource [logback.xml] at [file:/H:/opensoft/seata-server-1.4.2/conf/logback.xml]
+14:36:36,155 |-WARN in ch.qos.logback.classic.LoggerContext[default] - Resource [logback.xml] occurs multiple times on the classpath.
+14:36:36,155 |-WARN in ch.qos.logback.classic.LoggerContext[default] - Resource [logback.xml] occurs at [file:/H:/opensoft/seata-server-1.4.2/conf/logback.xml]
+14:36:36,155 |-WARN in ch.qos.logback.classic.LoggerContext[default] - Resource [logback.xml] occurs at [jar:file:/H:/opensoft/seata-server-1.4.2/lib/seata-server-1.4.2.jar!/logback.xml]
+14:36:36,216 |-INFO in ch.qos.logback.classic.joran.action.ConfigurationAction - debug attribute not set
+14:36:36,222 |-INFO in ch.qos.logback.classic.joran.action.ConfigurationAction - Will scan for changes in [file:/H:/opensoft/seata-server-1.4.2/conf/logback.xml]
+14:36:36,222 |-INFO in ch.qos.logback.classic.joran.action.ConfigurationAction - Setting ReconfigureOnChangeTask scanning period to 1 minutes
+14:36:36,224 |-INFO in ch.qos.logback.classic.joran.action.LoggerContextListenerAction - Adding LoggerContextListener of type [io.seata.server.logging.listener.SystemPropertyLoggerContextListener] to the object stack
+14:36:36,224 |-INFO in ch.qos.logback.classic.joran.action.LoggerContextListenerAction - Starting LoggerContextListener
+14:36:36,224 |-INFO in ch.qos.logback.core.joran.action.ConversionRuleAction - registering conversion word clr with class [io.seata.server.logging.logback.ColorConverter]
+14:36:36,224 |-INFO in ch.qos.logback.core.joran.action.ConversionRuleAction - registering conversion word wex with class [io.seata.server.logging.logback.WhitespaceThrowableProxyConverter]
+14:36:36,224 |-INFO in ch.qos.logback.core.joran.action.ConversionRuleAction - registering conversion word wEx with class [io.seata.server.logging.logback.ExtendedWhitespaceThrowableProxyConverter]
+14:36:36,225 |-INFO in ch.qos.logback.core.joran.util.ConfigurationWatchListUtil@4e1d422d - Adding [file:/H:/opensoft/seata-server-1.4.2/conf/logback/console-appender.xml] to configuration watch list.
+14:36:36,227 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - About to instantiate appender of type [ch.qos.logback.core.ConsoleAppender]
+14:36:36,230 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - Naming appender as [CONSOLE]
+14:36:36,235 |-INFO in ch.qos.logback.core.joran.action.NestedComplexPropertyIA - Assuming default type [ch.qos.logback.classic.encoder.PatternLayoutEncoder] for [encoder] property
+14:36:36,309 |-INFO in ch.qos.logback.core.joran.util.ConfigurationWatchListUtil@4e1d422d - Adding [file:/H:/opensoft/seata-server-1.4.2/conf/logback/file-appender.xml] to configuration watch list.
+14:36:36,312 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - About to instantiate appender of type [ch.qos.logback.core.rolling.RollingFileAppender]
+14:36:36,314 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - Naming appender as [FILE_ALL]
+14:36:36,321 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1715998167 - Archive files will be limited to [2048 MB] each.
+14:36:36,323 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1715998167 - Will use gz compression
+14:36:36,324 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1715998167 - Will use the pattern C:/Users/mao/logs/seata/history/seata-server.8091.all.%d{yyyy-MM-dd}.%i.log for the active file
+14:36:36,326 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@52a86356 - The date pattern is 'yyyy-MM-dd' from file name pattern 'C:/Users/mao/logs/seata/history/seata-server.8091.all.%d{yyyy-MM-dd}.%i.log.gz'.
+14:36:36,326 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@52a86356 - Roll-over at midnight.
+14:36:36,329 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@52a86356 - Setting initial period to Mon Jul 25 14:24:38 CST 2022
+14:36:36,330 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1715998167 - Cleaning on start up
+14:36:36,331 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - first clean up after appender initialization
+14:36:36,331 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - Multiple periods, i.e. 32 periods, seem to have elapsed. This is expected at application start.
+14:36:36,331 |-INFO in ch.qos.logback.core.joran.action.NestedComplexPropertyIA - Assuming default type [ch.qos.logback.classic.encoder.PatternLayoutEncoder] for [encoder] property
+14:36:36,333 |-INFO in ch.qos.logback.core.rolling.RollingFileAppender[FILE_ALL] - Active log file name: C:\Users\mao/logs/seata/seata-server.8091.all.log
+14:36:36,333 |-INFO in ch.qos.logback.core.rolling.RollingFileAppender[FILE_ALL] - File property is set to [C:\Users\mao/logs/seata/seata-server.8091.all.log]
+14:36:36,334 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - About to instantiate appender of type [ch.qos.logback.core.rolling.RollingFileAppender]
+14:36:36,334 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - Naming appender as [FILE_WARN]
+14:36:36,336 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - Removed  0 Bytes of files
+14:36:36,336 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1558712965 - Archive files will be limited to [2048 MB] each.
+14:36:36,337 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1558712965 - Will use gz compression
+14:36:36,337 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1558712965 - Will use the pattern C:/Users/mao/logs/seata/history/seata-server.8091.warn.%d{yyyy-MM-dd}.%i.log for the active file
+14:36:36,337 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@78c03f1f - The date pattern is 'yyyy-MM-dd' from file name pattern 'C:/Users/mao/logs/seata/history/seata-server.8091.warn.%d{yyyy-MM-dd}.%i.log.gz'.
+14:36:36,337 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@78c03f1f - Roll-over at midnight.
+14:36:36,338 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@78c03f1f - Setting initial period to Mon Jul 25 14:23:54 CST 2022
+14:36:36,338 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1558712965 - Cleaning on start up
+14:36:36,338 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - first clean up after appender initialization
+14:36:36,338 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - Multiple periods, i.e. 32 periods, seem to have elapsed. This is expected at application start.
+14:36:36,338 |-INFO in ch.qos.logback.core.joran.action.NestedComplexPropertyIA - Assuming default type [ch.qos.logback.classic.encoder.PatternLayoutEncoder] for [encoder] property
+14:36:36,339 |-INFO in ch.qos.logback.core.rolling.RollingFileAppender[FILE_WARN] - Active log file name: C:\Users\mao/logs/seata/seata-server.8091.warn.log
+14:36:36,339 |-INFO in ch.qos.logback.core.rolling.RollingFileAppender[FILE_WARN] - File property is set to [C:\Users\mao/logs/seata/seata-server.8091.warn.log]
+14:36:36,339 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - About to instantiate appender of type [ch.qos.logback.core.rolling.RollingFileAppender]
+14:36:36,339 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - Naming appender as [FILE_ERROR]
+14:36:36,341 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1589683045 - Archive files will be limited to [2048 MB] each.
+14:36:36,341 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1589683045 - Will use gz compression
+14:36:36,341 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1589683045 - Will use the pattern C:/Users/mao/logs/seata/history/seata-server.8091.error.%d{yyyy-MM-dd}.%i.log for the active file
+14:36:36,341 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - Removed  0 Bytes of files
+14:36:36,342 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@4fe3c938 - The date pattern is 'yyyy-MM-dd' from file name pattern 'C:/Users/mao/logs/seata/history/seata-server.8091.error.%d{yyyy-MM-dd}.%i.log.gz'.
+14:36:36,342 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@4fe3c938 - Roll-over at midnight.
+14:36:36,342 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@4fe3c938 - Setting initial period to Mon Jul 25 14:23:54 CST 2022
+14:36:36,342 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1589683045 - Cleaning on start up
+14:36:36,342 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - first clean up after appender initialization
+14:36:36,342 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - Multiple periods, i.e. 32 periods, seem to have elapsed. This is expected at application start.
+14:36:36,342 |-INFO in ch.qos.logback.core.joran.action.NestedComplexPropertyIA - Assuming default type [ch.qos.logback.classic.encoder.PatternLayoutEncoder] for [encoder] property
+14:36:36,343 |-INFO in ch.qos.logback.core.rolling.RollingFileAppender[FILE_ERROR] - Active log file name: C:\Users\mao/logs/seata/seata-server.8091.error.log
+14:36:36,343 |-INFO in ch.qos.logback.core.rolling.RollingFileAppender[FILE_ERROR] - File property is set to [C:\Users\mao/logs/seata/seata-server.8091.error.log]
+14:36:36,344 |-INFO in ch.qos.logback.classic.joran.action.RootLoggerAction - Setting level of ROOT logger to INFO
+14:36:36,344 |-INFO in ch.qos.logback.core.joran.action.AppenderRefAction - Attaching appender named [CONSOLE] to Logger[ROOT]
+14:36:36,344 |-INFO in ch.qos.logback.core.joran.action.AppenderRefAction - Attaching appender named [FILE_ALL] to Logger[ROOT]
+14:36:36,344 |-INFO in ch.qos.logback.core.joran.action.AppenderRefAction - Attaching appender named [FILE_WARN] to Logger[ROOT]
+14:36:36,344 |-INFO in ch.qos.logback.core.joran.action.AppenderRefAction - Attaching appender named [FILE_ERROR] to Logger[ROOT]
+14:36:36,344 |-INFO in ch.qos.logback.classic.joran.action.ConfigurationAction - End of configuration.
+14:36:36,345 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - Removed  0 Bytes of files
+14:36:36,345 |-INFO in ch.qos.logback.classic.joran.JoranConfigurator@5383967b - Registering current configuration as safe fallback point
+
+SLF4J: A number (18) of logging calls during the initialization phase have been intercepted and are
+SLF4J: now being replayed. These are subject to the filtering rules of the underlying logging system.
+SLF4J: See also http://www.slf4j.org/codes.html#replay
+14:36:36.426  INFO --- [                     main] io.seata.config.FileConfiguration        : The file name of the operation is registry
+14:36:36.429  INFO --- [                     main] io.seata.config.FileConfiguration        : The configuration file used is H:\opensoft\seata-server-1.4.2\conf\registry.conf
+14:36:38.029  INFO --- [                     main] i.s.core.rpc.netty.NettyServerBootstrap  : Server started, listen port: 8091
+```
+
+
+
+
+
+
+
+9. 进入nacos控制台
+
