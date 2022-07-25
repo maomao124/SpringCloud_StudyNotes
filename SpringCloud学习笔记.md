@@ -25873,3 +25873,27 @@ SLF4J: See also http://www.slf4j.org/codes.html#replay
 
 9. 进入nacos控制台
 
+
+
+![image-20220725144542345](img/image-20220725144542345.png)
+
+
+
+![image-20220725144649131](img/image-20220725144649131.png)
+
+
+
+
+
+启动正常
+
+
+
+
+
+
+
+
+
+## 微服务集成Seata
+
