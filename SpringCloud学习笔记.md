@@ -24919,3 +24919,485 @@ com.mysql.cj.jdbc.exceptions.MysqlDataTruncation: Data truncation: BIGINT UNSIGN
 
 ## Seata
 
+
+
+eata 是一款开源的分布式事务解决方案，致力于在微服务架构下提供高性能和简单易用的分布式事务服务。在 Seata 开源之前，其内部版本在阿里系内部一直扮演着应用架构层数据一致性的中间件角色，帮助经济体平稳的度过历年的双11，对上层业务进行了有力的技术支撑。经过多年沉淀与积累，其商业化产品先后在阿里云、金融云上售卖。2019.1 为了打造更加完善的技术生态和普惠技术成果，Seata 正式宣布对外开源，未来 Seata 将以社区共建的形式帮助用户快速落地分布式事务解决方案。
+
+
+
+官网：[Seata](http://seata.io/zh-cn/index.html)
+
+
+
+
+
+### Seata架构
+
+
+
+Seata事务管理中有三个重要的角色：
+
+* **TC (Transaction Coordinator) -** **事务协调者：**维护全局和分支事务的状态，协调全局事务提交或回滚。
+
+* **TM (Transaction Manager) -** **事务管理器：**定义全局事务的范围、开始全局事务、提交或回滚全局事务。
+
+* **RM (Resource Manager) -** **资源管理器：**管理分支事务处理的资源，与TC交谈以注册分支事务和报告分支事务的状态，并驱动分支事务提交或回滚。
+
+
+
+![image-20220725132809523](img/image-20220725132809523.png)
+
+
+
+
+
+Seata提供了四种不同的分布式事务解决方案：
+
+* XA模式：强一致性分阶段事务模式，牺牲了一定的可用性，无业务侵入
+
+* TCC模式：最终一致的分阶段事务模式，有业务侵入
+
+* AT模式：最终一致的分阶段事务模式，无业务侵入，也是Seata的默认模式
+
+* SAGA模式：长事务模式，有业务侵入
+
+
+
+
+
+
+
+### 安装seata
+
+1. 下载
+
+
+
+[http](http://seata.io/zh-cn/blog/download.html)[://seata.io/zh-cn/blog/download](http://seata.io/zh-cn/blog/download.html)[.](http://seata.io/zh-cn/blog/download.html)[html](http://seata.io/zh-cn/blog/download.html) 
+
+
+
+2. 解压
+
+
+
+```sh
+PS H:\opensoft> ls
+
+
+    目录: H:\opensoft
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----          2022/5/5     18:34                apache-jmeter-5.4.3
+d-----          2022/6/2     13:25                cerebro-0.9.4
+d-----         2022/5/26     20:37                elasticsearch-analysis-ik-8.2.0
+d-----          2022/6/1     23:19                elasticsearch-cluster
+d-----          2022/5/3     10:55                kibana-8.1.3
+d-----         2022/5/30     23:02                logstash-8.1.3
+d-----         2022/7/20     12:25                mycat
+d-----         2022/6/15     12:23                mycat-1.6
+d-----         2022/7/19     15:35                nacos
+d-----         2022/7/16     14:30                naocs-cluster
+d-----         2022/7/16     21:38                nginx-1.21.6
+d-----          2022/5/6     23:16                pvzpak-master.git
+d-----         2022/7/23     16:36                Sentinel
+-a----          2022/1/7     14:08       46870128 seata-server-1.4.2.zip
+
+
+PS H:\opensoft> ls
+
+
+    目录: H:\opensoft
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----          2022/5/5     18:34                apache-jmeter-5.4.3
+d-----          2022/6/2     13:25                cerebro-0.9.4
+d-----         2022/5/26     20:37                elasticsearch-analysis-ik-8.2.0
+d-----          2022/6/1     23:19                elasticsearch-cluster
+d-----          2022/5/3     10:55                kibana-8.1.3
+d-----         2022/5/30     23:02                logstash-8.1.3
+d-----         2022/7/20     12:25                mycat
+d-----         2022/6/15     12:23                mycat-1.6
+d-----         2022/7/19     15:35                nacos
+d-----         2022/7/16     14:30                naocs-cluster
+d-----         2022/7/16     21:38                nginx-1.21.6
+d-----          2022/5/6     23:16                pvzpak-master.git
+d-----         2021/4/25     16:01                seata-server-1.4.2
+d-----         2022/7/23     16:36                Sentinel
+-a----          2022/1/7     14:08       46870128 seata-server-1.4.2.zip
+
+
+PS H:\opensoft>
+```
+
+```sh
+PS H:\opensoft> cd .\seata-server-1.4.2\
+PS H:\opensoft\seata-server-1.4.2> ls
+
+
+    目录: H:\opensoft\seata-server-1.4.2
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----         2021/4/25     16:01                bin
+d-----         2021/4/25     16:01                conf
+d-----         2021/4/25     16:01                lib
+d-----         2021/4/25     16:01                logs
+------         2019/5/13     16:49          11365 LICENSE
+
+
+PS H:\opensoft\seata-server-1.4.2>
+```
+
+
+
+
+
+3. 更改配置
+
+
+
+修改conf目录下的registry.conf文件
+
+
+
+内容：
+
+```properties
+registry 
+{
+  # tc服务的注册中心类，这里选择nacos，也可以是eureka、zookeeper等
+  type = "nacos"
+
+  nacos 
+  {
+    # seata tc 服务注册到 nacos的服务名称，可以自定义
+    application = "seata-server"
+    # nacos地址
+    serverAddr = "127.0.0.1:8848"
+    # 分组
+    group = "DEFAULT_GROUP"
+    # 命名空间
+    namespace = ""
+    # 集群的地方，也就是机房的地方，将来可以通过集群名称做负载均衡，相同机房的优先
+    #cluster = "SH"
+    # 用户名
+    username = "mao"
+    # 密码
+    password = "123456"
+  }
+  
+  eureka 
+  {
+    serviceUrl = "http://localhost:8761/eureka"
+    application = "default"
+    weight = "1"
+  }
+  redis 
+  {
+    serverAddr = "localhost:6379"
+    db = 0
+    password = ""
+    cluster = "default"
+    timeout = 0
+  }
+  zk 
+  {
+    cluster = "default"
+    serverAddr = "127.0.0.1:2181"
+    sessionTimeout = 6000
+    connectTimeout = 2000
+    username = ""
+    password = ""
+  }
+  consul 
+  {
+    cluster = "default"
+    serverAddr = "127.0.0.1:8500"
+    aclToken = ""
+  }
+  etcd3 
+  {
+    cluster = "default"
+    serverAddr = "http://localhost:2379"
+  }
+  sofa 
+  {
+    serverAddr = "127.0.0.1:9603"
+    application = "default"
+    region = "DEFAULT_ZONE"
+    datacenter = "DefaultDataCenter"
+    cluster = "default"
+    group = "SEATA_GROUP"
+    addressWaitTime = "3000"
+  }
+  file 
+  {
+    name = "file.conf"
+  }
+}
+
+
+
+config 
+{
+  # 读取tc服务端的配置文件的方式，这里是从nacos配置中心读取，这样如果tc是集群，可以共享配置
+  type = "nacos"
+  # 配置nacos地址等信息
+  nacos 
+  {
+    # nacos地址
+    serverAddr = "127.0.0.1:8848"
+    # 命名空间
+    namespace = ""
+    # 分组
+    group = "SEATA_GROUP"
+    # 用户名
+    username = "mao"
+    # 密码
+    password = "123456"
+    # dataId ，配置文件名称
+    dataId = "seataServer.properties"
+  }
+  
+  consul 
+  {
+    serverAddr = "127.0.0.1:8500"
+    aclToken = ""
+  }
+  apollo 
+  {
+    appId = "seata-server"
+    ## apolloConfigService will cover apolloMeta
+    apolloMeta = "http://192.168.1.204:8801"
+    apolloConfigService = "http://192.168.1.204:8080"
+    namespace = "application"
+    apolloAccesskeySecret = ""
+    cluster = "seata"
+  }
+  zk 
+  {
+    serverAddr = "127.0.0.1:2181"
+    sessionTimeout = 6000
+    connectTimeout = 2000
+    username = ""
+    password = ""
+    nodePath = "/seata/seata.properties"
+  }
+  etcd3 
+  {
+    serverAddr = "http://localhost:2379"
+  }
+  file 
+  {
+    name = "file.conf"
+  }
+}
+```
+
+
+
+
+
+```sh
+PS H:\opensoft\seata-server-1.4.2> cd conf
+PS H:\opensoft\seata-server-1.4.2\conf> ls
+
+
+    目录: H:\opensoft\seata-server-1.4.2\conf
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----         2021/4/25     16:01                logback
+d-----         2021/4/25     16:01                META-INF
+------         2021/4/25     16:01           1859 file.conf
+------         2021/4/25     16:01           3112 file.conf.example
+------         2021/4/25     16:01           2222 logback.xml
+------         2021/4/25     16:01           1327 README-zh.md
+------         2021/4/25     16:01           1324 README.md
+-a----         2022/7/25     13:46           2525 registry.conf
+-a----         2021/4/25     16:01           1938 registry.conf.backup
+
+
+PS H:\opensoft\seata-server-1.4.2\conf> cat .\registry.conf
+...
+...
+...
+```
+
+
+
+
+
+4. 启动nacos
+
+
+
+```sh
+H:\opensoft\nacos\bin>startup.cmd -m standalone
+"nacos is starting with standalone"
+
+         ,--.
+       ,--.'|
+   ,--,:  : |                                           Nacos 1.4.3
+,`--.'`|  ' :                       ,---.               Running in stand alone mode, All function modules
+|   :  :  | |                      '   ,'\   .--.--.    Port: 8848
+:   |   \ | :  ,--.--.     ,---.  /   /   | /  /    '   Pid: 19080
+|   : '  '; | /       \   /     \.   ; ,. :|  :  /`./   Console: http://192.168.202.1:8848/nacos/index.html
+'   ' ;.    ;.--.  .-. | /    / ''   | |: :|  :  ;_
+|   | | \   | \__\/: . ..    ' / '   | .; : \  \    `.      https://nacos.io
+'   : |  ; .' ," .--.; |'   ; :__|   :    |  `----.   \
+|   | '`--'  /  /  ,.  |'   | '.'|\   \  /  /  /`--'  /
+'   : |     ;  :   .'   \   :    : `----'  '--'.     /
+;   |.'     |  ,     .-./\   \  /            `--'---'
+'---'        `--`---'     `----'
+
+2022-07-25 13:49:30,542 INFO Bean 'org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler@7c7d3c46' of type [org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+
+2022-07-25 13:49:30,549 INFO Bean 'methodSecurityMetadataSource' of type [org.springframework.security.access.method.DelegatingMethodSecurityMetadataSource] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+
+2022-07-25 13:49:31,038 INFO Tomcat initialized with port(s): 8848 (http)
+
+2022-07-25 13:49:31,429 INFO Root WebApplicationContext: initialization completed in 3223 ms
+
+2022-07-25 13:49:36,477 INFO Initializing ExecutorService 'applicationTaskExecutor'
+
+2022-07-25 13:49:36,603 INFO Adding welcome page: class path resource [static/index.html]
+
+2022-07-25 13:49:36,926 INFO Creating filter chain: Ant [pattern='/**'], []
+
+2022-07-25 13:49:36,957 INFO Creating filter chain: any request, [org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@a83495d, org.springframework.security.web.context.SecurityContextPersistenceFilter@2f382a5e, org.springframework.security.web.header.HeaderWriterFilter@1fedf0a4, org.springframework.security.web.csrf.CsrfFilter@2acdcce8, org.springframework.security.web.authentication.logout.LogoutFilter@7668892a, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@539a138b, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@784223e9, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@7e83992, org.springframework.security.web.session.SessionManagementFilter@1acb74ad, org.springframework.security.web.access.ExceptionTranslationFilter@7bd96822]
+
+2022-07-25 13:49:37,050 INFO Initializing ExecutorService 'taskScheduler'
+
+2022-07-25 13:49:37,071 INFO Exposing 2 endpoint(s) beneath base path '/actuator'
+
+2022-07-25 13:49:37,180 INFO Tomcat started on port(s): 8848 (http) with context path '/nacos'
+
+2022-07-25 13:49:37,185 INFO Nacos started successfully in stand alone mode. use embedded storage
+```
+
+
+
+
+
+5. 打开nacos控制台
+
+
+
+http://localhost:8848/nacos/
+
+
+
+6. 在nacos添加配置
+
+
+
+点击配置列表
+
+点击新建配置
+
+
+
+![image-20220725135155059](img/image-20220725135155059.png)
+
+
+
+
+
+填写配置
+
+
+
+![image-20220725135316211](img/image-20220725135316211.png)
+
+
+
+
+
+填写配置内容
+
+
+
+```properties
+# 数据存储方式，db代表数据库
+store.mode=db
+# 连接池，数据源
+store.db.datasource=druid
+#数据库类型，当前的是mysql数据库
+store.db.dbType=mysql
+# 数据库类名
+store.db.driverClassName=com.mysql.cj.jdbc.Driver
+# 数据库url
+store.db.url=jdbc:mysql://localhost:3306/seata?useUnicode=true&rewriteBatchedStatements=true
+# 用户名
+store.db.user=root
+# 密码
+store.db.password=20010713
+store.db.minConn=10
+store.db.maxConn=40
+store.db.globalTable=global_table
+store.db.branchTable=branch_table
+store.db.queryLimit=100
+store.db.lockTable=lock_table
+store.db.maxWait=5000
+# 事务、日志等配置
+server.recovery.committingRetryPeriod=1000
+server.recovery.asynCommittingRetryPeriod=1000
+server.recovery.rollbackingRetryPeriod=1000
+server.recovery.timeoutRetryPeriod=1000
+server.maxCommitRetryTimeout=-1
+server.maxRollbackRetryTimeout=-1
+server.rollbackRetryTimeoutUnlockEnable=false
+server.undo.logSaveDays=7
+server.undo.logDeletePeriod=86400000
+
+# 客户端与服务端传输方式
+transport.serialization=seata
+transport.compressor=none
+# 关闭metrics功能，提高性能
+metrics.enabled=false
+metrics.registryType=compact
+metrics.exporterList=prometheus
+metrics.exporterPrometheusPort=9898
+```
+
+
+
+
+
+
+
+![image-20220725135743029](img/image-20220725135743029.png)
+
+
+
+
+
+发布配置
+
+
+
+![image-20220725135758506](img/image-20220725135758506.png)
+
+
+
+
+
+![image-20220725135819219](img/image-20220725135819219.png)
+
+
+
+
+
+
+
+
+
+7. 
