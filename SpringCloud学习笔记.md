@@ -24967,9 +24967,9 @@ Seata提供了四种不同的分布式事务解决方案：
 
 
 
-### 安装seata
+### 部署seata
 
-1. 下载
+#### 1. 下载
 
 
 
@@ -24977,7 +24977,7 @@ Seata提供了四种不同的分布式事务解决方案：
 
 
 
-2. 解压
+#### 2. 解压
 
 
 
@@ -25058,7 +25058,7 @@ PS H:\opensoft\seata-server-1.4.2>
 
 
 
-3. 更改配置
+#### 3. 更改配置
 
 
 
@@ -25235,7 +25235,7 @@ PS H:\opensoft\seata-server-1.4.2\conf> cat .\registry.conf
 
 
 
-4. 启动nacos
+#### 4. 启动nacos
 
 
 
@@ -25287,7 +25287,7 @@ H:\opensoft\nacos\bin>startup.cmd -m standalone
 
 
 
-5. 打开nacos控制台
+#### 5. 打开nacos控制台
 
 
 
@@ -25295,7 +25295,7 @@ http://localhost:8848/nacos/
 
 
 
-6. 在nacos添加配置
+#### 6. 在nacos添加配置
 
 
 
@@ -25400,7 +25400,7 @@ metrics.exporterPrometheusPort=9898
 
 
 
-7. 创建数据库表
+#### 7. 创建数据库表
 
 
 
@@ -25580,7 +25580,7 @@ mysql>
 
 
 
-8. 启动TC服务
+#### 8. 启动TC服务
 
 
 
@@ -25871,7 +25871,7 @@ SLF4J: See also http://www.slf4j.org/codes.html#replay
 
 
 
-9. 进入nacos控制台
+#### 9. 进入nacos控制台
 
 
 
@@ -25886,6 +25886,8 @@ SLF4J: See also http://www.slf4j.org/codes.html#replay
 
 
 启动正常
+
+
 
 
 
