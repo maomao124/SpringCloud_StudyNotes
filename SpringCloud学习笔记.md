@@ -24275,6 +24275,9 @@ Project name(项目名称)：spring_cloud_distributed_transaction_seata
     var count = document.getElementById("count")
     var money = document.getElementById("money")
 
+    /**
+     * 发起post请求
+     */
     function post()
     {
         console.log("发起ajax请求")
@@ -24321,10 +24324,11 @@ Project name(项目名称)：spring_cloud_distributed_transaction_seata
                     isSending = false;
                     console.log(xhr.response);
                     textarea.innerHTML = JSON.stringify(xhr.response);
-
+                    speech("请求成功")
                 }
                 else
                 {
+                    speech("请求失败，状态码为" + xhr.status)
                     alert("出现异常！状态码：" + xhr.status);
                 }
             }
@@ -24394,6 +24398,59 @@ Project name(项目名称)：spring_cloud_distributed_transaction_seata
         )
     }
 
+    /**
+     * 语音播报
+     * @param {string} text 播放内容
+     */
+    addSpeech = (text) =>
+    {
+        const speech = new SpeechSynthesisUtterance()
+        // 设置播放内容
+        speech.text = text
+        // 设置话语的音调(0-2 默认1，值越大越尖锐,越低越低沉)
+        speech.pitch = 1
+        // 设置说话的速度(0.1-10 默认1，值越大语速越快,越小语速越慢)
+        speech.rate = 1.2
+        // 设置说话的音量
+        speech.volume = 10
+        // 设置播放语言
+        speech.lang = 'zh-CN'
+
+
+        // 播放结束后调用
+        speech.onend = (event) =>
+        {
+
+        }
+        // 加入播放队列
+        window.speechSynthesis.speak(speech)
+    }
+
+    /**
+     * 停止播报，停止所有播报队列里面的语音
+     */
+    stopSpeech = () =>
+    {
+        window.speechSynthesis.cancel()
+    }
+
+
+    /**
+     * 语音播报，
+     * 如果当前如果话语当前正在被说出或者话语队列包含尚未说出的话语，则先停止播报，停止所有播报队列里面的语音，再播报
+     *
+     * @param {string} text 播放内容
+     */
+    speech = (text) =>
+    {
+        if (window.speechSynthesis.speaking || window.speechSynthesis.pending)
+        {
+            stopSpeech()
+        }
+        addSpeech(text)
+    }
+
+    speech("获取页面成功，当前时间为" + new Date().toLocaleString())
 
 </script>
 </html>
@@ -25335,7 +25392,7 @@ store.db.dbType=mysql
 # 数据库类名
 store.db.driverClassName=com.mysql.cj.jdbc.Driver
 # 数据库url
-store.db.url=jdbc:mysql://localhost:3306/seata?useUnicode=true&rewriteBatchedStatements=true
+store.db.url=jdbc:mysql://localhost:3306/seata?useUnicode=true&rewriteBatchedStatements=true&serverTimezone=Asia/Shanghai
 # 用户名
 store.db.user=root
 # 密码
@@ -25369,6 +25426,45 @@ metrics.exporterPrometheusPort=9898
 ```
 
 
+
+
+
+|                    key                    |                       desc                       |                            remark                            |
+| :---------------------------------------: | :----------------------------------------------: | :----------------------------------------------------------: |
+|          server.undo.logSaveDays          |                   undo保留天数                   |       默认7天,log_status=1（附录3）和未正常清理的undo        |
+|        server.undo.logDeletePeriod        |               undo清理线程间隔时间               |                    默认86400000，单位毫秒                    |
+|       server.maxCommitRetryTimeout        |              二阶段提交重试超时时长              | 单位ms,s,m,h,d,对应毫秒,秒,分,小时,天,默认毫秒。默认值-1表示无限重试。公式: timeout>=now-globalTransactionBeginTime,true表示超时则不再重试(注: 达到超时时间后将不会做任何重试,有数据不一致风险,除非业务自行可校准数据,否者慎用) |
+|      server.maxRollbackRetryTimeout       |              二阶段回滚重试超时时长              |                           同commit                           |
+|   server.recovery.committingRetryPeriod   | 二阶段提交未完成状态全局事务重试提交线程间隔时间 |                      默认1000，单位毫秒                      |
+| server.recovery.asynCommittingRetryPeriod |      二阶段异步提交状态重试提交线程间隔时间      |                      默认1000，单位毫秒                      |
+|  server.recovery.rollbackingRetryPeriod   |        二阶段回滚状态重试回滚线程间隔时间        |                      默认1000，单位毫秒                      |
+|    server.recovery.timeoutRetryPeriod     |           超时状态检测重试线程间隔时间           |  默认1000，单位毫秒，检测出超时将全局事务置入回滚会话管理器  |
+|                store.mode                 |               事务会话信息存储方式               |       file本地文件(不支持HA)，db数据库\|redis(支持HA)        |
+|              store.file.dir               |             file模式文件存储文件夹名             |                       默认sessionStore                       |
+|            store.db.datasource            |                 db模式数据源类型                 |   dbcp、druid、hikari；无默认值，store.mode=db时必须指定。   |
+|              store.db.dbType              |                 db模式数据库类型                 | mysql、oracle、db2、sqlserver、sybaee、h2、sqlite、access、postgresql、oceanbase；无默认值，store.mode=db时必须指定。 |
+|         store.db.driverClassName          |                 db模式数据库驱动                 |                   store.mode=db时必须指定                    |
+|               store.db.url                |                 db模式数据库url                  | store.mode=db时必须指定，在使用mysql作为数据源时，建议在连接参数中加上`rewriteBatchedStatements=true`(详细原因请阅读附录7) |
+|               store.db.user               |                 db模式数据库账户                 |                   store.mode=db时必须指定                    |
+|             store.db.password             |               db模式数据库账户密码               |                   store.mode=db时必须指定                    |
+|             store.db.minConn              |              db模式数据库初始连接数              |                            默认1                             |
+|             store.db.maxConn              |              db模式数据库最大连接数              |                            默认20                            |
+|             store.db.maxWait              |           db模式获取连接时最大等待时间           |                      默认5000，单位毫秒                      |
+|           store.db.globalTable            |                db模式全局事务表名                |                       默认global_table                       |
+|           store.db.branchTable            |                db模式分支事务表名                |                       默认branch_table                       |
+|            store.db.lockTable             |                 db模式全局锁表名                 |                        默认lock_table                        |
+|            store.db.queryLimit            |         db模式查询全局事务一次的最大条数         |                           默认100                            |
+|             store.redis.host              |                   redis模式ip                    |                        默认127.0.0.1                         |
+|             store.redis.port              |                  redis模式端口                   |                           默认6379                           |
+|            store.redis.maxConn            |               redis模式最大连接数                |                            默认10                            |
+|            store.redis.minConn            |               redis模式最小连接数                |                            默认1                             |
+|           store.redis.database            |                 redis模式默认库                  |                            默认0                             |
+|           store.redis.password            |             redis模式密码(无可不填)              |                           默认null                           |
+|          store.redis.queryLimit           |            redis模式一次查询最大条数             |                           默认100                            |
+|              metrics.enabled              |                 是否启用Metrics                  | 默认false关闭，在False状态下，所有与Metrics相关的组件将不会被初始化，使得性能损耗最低 |
+|           metrics.registryType            |                  指标注册器类型                  | Metrics使用的指标注册器类型，默认为内置的compact（简易）实现，这个实现中的Meter仅使用有限内存计数，性能高足够满足大多数场景；目前只能设置一个指标注册器实现 |
+|           metrics.exporterList            |        指标结果Measurement数据输出器列表         | 默认prometheus，多个输出器使用英文逗号分割，例如"prometheus,jmx"，目前仅实现了对接prometheus的输出器 |
+|      metrics.exporterPrometheusPort       |           prometheus输出器Client端口号           |                           默认9898                           |
 
 
 
@@ -25785,84 +25881,82 @@ if "%JAVACMD%"=="" set JAVACMD=.\..\jre\bin\java.exe
 
 ```sh
 PS H:\opensoft\seata-server-1.4.2\bin> .\seata-server.bat
-14:36:36,154 |-INFO in ch.qos.logback.classic.LoggerContext[default] - Could NOT find resource [logback-test.xml]
-14:36:36,154 |-INFO in ch.qos.logback.classic.LoggerContext[default] - Could NOT find resource [logback.groovy]
-14:36:36,155 |-INFO in ch.qos.logback.classic.LoggerContext[default] - Found resource [logback.xml] at [file:/H:/opensoft/seata-server-1.4.2/conf/logback.xml]
-14:36:36,155 |-WARN in ch.qos.logback.classic.LoggerContext[default] - Resource [logback.xml] occurs multiple times on the classpath.
-14:36:36,155 |-WARN in ch.qos.logback.classic.LoggerContext[default] - Resource [logback.xml] occurs at [file:/H:/opensoft/seata-server-1.4.2/conf/logback.xml]
-14:36:36,155 |-WARN in ch.qos.logback.classic.LoggerContext[default] - Resource [logback.xml] occurs at [jar:file:/H:/opensoft/seata-server-1.4.2/lib/seata-server-1.4.2.jar!/logback.xml]
-14:36:36,216 |-INFO in ch.qos.logback.classic.joran.action.ConfigurationAction - debug attribute not set
-14:36:36,222 |-INFO in ch.qos.logback.classic.joran.action.ConfigurationAction - Will scan for changes in [file:/H:/opensoft/seata-server-1.4.2/conf/logback.xml]
-14:36:36,222 |-INFO in ch.qos.logback.classic.joran.action.ConfigurationAction - Setting ReconfigureOnChangeTask scanning period to 1 minutes
-14:36:36,224 |-INFO in ch.qos.logback.classic.joran.action.LoggerContextListenerAction - Adding LoggerContextListener of type [io.seata.server.logging.listener.SystemPropertyLoggerContextListener] to the object stack
-14:36:36,224 |-INFO in ch.qos.logback.classic.joran.action.LoggerContextListenerAction - Starting LoggerContextListener
-14:36:36,224 |-INFO in ch.qos.logback.core.joran.action.ConversionRuleAction - registering conversion word clr with class [io.seata.server.logging.logback.ColorConverter]
-14:36:36,224 |-INFO in ch.qos.logback.core.joran.action.ConversionRuleAction - registering conversion word wex with class [io.seata.server.logging.logback.WhitespaceThrowableProxyConverter]
-14:36:36,224 |-INFO in ch.qos.logback.core.joran.action.ConversionRuleAction - registering conversion word wEx with class [io.seata.server.logging.logback.ExtendedWhitespaceThrowableProxyConverter]
-14:36:36,225 |-INFO in ch.qos.logback.core.joran.util.ConfigurationWatchListUtil@4e1d422d - Adding [file:/H:/opensoft/seata-server-1.4.2/conf/logback/console-appender.xml] to configuration watch list.
-14:36:36,227 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - About to instantiate appender of type [ch.qos.logback.core.ConsoleAppender]
-14:36:36,230 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - Naming appender as [CONSOLE]
-14:36:36,235 |-INFO in ch.qos.logback.core.joran.action.NestedComplexPropertyIA - Assuming default type [ch.qos.logback.classic.encoder.PatternLayoutEncoder] for [encoder] property
-14:36:36,309 |-INFO in ch.qos.logback.core.joran.util.ConfigurationWatchListUtil@4e1d422d - Adding [file:/H:/opensoft/seata-server-1.4.2/conf/logback/file-appender.xml] to configuration watch list.
-14:36:36,312 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - About to instantiate appender of type [ch.qos.logback.core.rolling.RollingFileAppender]
-14:36:36,314 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - Naming appender as [FILE_ALL]
-14:36:36,321 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1715998167 - Archive files will be limited to [2048 MB] each.
-14:36:36,323 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1715998167 - Will use gz compression
-14:36:36,324 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1715998167 - Will use the pattern C:/Users/mao/logs/seata/history/seata-server.8091.all.%d{yyyy-MM-dd}.%i.log for the active file
-14:36:36,326 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@52a86356 - The date pattern is 'yyyy-MM-dd' from file name pattern 'C:/Users/mao/logs/seata/history/seata-server.8091.all.%d{yyyy-MM-dd}.%i.log.gz'.
-14:36:36,326 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@52a86356 - Roll-over at midnight.
-14:36:36,329 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@52a86356 - Setting initial period to Mon Jul 25 14:24:38 CST 2022
-14:36:36,330 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1715998167 - Cleaning on start up
-14:36:36,331 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - first clean up after appender initialization
-14:36:36,331 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - Multiple periods, i.e. 32 periods, seem to have elapsed. This is expected at application start.
-14:36:36,331 |-INFO in ch.qos.logback.core.joran.action.NestedComplexPropertyIA - Assuming default type [ch.qos.logback.classic.encoder.PatternLayoutEncoder] for [encoder] property
-14:36:36,333 |-INFO in ch.qos.logback.core.rolling.RollingFileAppender[FILE_ALL] - Active log file name: C:\Users\mao/logs/seata/seata-server.8091.all.log
-14:36:36,333 |-INFO in ch.qos.logback.core.rolling.RollingFileAppender[FILE_ALL] - File property is set to [C:\Users\mao/logs/seata/seata-server.8091.all.log]
-14:36:36,334 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - About to instantiate appender of type [ch.qos.logback.core.rolling.RollingFileAppender]
-14:36:36,334 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - Naming appender as [FILE_WARN]
-14:36:36,336 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - Removed  0 Bytes of files
-14:36:36,336 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1558712965 - Archive files will be limited to [2048 MB] each.
-14:36:36,337 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1558712965 - Will use gz compression
-14:36:36,337 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1558712965 - Will use the pattern C:/Users/mao/logs/seata/history/seata-server.8091.warn.%d{yyyy-MM-dd}.%i.log for the active file
-14:36:36,337 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@78c03f1f - The date pattern is 'yyyy-MM-dd' from file name pattern 'C:/Users/mao/logs/seata/history/seata-server.8091.warn.%d{yyyy-MM-dd}.%i.log.gz'.
-14:36:36,337 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@78c03f1f - Roll-over at midnight.
-14:36:36,338 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@78c03f1f - Setting initial period to Mon Jul 25 14:23:54 CST 2022
-14:36:36,338 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1558712965 - Cleaning on start up
-14:36:36,338 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - first clean up after appender initialization
-14:36:36,338 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - Multiple periods, i.e. 32 periods, seem to have elapsed. This is expected at application start.
-14:36:36,338 |-INFO in ch.qos.logback.core.joran.action.NestedComplexPropertyIA - Assuming default type [ch.qos.logback.classic.encoder.PatternLayoutEncoder] for [encoder] property
-14:36:36,339 |-INFO in ch.qos.logback.core.rolling.RollingFileAppender[FILE_WARN] - Active log file name: C:\Users\mao/logs/seata/seata-server.8091.warn.log
-14:36:36,339 |-INFO in ch.qos.logback.core.rolling.RollingFileAppender[FILE_WARN] - File property is set to [C:\Users\mao/logs/seata/seata-server.8091.warn.log]
-14:36:36,339 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - About to instantiate appender of type [ch.qos.logback.core.rolling.RollingFileAppender]
-14:36:36,339 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - Naming appender as [FILE_ERROR]
-14:36:36,341 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1589683045 - Archive files will be limited to [2048 MB] each.
-14:36:36,341 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1589683045 - Will use gz compression
-14:36:36,341 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1589683045 - Will use the pattern C:/Users/mao/logs/seata/history/seata-server.8091.error.%d{yyyy-MM-dd}.%i.log for the active file
-14:36:36,341 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - Removed  0 Bytes of files
-14:36:36,342 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@4fe3c938 - The date pattern is 'yyyy-MM-dd' from file name pattern 'C:/Users/mao/logs/seata/history/seata-server.8091.error.%d{yyyy-MM-dd}.%i.log.gz'.
-14:36:36,342 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@4fe3c938 - Roll-over at midnight.
-14:36:36,342 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@4fe3c938 - Setting initial period to Mon Jul 25 14:23:54 CST 2022
-14:36:36,342 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1589683045 - Cleaning on start up
-14:36:36,342 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - first clean up after appender initialization
-14:36:36,342 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - Multiple periods, i.e. 32 periods, seem to have elapsed. This is expected at application start.
-14:36:36,342 |-INFO in ch.qos.logback.core.joran.action.NestedComplexPropertyIA - Assuming default type [ch.qos.logback.classic.encoder.PatternLayoutEncoder] for [encoder] property
-14:36:36,343 |-INFO in ch.qos.logback.core.rolling.RollingFileAppender[FILE_ERROR] - Active log file name: C:\Users\mao/logs/seata/seata-server.8091.error.log
-14:36:36,343 |-INFO in ch.qos.logback.core.rolling.RollingFileAppender[FILE_ERROR] - File property is set to [C:\Users\mao/logs/seata/seata-server.8091.error.log]
-14:36:36,344 |-INFO in ch.qos.logback.classic.joran.action.RootLoggerAction - Setting level of ROOT logger to INFO
-14:36:36,344 |-INFO in ch.qos.logback.core.joran.action.AppenderRefAction - Attaching appender named [CONSOLE] to Logger[ROOT]
-14:36:36,344 |-INFO in ch.qos.logback.core.joran.action.AppenderRefAction - Attaching appender named [FILE_ALL] to Logger[ROOT]
-14:36:36,344 |-INFO in ch.qos.logback.core.joran.action.AppenderRefAction - Attaching appender named [FILE_WARN] to Logger[ROOT]
-14:36:36,344 |-INFO in ch.qos.logback.core.joran.action.AppenderRefAction - Attaching appender named [FILE_ERROR] to Logger[ROOT]
-14:36:36,344 |-INFO in ch.qos.logback.classic.joran.action.ConfigurationAction - End of configuration.
-14:36:36,345 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - Removed  0 Bytes of files
-14:36:36,345 |-INFO in ch.qos.logback.classic.joran.JoranConfigurator@5383967b - Registering current configuration as safe fallback point
+12:46:31,198 |-INFO in ch.qos.logback.classic.LoggerContext[default] - Could NOT find resource [logback-test.xml]
+12:46:31,198 |-INFO in ch.qos.logback.classic.LoggerContext[default] - Could NOT find resource [logback.groovy]
+12:46:31,198 |-INFO in ch.qos.logback.classic.LoggerContext[default] - Found resource [logback.xml] at [file:/H:/opensoft/seata-server-1.4.2/conf/logback.xml]
+12:46:31,199 |-WARN in ch.qos.logback.classic.LoggerContext[default] - Resource [logback.xml] occurs multiple times on the classpath.
+12:46:31,199 |-WARN in ch.qos.logback.classic.LoggerContext[default] - Resource [logback.xml] occurs at [file:/H:/opensoft/seata-server-1.4.2/conf/logback.xml]
+12:46:31,199 |-WARN in ch.qos.logback.classic.LoggerContext[default] - Resource [logback.xml] occurs at [jar:file:/H:/opensoft/seata-server-1.4.2/lib/seata-server-1.4.2.jar!/logback.xml]
+12:46:31,260 |-INFO in ch.qos.logback.classic.joran.action.ConfigurationAction - debug attribute not set
+12:46:31,265 |-INFO in ch.qos.logback.classic.joran.action.ConfigurationAction - Will scan for changes in [file:/H:/opensoft/seata-server-1.4.2/conf/logback.xml]
+12:46:31,265 |-INFO in ch.qos.logback.classic.joran.action.ConfigurationAction - Setting ReconfigureOnChangeTask scanning period to 1 minutes
+12:46:31,267 |-INFO in ch.qos.logback.classic.joran.action.LoggerContextListenerAction - Adding LoggerContextListener of type [io.seata.server.logging.listener.SystemPropertyLoggerContextListener] to the object stack
+12:46:31,267 |-INFO in ch.qos.logback.classic.joran.action.LoggerContextListenerAction - Starting LoggerContextListener
+12:46:31,267 |-INFO in ch.qos.logback.core.joran.action.ConversionRuleAction - registering conversion word clr with class [io.seata.server.logging.logback.ColorConverter]
+12:46:31,267 |-INFO in ch.qos.logback.core.joran.action.ConversionRuleAction - registering conversion word wex with class [io.seata.server.logging.logback.WhitespaceThrowableProxyConverter]
+12:46:31,268 |-INFO in ch.qos.logback.core.joran.action.ConversionRuleAction - registering conversion word wEx with class [io.seata.server.logging.logback.ExtendedWhitespaceThrowableProxyConverter]
+12:46:31,269 |-INFO in ch.qos.logback.core.joran.util.ConfigurationWatchListUtil@52a86356 - Adding [file:/H:/opensoft/seata-server-1.4.2/conf/logback/console-appender.xml] to configuration watch list.
+12:46:31,271 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - About to instantiate appender of type [ch.qos.logback.core.ConsoleAppender]
+12:46:31,274 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - Naming appender as [CONSOLE]
+12:46:31,279 |-INFO in ch.qos.logback.core.joran.action.NestedComplexPropertyIA - Assuming default type [ch.qos.logback.classic.encoder.PatternLayoutEncoder] for [encoder] property
+12:46:31,351 |-INFO in ch.qos.logback.core.joran.util.ConfigurationWatchListUtil@52a86356 - Adding [file:/H:/opensoft/seata-server-1.4.2/conf/logback/file-appender.xml] to configuration watch list.
+12:46:31,353 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - About to instantiate appender of type [ch.qos.logback.core.rolling.RollingFileAppender]
+12:46:31,356 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - Naming appender as [FILE_ALL]
+12:46:31,362 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1558712965 - Archive files will be limited to [2048 MB] each.
+12:46:31,364 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1558712965 - Will use gz compression
+12:46:31,365 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1558712965 - Will use the pattern C:/Users/mao/logs/seata/history/seata-server.8091.all.%d{yyyy-MM-dd}.%i.log for the active file
+12:46:31,367 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@78c03f1f - The date pattern is 'yyyy-MM-dd' from file name pattern 'C:/Users/mao/logs/seata/history/seata-server.8091.all.%d{yyyy-MM-dd}.%i.log.gz'.
+12:46:31,367 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@78c03f1f - Roll-over at midnight.
+12:46:31,370 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@78c03f1f - Setting initial period to Tue Jul 26 12:43:37 CST 2022
+12:46:31,372 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1558712965 - Cleaning on start up
+12:46:31,372 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - first clean up after appender initialization
+12:46:31,372 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - Multiple periods, i.e. 32 periods, seem to have elapsed. This is expected at application start.
+12:46:31,372 |-INFO in ch.qos.logback.core.joran.action.NestedComplexPropertyIA - Assuming default type [ch.qos.logback.classic.encoder.PatternLayoutEncoder] for [encoder] property
+12:46:31,374 |-INFO in ch.qos.logback.core.rolling.RollingFileAppender[FILE_ALL] - Active log file name: C:\Users\mao/logs/seata/seata-server.8091.all.log
+12:46:31,374 |-INFO in ch.qos.logback.core.rolling.RollingFileAppender[FILE_ALL] - File property is set to [C:\Users\mao/logs/seata/seata-server.8091.all.log]
+12:46:31,375 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - About to instantiate appender of type [ch.qos.logback.core.rolling.RollingFileAppender]
+12:46:31,375 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - Naming appender as [FILE_WARN]
+12:46:31,378 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1589683045 - Archive files will be limited to [2048 MB] each.
+12:46:31,378 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1589683045 - Will use gz compression
+12:46:31,378 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1589683045 - Will use the pattern C:/Users/mao/logs/seata/history/seata-server.8091.warn.%d{yyyy-MM-dd}.%i.log for the active file
+12:46:31,379 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@4fe3c938 - The date pattern is 'yyyy-MM-dd' from file name pattern 'C:/Users/mao/logs/seata/history/seata-server.8091.warn.%d{yyyy-MM-dd}.%i.log.gz'.
+12:46:31,379 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@4fe3c938 - Roll-over at midnight.
+12:46:31,379 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@4fe3c938 - Setting initial period to Tue Jul 26 12:41:15 CST 2022
+12:46:31,379 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1589683045 - Cleaning on start up
+12:46:31,379 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - first clean up after appender initialization
+12:46:31,380 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - Multiple periods, i.e. 32 periods, seem to have elapsed. This is expected at application start.
+12:46:31,380 |-INFO in ch.qos.logback.core.joran.action.NestedComplexPropertyIA - Assuming default type [ch.qos.logback.classic.encoder.PatternLayoutEncoder] for [encoder] property
+12:46:31,380 |-INFO in ch.qos.logback.core.rolling.RollingFileAppender[FILE_WARN] - Active log file name: C:\Users\mao/logs/seata/seata-server.8091.warn.log
+12:46:31,380 |-INFO in ch.qos.logback.core.rolling.RollingFileAppender[FILE_WARN] - File property is set to [C:\Users\mao/logs/seata/seata-server.8091.warn.log]
+12:46:31,381 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - About to instantiate appender of type [ch.qos.logback.core.rolling.RollingFileAppender]
+12:46:31,381 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - Naming appender as [FILE_ERROR]
+12:46:31,383 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1401132667 - Archive files will be limited to [2048 MB] each.
+12:46:31,383 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1401132667 - Will use gz compression
+12:46:31,383 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1401132667 - Will use the pattern C:/Users/mao/logs/seata/history/seata-server.8091.error.%d{yyyy-MM-dd}.%i.log for the active file
+12:46:31,383 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@2ac273d3 - The date pattern is 'yyyy-MM-dd' from file name pattern 'C:/Users/mao/logs/seata/history/seata-server.8091.error.%d{yyyy-MM-dd}.%i.log.gz'.
+12:46:31,383 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@2ac273d3 - Roll-over at midnight.
+12:46:31,384 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@2ac273d3 - Setting initial period to Tue Jul 26 12:41:20 CST 2022
+12:46:31,384 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1401132667 - Cleaning on start up
+12:46:31,384 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - first clean up after appender initialization
+12:46:31,384 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - Multiple periods, i.e. 32 periods, seem to have elapsed. This is expected at application start.
+12:46:31,384 |-INFO in ch.qos.logback.core.joran.action.NestedComplexPropertyIA - Assuming default type [ch.qos.logback.classic.encoder.PatternLayoutEncoder] for [encoder] property
+12:46:31,385 |-INFO in ch.qos.logback.core.rolling.RollingFileAppender[FILE_ERROR] - Active log file name: C:\Users\mao/logs/seata/seata-server.8091.error.log
+12:46:31,385 |-INFO in ch.qos.logback.core.rolling.RollingFileAppender[FILE_ERROR] - File property is set to [C:\Users\mao/logs/seata/seata-server.8091.error.log]
+12:46:31,385 |-INFO in ch.qos.logback.classic.joran.action.RootLoggerAction - Setting level of ROOT logger to INFO
+12:46:31,386 |-INFO in ch.qos.logback.core.joran.action.AppenderRefAction - Attaching appender named [CONSOLE] to Logger[ROOT]
+12:46:31,386 |-INFO in ch.qos.logback.core.joran.action.AppenderRefAction - Attaching appender named [FILE_ALL] to Logger[ROOT]
+12:46:31,386 |-INFO in ch.qos.logback.core.joran.action.AppenderRefAction - Attaching appender named [FILE_WARN] to Logger[ROOT]
+12:46:31,386 |-INFO in ch.qos.logback.core.joran.action.AppenderRefAction - Attaching appender named [FILE_ERROR] to Logger[ROOT]
+12:46:31,386 |-INFO in ch.qos.logback.classic.joran.action.ConfigurationAction - End of configuration.
+12:46:31,387 |-INFO in ch.qos.logback.classic.joran.JoranConfigurator@71423665 - Registering current configuration as safe fallback point
 
 SLF4J: A number (18) of logging calls during the initialization phase have been intercepted and are
 SLF4J: now being replayed. These are subject to the filtering rules of the underlying logging system.
 SLF4J: See also http://www.slf4j.org/codes.html#replay
-14:36:36.426  INFO --- [                     main] io.seata.config.FileConfiguration        : The file name of the operation is registry
-14:36:36.429  INFO --- [                     main] io.seata.config.FileConfiguration        : The configuration file used is H:\opensoft\seata-server-1.4.2\conf\registry.conf
-14:36:38.029  INFO --- [                     main] i.s.core.rpc.netty.NettyServerBootstrap  : Server started, listen port: 8091
+12:46:31.465  INFO --- [                     main] io.seata.config.FileConfiguration        : The file name of the operation is registry
+12:46:31.469  INFO --- [                     main] io.seata.config.FileConfiguration        : The configuration file used is H:\opensoft\seata-server-1.4.2\conf\registry.conf
+12:46:33.263  INFO --- [                     main] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+12:46:33.733  INFO --- [                     main] i.s.core.rpc.netty.NettyServerBootstrap  : Server started, listen port: 8091
 ```
 
 
@@ -25898,4 +25992,1002 @@ SLF4J: See also http://www.slf4j.org/codes.html#replay
 
 
 ## 微服务集成Seata
+
+1. 导入依赖
+
+
+
+```xml
+        <!--seata依赖-->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-seata</artifactId>
+            <exclusions>
+                <!--版本较低，1.3.0，因此排除-->
+                <exclusion>
+                    <artifactId>seata-spring-boot-starter</artifactId>
+                    <groupId>io.seata</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <!--seata starter 采用1.4.2版本-->
+        <dependency>
+            <groupId>io.seata</groupId>
+            <artifactId>seata-spring-boot-starter</artifactId>
+            <version>1.4.2</version>
+        </dependency>
+```
+
+
+
+
+
+account-service：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+
+    <parent>
+        <groupId>mao</groupId>
+        <artifactId>spring_cloud_distributed_transaction_seata</artifactId>
+        <version>0.0.1</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>account-service</artifactId>
+    <name>account-service</name>
+    <description>account-service</description>
+
+    <properties>
+        <java.version>11</java.version>
+    </properties>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!--mysql依赖 spring-boot-->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+        </dependency>
+
+        <!--spring-boot mybatis-plus依赖-->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-boot-starter</artifactId>
+        </dependency>
+
+        <!--spring-boot druid连接池依赖-->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid-spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- nacos 客户端依赖 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+
+        <!--seata依赖-->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-seata</artifactId>
+            <exclusions>
+                <!--版本较低，1.3.0，因此排除-->
+                <exclusion>
+                    <artifactId>seata-spring-boot-starter</artifactId>
+                    <groupId>io.seata</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <!--seata starter 采用1.4.2版本-->
+        <dependency>
+            <groupId>io.seata</groupId>
+            <artifactId>seata-spring-boot-starter</artifactId>
+            <version>1.4.2</version>
+        </dependency>
+
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
+
+```
+
+
+
+
+
+order-service：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>mao</groupId>
+        <artifactId>spring_cloud_distributed_transaction_seata</artifactId>
+        <version>0.0.1</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>order-service</artifactId>
+    <name>order-service</name>
+    <description>order-service</description>
+
+
+    <properties>
+        <java.version>11</java.version>
+    </properties>
+
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!--mysql依赖 spring-boot-->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+        </dependency>
+
+        <!--spring-boot mybatis-plus依赖-->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-boot-starter</artifactId>
+        </dependency>
+
+        <!--spring-boot druid连接池依赖-->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid-spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- nacos 客户端依赖 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+
+        <!--feign 依赖-->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+
+        <!--httpClient的依赖 主要用于feign连接池-->
+        <dependency>
+            <groupId>io.github.openfeign</groupId>
+            <artifactId>feign-httpclient</artifactId>
+        </dependency>
+
+        <!--seata依赖-->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-seata</artifactId>
+            <exclusions>
+                <!--版本较低，1.3.0，因此排除-->
+                <exclusion>
+                    <artifactId>seata-spring-boot-starter</artifactId>
+                    <groupId>io.seata</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <!--seata starter 采用1.4.2版本-->
+        <dependency>
+            <groupId>io.seata</groupId>
+            <artifactId>seata-spring-boot-starter</artifactId>
+            <version>1.4.2</version>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
+```
+
+
+
+
+
+storage-service：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>mao</groupId>
+        <artifactId>spring_cloud_distributed_transaction_seata</artifactId>
+        <version>0.0.1</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>storage-service</artifactId>
+    <name>storage-service</name>
+    <description>storage-service</description>
+
+
+    <properties>
+        <java.version>11</java.version>
+    </properties>
+
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!--mysql依赖 spring-boot-->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+        </dependency>
+
+        <!--spring-boot mybatis-plus依赖-->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-boot-starter</artifactId>
+        </dependency>
+
+        <!--spring-boot druid连接池依赖-->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid-spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- nacos 客户端依赖 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+
+        <!--seata依赖-->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-seata</artifactId>
+            <exclusions>
+                <!--版本较低，1.3.0，因此排除-->
+                <exclusion>
+                    <artifactId>seata-spring-boot-starter</artifactId>
+                    <groupId>io.seata</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <!--seata starter 采用1.4.2版本-->
+        <dependency>
+            <groupId>io.seata</groupId>
+            <artifactId>seata-spring-boot-starter</artifactId>
+            <version>1.4.2</version>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
+```
+
+
+
+
+
+2. 更改配置
+
+
+
+配置application.yml，让微服务通过注册中心找到seata-server
+
+
+
+```yaml
+
+seata:
+  # TC服务注册中心的配置，微服务根据这些信息去注册中心获取tc服务地址
+  registry:
+    # 类型，file, nacos, eureka, redis, zk, consul, etcd3, sofa
+    type: nacos
+    # 配置nacos信息，和registry.conf中的配置一致
+    nacos:
+      # nacos地址
+      server-addr: localhost:8848
+      # seata tc 服务注册到 nacos的服务名称，可以自定义
+      application: seata-server
+      # 命名空间
+      namespace: ""
+      # 用户名
+      username: mao
+      # 密码
+      password: 123456
+      # 分组
+      group: DEFAULT_GROUP
+      # 事务组，根据这个获取tc服务的cluster名称，将来可以通过集群名称做负载均衡，相同机房的优先
+  tx-service-group: seata-tx-service-group
+  service:
+    # 事务组与TC服务cluster的映射关系
+    vgroupMapping:
+      seata-tx-service-group: default
+
+  config:
+    type: nacos
+    nacos:
+     server-addr: 127.0.0.1:8848
+     username: mao
+     password: 123456
+     group: SEATA_GROUP
+
+  data-source-proxy-mode: XA
+```
+
+
+
+
+
+account-service：
+
+```yaml
+# account-service 配置文件
+
+spring:
+
+  application:
+    name: account-service
+
+
+  # 配置数据源
+  datasource:
+    # 配置数据源-druid
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false
+      username: root
+      password: 20010713
+
+
+
+  cloud:
+      nacos:
+        discovery:
+          # nacos 服务端地址
+          server-addr: localhost:8848
+          # 配置集群名称，也就是机房位置
+          #cluster-name: HZ
+          # namespace: 5544c4b1-2899-4915-94af-f9940c01c2b9
+          # 是否为临时实例，true为临时实例
+          ephemeral: false
+
+
+
+ribbon:
+  eager-load:
+    # 开启饥饿加载
+    enabled: true
+
+
+
+# 设置日志级别，root表示根节点，即整体应用日志级别
+logging:
+ # 日志输出到文件的文件名
+  file:
+     name: account_server.log
+
+  # 设置日志组
+  group:
+  # 自定义组名，设置当前组中所包含的包
+    mao_pro: mao
+  level:
+    org.springframework.cloud.alibaba.seata.web: debug
+    root: info
+    # 为对应组设置日志级别
+    mao_pro: debug
+    # 日志输出格式
+# pattern:
+  # console: "%d %clr(%p) --- [%16t] %clr(%-40.40c){cyan} : %m %n"
+
+
+
+
+mybatis-plus:
+  global-config:
+    db-config:
+      id-type: auto
+
+
+server:
+  port: 8083
+
+
+
+seata:
+  # TC服务注册中心的配置，微服务根据这些信息去注册中心获取tc服务地址
+  registry:
+    # 类型，file, nacos, eureka, redis, zk, consul, etcd3, sofa
+    type: nacos
+    # 配置nacos信息，和registry.conf中的配置一致
+    nacos:
+      # nacos地址
+      server-addr: localhost:8848
+      # seata tc 服务注册到 nacos的服务名称，可以自定义
+      application: seata-server
+      # 命名空间
+      namespace: ""
+      # 用户名
+      username: mao
+      # 密码
+      password: 123456
+      # 分组
+      group: DEFAULT_GROUP
+      # 事务组，根据这个获取tc服务的cluster名称，将来可以通过集群名称做负载均衡，相同机房的优先
+  tx-service-group: seata-tx-service-group
+  service:
+    # 事务组与TC服务cluster的映射关系
+    vgroupMapping:
+      seata-tx-service-group: default
+
+  config:
+    type: nacos
+    nacos:
+     server-addr: 127.0.0.1:8848
+     username: mao
+     password: 123456
+     group: SEATA_GROUP
+
+  data-source-proxy-mode: XA
+
+```
+
+
+
+
+
+order-service：
+
+```yaml
+# order-service 配置文件
+
+spring:
+
+  application:
+    name: order-service
+
+
+  # 配置数据源
+  datasource:
+    # 配置数据源-druid
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false
+      username: root
+      password: 20010713
+
+
+
+  cloud:
+    nacos:
+      discovery:
+        # nacos 服务端地址
+        server-addr: localhost:8848
+        # 配置集群名称，也就是机房位置
+        #cluster-name: HZ
+        # namespace: 5544c4b1-2899-4915-94af-f9940c01c2b9
+        # 是否为临时实例，true为临时实例
+        ephemeral: false
+
+
+
+ribbon:
+  eager-load:
+    # 开启饥饿加载
+    enabled: true
+
+
+
+# 设置日志级别，root表示根节点，即整体应用日志级别
+logging:
+  # 日志输出到文件的文件名
+  file:
+    name: order_server.log
+
+  # 设置日志组
+  group:
+    # 自定义组名，设置当前组中所包含的包
+    mao_pro: mao
+  level:
+    org.springframework.cloud.alibaba.seata.web: debug
+    root: info
+    # 为对应组设置日志级别
+    mao_pro: debug
+    # 日志输出格式
+  # pattern:
+  # console: "%d %clr(%p) --- [%16t] %clr(%-40.40c){cyan} : %m %n"
+
+
+
+
+mybatis-plus:
+  global-config:
+    db-config:
+      id-type: auto
+
+
+server:
+  port: 8082
+
+
+feign:
+  # 配置连接池
+  httpclient:
+    # 开启feign对HttpClient的支持
+    enabled: true
+    # 最大的连接数
+    max-connections: 200
+    # 每个路径的最大连接数
+    max-connections-per-route: 50
+
+  client:
+    config:
+      # default是全局配置，如果是写服务名称，则是针对某个微服务的配置
+      default:
+         #日志级别，包含四种不同的级别：NONE、BASIC、HEADERS、FULL
+        loggerLevel: BASIC
+        # 连接超时时间
+        #connectTimeout:
+        # 响应结果的解析器，http远程调用的结果做解析，例如解析json字符串为java对象
+        #decoder:
+        # 请求参数编码，将请求参数编码，便于通过http请求发送
+        #encoder:
+        # 支持的注解格式，默认是SpringMVC的注解
+        #contract:
+        # 失败重试机制，请求失败的重试机制，默认是没有，不过会使用Ribbon的重试
+        #retryer:
+
+
+
+
+seata:
+  # TC服务注册中心的配置，微服务根据这些信息去注册中心获取tc服务地址
+  registry:
+    # 类型，file, nacos, eureka, redis, zk, consul, etcd3, sofa
+    type: nacos
+    # 配置nacos信息，和registry.conf中的配置一致
+    nacos:
+      # nacos地址
+      server-addr: localhost:8848
+      # seata tc 服务注册到 nacos的服务名称，可以自定义
+      application: seata-server
+      # 命名空间
+      namespace: ""
+      # 用户名
+      username: mao
+      # 密码
+      password: 123456
+      # 分组
+      group: DEFAULT_GROUP
+      # 事务组，根据这个获取tc服务的cluster名称，将来可以通过集群名称做负载均衡，相同机房的优先
+  tx-service-group: seata-tx-service-group
+  service:
+    # 事务组与TC服务cluster的映射关系
+    vgroupMapping:
+      seata-tx-service-group: default
+
+  config:
+    type: nacos
+    nacos:
+      server-addr: 127.0.0.1:8848
+      username: mao
+      password: 123456
+      group: SEATA_GROUP
+
+  data-source-proxy-mode: XA
+```
+
+
+
+
+
+
+
+storage-service：
+
+```yaml
+# storage-service 配置文件
+
+spring:
+
+  application:
+    name: storage-service
+
+
+  # 配置数据源
+  datasource:
+    # 配置数据源-druid
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false
+      username: root
+      password: 20010713
+
+
+
+  cloud:
+    nacos:
+      discovery:
+        # nacos 服务端地址
+        server-addr: localhost:8848
+        # 配置集群名称，也就是机房位置
+        #cluster-name: HZ
+        # namespace: 5544c4b1-2899-4915-94af-f9940c01c2b9
+        # 是否为临时实例，true为临时实例
+        ephemeral: false
+
+
+
+ribbon:
+  eager-load:
+    # 开启饥饿加载
+    enabled: true
+
+
+
+# 设置日志级别，root表示根节点，即整体应用日志级别
+logging:
+  # 日志输出到文件的文件名
+  file:
+    name: storage_server.log
+
+  # 设置日志组
+  group:
+    # 自定义组名，设置当前组中所包含的包
+    mao_pro: mao
+  level:
+    org.springframework.cloud.alibaba.seata.web: debug
+    root: info
+    # 为对应组设置日志级别
+    mao_pro: debug
+    # 日志输出格式
+  # pattern:
+  # console: "%d %clr(%p) --- [%16t] %clr(%-40.40c){cyan} : %m %n"
+
+
+
+
+mybatis-plus:
+  global-config:
+    db-config:
+      id-type: auto
+
+
+server:
+  port: 8081
+
+
+
+seata:
+  # TC服务注册中心的配置，微服务根据这些信息去注册中心获取tc服务地址
+  registry:
+    # 类型，file, nacos, eureka, redis, zk, consul, etcd3, sofa
+    type: nacos
+    # 配置nacos信息，和registry.conf中的配置一致
+    nacos:
+      # nacos地址
+      server-addr: localhost:8848
+      # seata tc 服务注册到 nacos的服务名称，可以自定义
+      application: seata-server
+      # 命名空间
+      namespace: ""
+      # 用户名
+      username: mao
+      # 密码
+      password: 123456
+      # 分组
+      group: DEFAULT_GROUP
+      # 事务组，根据这个获取tc服务的cluster名称，将来可以通过集群名称做负载均衡，相同机房的优先
+  tx-service-group: seata-tx-service-group
+  service:
+    # 事务组与TC服务cluster的映射关系
+    vgroupMapping:
+      seata-tx-service-group: default
+
+  config:
+    type: nacos
+    nacos:
+      server-addr: 127.0.0.1:8848
+      username: mao
+      password: 123456
+      group: SEATA_GROUP
+
+  data-source-proxy-mode: XA
+```
+
+
+
+
+
+3. 启动
+
+
+
+```sh
+C:\Users\mao\.jdks\openjdk-16.0.2\bin\java.exe --add-opens java.base/java.lang=ALL-UNNAMED -XX:TieredStopAtLevel=1 -noverify 
+...
+...
+...
+OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::        (v2.3.9.RELEASE)
+
+2022-07-26 12:47:21.961  INFO 10376 --- [           main] m.a.AccountServiceApplication            : No active profile set, falling back to default profiles: default
+2022-07-26 12:47:22.462  INFO 10376 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=bc328c64-c76a-38e8-af4b-94347371b21e
+2022-07-26 12:47:22.471  INFO 10376 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'io.seata.spring.boot.autoconfigure.SeataAutoConfiguration' of type [io.seata.spring.boot.autoconfigure.SeataAutoConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-26 12:47:22.493  INFO 10376 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'failureHandler' of type [io.seata.tm.api.DefaultFailureHandlerImpl] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-26 12:47:22.498  INFO 10376 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'springCloudAlibabaConfiguration' of type [io.seata.spring.boot.autoconfigure.properties.SpringCloudAlibabaConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-26 12:47:22.500  INFO 10376 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'seataProperties' of type [io.seata.spring.boot.autoconfigure.properties.SeataProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-26 12:47:22.500  INFO 10376 --- [           main] i.s.s.b.a.SeataAutoConfiguration         : Automatically configure Seata
+2022-07-26 12:47:22.503  INFO 10376 --- [           main] io.seata.config.FileConfiguration        : The file name of the operation is registry
+2022-07-26 12:47:22.536  INFO 10376 --- [           main] io.seata.config.ConfigurationFactory     : load Configuration:FileConfiguration$$EnhancerByCGLIB$$862af1eb
+2022-07-26 12:47:22.539  INFO 10376 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'configProperties' of type [io.seata.spring.boot.autoconfigure.properties.config.ConfigProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-26 12:47:22.544  INFO 10376 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'configNacosProperties' of type [io.seata.spring.boot.autoconfigure.properties.config.ConfigNacosProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-26 12:47:22.788  INFO 10376 --- [           main] i.s.s.a.GlobalTransactionScanner         : Initializing Global Transaction Clients ... 
+2022-07-26 12:47:22.889  INFO 10376 --- [           main] i.s.core.rpc.netty.NettyClientBootstrap  : NettyClientBootstrap has started
+2022-07-26 12:47:22.889  INFO 10376 --- [           main] i.s.s.a.GlobalTransactionScanner         : Transaction Manager Client is initialized. applicationId[account-service] txServiceGroup[seata-tx-service-group]
+2022-07-26 12:47:22.899  INFO 10376 --- [           main] io.seata.rm.datasource.AsyncWorker       : Async Commit Buffer Limit: 10000
+2022-07-26 12:47:22.899  INFO 10376 --- [           main] i.s.rm.datasource.xa.ResourceManagerXA   : ResourceManagerXA init ...
+2022-07-26 12:47:22.910  INFO 10376 --- [           main] i.s.core.rpc.netty.NettyClientBootstrap  : NettyClientBootstrap has started
+2022-07-26 12:47:22.910  INFO 10376 --- [           main] i.s.s.a.GlobalTransactionScanner         : Resource Manager is initialized. applicationId[account-service] txServiceGroup[seata-tx-service-group]
+2022-07-26 12:47:22.910  INFO 10376 --- [           main] i.s.s.a.GlobalTransactionScanner         : Global Transaction Clients are initialized. 
+2022-07-26 12:47:22.912  INFO 10376 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'io.seata.spring.boot.autoconfigure.SeataDataSourceAutoConfiguration' of type [io.seata.spring.boot.autoconfigure.SeataDataSourceAutoConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-26 12:47:23.129  INFO 10376 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8083 (http)
+2022-07-26 12:47:23.135  INFO 10376 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-07-26 12:47:23.136  INFO 10376 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.43]
+2022-07-26 12:47:23.241  INFO 10376 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-07-26 12:47:23.241  INFO 10376 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1267 ms
+2022-07-26 12:47:23.309  INFO 10376 --- [           main] c.a.d.s.b.a.DruidDataSourceAutoConfigure : Init DruidDataSource
+2022-07-26 12:47:23.395  INFO 10376 --- [           main] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+2022-07-26 12:47:23.405  INFO 10376 --- [           main] .s.s.a.d.SeataAutoDataSourceProxyCreator : Auto proxy of [dataSource]
+2022-07-26 12:47:23.670  INFO 10376 --- [           main] i.s.c.r.netty.NettyClientChannelManager  : will connect to 172.17.144.1:8091
+2022-07-26 12:47:23.671  INFO 10376 --- [           main] i.s.c.rpc.netty.RmNettyRemotingClient    : RM will register :jdbc:mysql://localhost:3306/seata_demo
+2022-07-26 12:47:23.672  INFO 10376 --- [           main] i.s.core.rpc.netty.NettyPoolableFactory  : NettyPool create channel to transactionRole:RMROLE,address:172.17.144.1:8091,msg:< RegisterRMRequest{resourceIds='jdbc:mysql://localhost:3306/seata_demo', applicationId='account-service', transactionServiceGroup='seata-tx-service-group'} >
+2022-07-26 12:47:23.894  INFO 10376 --- [           main] i.s.c.rpc.netty.RmNettyRemotingClient    : register RM success. client version:1.4.2, server version:1.4.2,channel:[id: 0x128f7159, L:/172.17.144.1:65513 - R:/172.17.144.1:8091]
+2022-07-26 12:47:23.900  INFO 10376 --- [           main] i.s.core.rpc.netty.NettyPoolableFactory  : register success, cost 134 ms, version:1.4.2,role:RMROLE,channel:[id: 0x128f7159, L:/172.17.144.1:65513 - R:/172.17.144.1:8091]
+ _ _   |_  _ _|_. ___ _ |    _ 
+| | |\/|_)(_| | |_\  |_)||_|_\ 
+     /               |         
+                        3.5.1 
+2022-07-26 12:47:24.212  WARN 10376 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-26 12:47:24.212  INFO 10376 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-26 12:47:24.215  WARN 10376 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-26 12:47:24.215  INFO 10376 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-26 12:47:24.312  INFO 10376 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-26 12:47:24.501  INFO 10376 --- [           main] o.s.s.c.ThreadPoolTaskScheduler          : Initializing ExecutorService 'Nacos-Watch-Task-Scheduler'
+2022-07-26 12:47:24.806  INFO 10376 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8083 (http) with context path ''
+2022-07-26 12:47:24.832  INFO 10376 --- [           main] c.a.c.n.registry.NacosServiceRegistry    : nacos registry, DEFAULT_GROUP account-service 192.168.202.1:8083 register finished
+2022-07-26 12:47:24.953  INFO 10376 --- [           main] m.a.AccountServiceApplication            : Started AccountServiceApplication in 3.833 seconds (JVM running for 4.396)
+2022-07-26 12:48:22.881  INFO 10376 --- [eoutChecker_1_1] i.s.c.r.netty.NettyClientChannelManager  : will connect to 172.17.144.1:8091
+2022-07-26 12:48:22.882  INFO 10376 --- [eoutChecker_1_1] i.s.core.rpc.netty.NettyPoolableFactory  : NettyPool create channel to transactionRole:TMROLE,address:172.17.144.1:8091,msg:< RegisterTMRequest{applicationId='account-service', transactionServiceGroup='seata-tx-service-group'} >
+2022-07-26 12:48:22.894  INFO 10376 --- [eoutChecker_1_1] i.s.c.rpc.netty.TmNettyRemotingClient    : register TM success. client version:1.4.2, server version:1.4.2,channel:[id: 0x52e87386, L:/172.17.144.1:49256 - R:/172.17.144.1:8091]
+2022-07-26 12:48:22.894  INFO 10376 --- [eoutChecker_1_1] i.s.core.rpc.netty.NettyPoolableFactory  : register success, cost 9 ms, version:1.4.2,role:TMROLE,channel:[id: 0x52e87386, L:/172.17.144.1:49256 - R:/172.17.144.1:8091]
+```
+
+
+
+
+
+```sh
+C:\Users\mao\.jdks\openjdk-16.0.2\bin\java.exe --add-opens java.base/java.lang=ALL-UNNAMED -XX:TieredStopAtLevel=1 -noverify 
+...
+...
+...
+OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::        (v2.3.9.RELEASE)
+
+2022-07-26 12:49:13.412  INFO 15864 --- [           main] m.orderservice.OrderServiceApplication   : No active profile set, falling back to default profiles: default
+2022-07-26 12:49:13.955  INFO 15864 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=49e36265-0346-35d4-84fb-39196acbeec2
+2022-07-26 12:49:13.965  INFO 15864 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'io.seata.spring.boot.autoconfigure.SeataAutoConfiguration' of type [io.seata.spring.boot.autoconfigure.SeataAutoConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-26 12:49:13.986  INFO 15864 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'failureHandler' of type [io.seata.tm.api.DefaultFailureHandlerImpl] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-26 12:49:13.990  INFO 15864 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'springCloudAlibabaConfiguration' of type [io.seata.spring.boot.autoconfigure.properties.SpringCloudAlibabaConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-26 12:49:13.992  INFO 15864 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'seataProperties' of type [io.seata.spring.boot.autoconfigure.properties.SeataProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-26 12:49:13.993  INFO 15864 --- [           main] i.s.s.b.a.SeataAutoConfiguration         : Automatically configure Seata
+2022-07-26 12:49:13.996  INFO 15864 --- [           main] io.seata.config.FileConfiguration        : The file name of the operation is registry
+2022-07-26 12:49:14.028  INFO 15864 --- [           main] io.seata.config.ConfigurationFactory     : load Configuration:FileConfiguration$$EnhancerByCGLIB$$862af1eb
+2022-07-26 12:49:14.031  INFO 15864 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'configProperties' of type [io.seata.spring.boot.autoconfigure.properties.config.ConfigProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-26 12:49:14.036  INFO 15864 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'configNacosProperties' of type [io.seata.spring.boot.autoconfigure.properties.config.ConfigNacosProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-26 12:49:14.258  INFO 15864 --- [           main] i.s.s.a.GlobalTransactionScanner         : Initializing Global Transaction Clients ... 
+2022-07-26 12:49:14.360  INFO 15864 --- [           main] i.s.core.rpc.netty.NettyClientBootstrap  : NettyClientBootstrap has started
+2022-07-26 12:49:14.360  INFO 15864 --- [           main] i.s.s.a.GlobalTransactionScanner         : Transaction Manager Client is initialized. applicationId[order-service] txServiceGroup[seata-tx-service-group]
+2022-07-26 12:49:14.369  INFO 15864 --- [           main] io.seata.rm.datasource.AsyncWorker       : Async Commit Buffer Limit: 10000
+2022-07-26 12:49:14.369  INFO 15864 --- [           main] i.s.rm.datasource.xa.ResourceManagerXA   : ResourceManagerXA init ...
+2022-07-26 12:49:14.373  INFO 15864 --- [           main] i.s.core.rpc.netty.NettyClientBootstrap  : NettyClientBootstrap has started
+2022-07-26 12:49:14.374  INFO 15864 --- [           main] i.s.s.a.GlobalTransactionScanner         : Resource Manager is initialized. applicationId[order-service] txServiceGroup[seata-tx-service-group]
+2022-07-26 12:49:14.374  INFO 15864 --- [           main] i.s.s.a.GlobalTransactionScanner         : Global Transaction Clients are initialized. 
+2022-07-26 12:49:14.375  INFO 15864 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'io.seata.spring.boot.autoconfigure.SeataDataSourceAutoConfiguration' of type [io.seata.spring.boot.autoconfigure.SeataDataSourceAutoConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-26 12:49:14.427  INFO 15864 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'com.alibaba.cloud.seata.feign.SeataFeignClientAutoConfiguration$FeignBeanPostProcessorConfiguration' of type [com.alibaba.cloud.seata.feign.SeataFeignClientAutoConfiguration$FeignBeanPostProcessorConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-26 12:49:14.429  INFO 15864 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'seataFeignObjectWrapper' of type [com.alibaba.cloud.seata.feign.SeataFeignObjectWrapper] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-26 12:49:14.583  INFO 15864 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8082 (http)
+2022-07-26 12:49:14.590  INFO 15864 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-07-26 12:49:14.590  INFO 15864 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.43]
+2022-07-26 12:49:14.702  INFO 15864 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-07-26 12:49:14.702  INFO 15864 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1272 ms
+2022-07-26 12:49:15.045  INFO 15864 --- [           main] c.a.d.s.b.a.DruidDataSourceAutoConfigure : Init DruidDataSource
+2022-07-26 12:49:15.139  INFO 15864 --- [           main] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+2022-07-26 12:49:15.150  INFO 15864 --- [           main] .s.s.a.d.SeataAutoDataSourceProxyCreator : Auto proxy of [dataSource]
+2022-07-26 12:49:15.399  INFO 15864 --- [           main] i.s.c.r.netty.NettyClientChannelManager  : will connect to 172.17.144.1:8091
+2022-07-26 12:49:15.399  INFO 15864 --- [           main] i.s.c.rpc.netty.RmNettyRemotingClient    : RM will register :jdbc:mysql://localhost:3306/seata_demo
+2022-07-26 12:49:15.401  INFO 15864 --- [           main] i.s.core.rpc.netty.NettyPoolableFactory  : NettyPool create channel to transactionRole:RMROLE,address:172.17.144.1:8091,msg:< RegisterRMRequest{resourceIds='jdbc:mysql://localhost:3306/seata_demo', applicationId='order-service', transactionServiceGroup='seata-tx-service-group'} >
+2022-07-26 12:49:15.525  INFO 15864 --- [           main] i.s.c.rpc.netty.RmNettyRemotingClient    : register RM success. client version:1.4.2, server version:1.4.2,channel:[id: 0x7faf6c8c, L:/172.17.144.1:49591 - R:/172.17.144.1:8091]
+2022-07-26 12:49:15.533  INFO 15864 --- [           main] i.s.core.rpc.netty.NettyPoolableFactory  : register success, cost 45 ms, version:1.4.2,role:RMROLE,channel:[id: 0x7faf6c8c, L:/172.17.144.1:49591 - R:/172.17.144.1:8091]
+ _ _   |_  _ _|_. ___ _ |    _ 
+| | |\/|_)(_| | |_\  |_)||_|_\ 
+     /               |         
+                        3.5.1 
+2022-07-26 12:49:15.832  WARN 15864 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-26 12:49:15.832  INFO 15864 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-26 12:49:15.834  WARN 15864 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-26 12:49:15.835  INFO 15864 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-26 12:49:15.916  INFO 15864 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-26 12:49:15.974  INFO 15864 --- [           main] o.s.b.a.w.s.WelcomePageHandlerMapping    : Adding welcome page: class path resource [static/index.html]
+2022-07-26 12:49:16.109  INFO 15864 --- [           main] o.s.s.c.ThreadPoolTaskScheduler          : Initializing ExecutorService 'Nacos-Watch-Task-Scheduler'
+2022-07-26 12:49:16.394  INFO 15864 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8082 (http) with context path ''
+2022-07-26 12:49:16.402  INFO 15864 --- [           main] c.a.c.n.registry.NacosServiceRegistry    : nacos registry, DEFAULT_GROUP order-service 192.168.202.1:8082 register finished
+2022-07-26 12:49:16.509  INFO 15864 --- [           main] m.orderservice.OrderServiceApplication   : Started OrderServiceApplication in 3.856 seconds (JVM running for 4.427)
+2022-07-26 12:49:33.351  INFO 15864 --- [h_RMROLE_1_1_32] i.s.c.r.p.client.RmUndoLogProcessor      : rm handle undo log process:UndoLogDeleteRequest{resourceId='jdbc:mysql://localhost:3306/seata_demo', saveDays=7, branchType=AT}
+2022-07-26 12:49:33.351  WARN 15864 --- [h_RMROLE_1_1_32] io.seata.rm.RMHandlerAT                  : 无法获取 dataSourceProxy 以删除 undolog on jdbc:mysql://localhost:3306/seata_demo
+2022-07-26 12:50:14.366  INFO 15864 --- [eoutChecker_1_1] i.s.c.r.netty.NettyClientChannelManager  : will connect to 172.17.144.1:8091
+2022-07-26 12:50:14.367  INFO 15864 --- [eoutChecker_1_1] i.s.core.rpc.netty.NettyPoolableFactory  : NettyPool create channel to transactionRole:TMROLE,address:172.17.144.1:8091,msg:< RegisterTMRequest{applicationId='order-service', transactionServiceGroup='seata-tx-service-group'} >
+2022-07-26 12:50:14.375  INFO 15864 --- [eoutChecker_1_1] i.s.c.rpc.netty.TmNettyRemotingClient    : register TM success. client version:1.4.2, server version:1.4.2,channel:[id: 0x3f6d48da, L:/172.17.144.1:49852 - R:/172.17.144.1:8091]
+2022-07-26 12:50:14.375  INFO 15864 --- [eoutChecker_1_1] i.s.core.rpc.netty.NettyPoolableFactory  : register success, cost 6 ms, version:1.4.2,role:TMROLE,channel:[id: 0x3f6d48da, L:/172.17.144.1:49852 - R:/172.17.144.1:8091]
+```
+
+
+
+
+
+```sh
+C:\Users\mao\.jdks\openjdk-16.0.2\bin\java.exe --add-opens java.base/java.lang=ALL-UNNAMED -XX:TieredStopAtLevel=1 -noverify 
+...
+...
+...
+OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::        (v2.3.9.RELEASE)
+
+2022-07-26 12:49:25.068  INFO 11916 --- [           main] m.s.StorageServiceApplication            : No active profile set, falling back to default profiles: default
+2022-07-26 12:49:25.567  INFO 11916 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=915700d7-6bb2-3380-b35c-2d5799dffea2
+2022-07-26 12:49:25.577  INFO 11916 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'io.seata.spring.boot.autoconfigure.SeataAutoConfiguration' of type [io.seata.spring.boot.autoconfigure.SeataAutoConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-26 12:49:25.600  INFO 11916 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'failureHandler' of type [io.seata.tm.api.DefaultFailureHandlerImpl] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-26 12:49:25.604  INFO 11916 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'springCloudAlibabaConfiguration' of type [io.seata.spring.boot.autoconfigure.properties.SpringCloudAlibabaConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-26 12:49:25.606  INFO 11916 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'seataProperties' of type [io.seata.spring.boot.autoconfigure.properties.SeataProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-26 12:49:25.607  INFO 11916 --- [           main] i.s.s.b.a.SeataAutoConfiguration         : Automatically configure Seata
+2022-07-26 12:49:25.610  INFO 11916 --- [           main] io.seata.config.FileConfiguration        : The file name of the operation is registry
+2022-07-26 12:49:25.642  INFO 11916 --- [           main] io.seata.config.ConfigurationFactory     : load Configuration:FileConfiguration$$EnhancerByCGLIB$$862af1eb
+2022-07-26 12:49:25.645  INFO 11916 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'configProperties' of type [io.seata.spring.boot.autoconfigure.properties.config.ConfigProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-26 12:49:25.650  INFO 11916 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'configNacosProperties' of type [io.seata.spring.boot.autoconfigure.properties.config.ConfigNacosProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-26 12:49:25.872  INFO 11916 --- [           main] i.s.s.a.GlobalTransactionScanner         : Initializing Global Transaction Clients ... 
+2022-07-26 12:49:25.963  INFO 11916 --- [           main] i.s.core.rpc.netty.NettyClientBootstrap  : NettyClientBootstrap has started
+2022-07-26 12:49:25.963  INFO 11916 --- [           main] i.s.s.a.GlobalTransactionScanner         : Transaction Manager Client is initialized. applicationId[storage-service] txServiceGroup[seata-tx-service-group]
+2022-07-26 12:49:25.971  INFO 11916 --- [           main] io.seata.rm.datasource.AsyncWorker       : Async Commit Buffer Limit: 10000
+2022-07-26 12:49:25.972  INFO 11916 --- [           main] i.s.rm.datasource.xa.ResourceManagerXA   : ResourceManagerXA init ...
+2022-07-26 12:49:25.976  INFO 11916 --- [           main] i.s.core.rpc.netty.NettyClientBootstrap  : NettyClientBootstrap has started
+2022-07-26 12:49:25.976  INFO 11916 --- [           main] i.s.s.a.GlobalTransactionScanner         : Resource Manager is initialized. applicationId[storage-service] txServiceGroup[seata-tx-service-group]
+2022-07-26 12:49:25.976  INFO 11916 --- [           main] i.s.s.a.GlobalTransactionScanner         : Global Transaction Clients are initialized. 
+2022-07-26 12:49:25.985  INFO 11916 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'io.seata.spring.boot.autoconfigure.SeataDataSourceAutoConfiguration' of type [io.seata.spring.boot.autoconfigure.SeataDataSourceAutoConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-26 12:49:26.196  INFO 11916 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8081 (http)
+2022-07-26 12:49:26.203  INFO 11916 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-07-26 12:49:26.203  INFO 11916 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.43]
+2022-07-26 12:49:26.310  INFO 11916 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-07-26 12:49:26.311  INFO 11916 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1212 ms
+2022-07-26 12:49:26.373  INFO 11916 --- [           main] c.a.d.s.b.a.DruidDataSourceAutoConfigure : Init DruidDataSource
+2022-07-26 12:49:26.460  INFO 11916 --- [           main] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+2022-07-26 12:49:26.470  INFO 11916 --- [           main] .s.s.a.d.SeataAutoDataSourceProxyCreator : Auto proxy of [dataSource]
+2022-07-26 12:49:26.716  INFO 11916 --- [           main] i.s.c.r.netty.NettyClientChannelManager  : will connect to 172.17.144.1:8091
+2022-07-26 12:49:26.716  INFO 11916 --- [           main] i.s.c.rpc.netty.RmNettyRemotingClient    : RM will register :jdbc:mysql://localhost:3306/seata_demo
+2022-07-26 12:49:26.718  INFO 11916 --- [           main] i.s.core.rpc.netty.NettyPoolableFactory  : NettyPool create channel to transactionRole:RMROLE,address:172.17.144.1:8091,msg:< RegisterRMRequest{resourceIds='jdbc:mysql://localhost:3306/seata_demo', applicationId='storage-service', transactionServiceGroup='seata-tx-service-group'} >
+2022-07-26 12:49:26.830  INFO 11916 --- [           main] i.s.c.rpc.netty.RmNettyRemotingClient    : register RM success. client version:1.4.2, server version:1.4.2,channel:[id: 0x451ac940, L:/172.17.144.1:49629 - R:/172.17.144.1:8091]
+2022-07-26 12:49:26.836  INFO 11916 --- [           main] i.s.core.rpc.netty.NettyPoolableFactory  : register success, cost 41 ms, version:1.4.2,role:RMROLE,channel:[id: 0x451ac940, L:/172.17.144.1:49629 - R:/172.17.144.1:8091]
+ _ _   |_  _ _|_. ___ _ |    _ 
+| | |\/|_)(_| | |_\  |_)||_|_\ 
+     /               |         
+                        3.5.1 
+2022-07-26 12:49:27.131  WARN 11916 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-26 12:49:27.131  INFO 11916 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-26 12:49:27.134  WARN 11916 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-26 12:49:27.134  INFO 11916 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-26 12:49:27.233  INFO 11916 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-26 12:49:27.409  INFO 11916 --- [           main] o.s.s.c.ThreadPoolTaskScheduler          : Initializing ExecutorService 'Nacos-Watch-Task-Scheduler'
+2022-07-26 12:49:27.725  INFO 11916 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8081 (http) with context path ''
+2022-07-26 12:49:27.731  INFO 11916 --- [           main] c.a.c.n.registry.NacosServiceRegistry    : nacos registry, DEFAULT_GROUP storage-service 192.168.202.1:8081 register finished
+2022-07-26 12:49:27.835  INFO 11916 --- [           main] m.s.StorageServiceApplication            : Started StorageServiceApplication in 3.579 seconds (JVM running for 4.137)
+2022-07-26 12:50:25.958  INFO 11916 --- [eoutChecker_1_1] i.s.c.r.netty.NettyClientChannelManager  : will connect to 172.17.144.1:8091
+2022-07-26 12:50:25.960  INFO 11916 --- [eoutChecker_1_1] i.s.core.rpc.netty.NettyPoolableFactory  : NettyPool create channel to transactionRole:TMROLE,address:172.17.144.1:8091,msg:< RegisterTMRequest{applicationId='storage-service', transactionServiceGroup='seata-tx-service-group'} >
+2022-07-26 12:50:25.968  INFO 11916 --- [eoutChecker_1_1] i.s.c.rpc.netty.TmNettyRemotingClient    : register TM success. client version:1.4.2, server version:1.4.2,channel:[id: 0xb5a13657, L:/172.17.144.1:50165 - R:/172.17.144.1:8091]
+2022-07-26 12:50:25.968  INFO 11916 --- [eoutChecker_1_1] i.s.core.rpc.netty.NettyPoolableFactory  : register success, cost 6 ms, version:1.4.2,role:TMROLE,channel:[id: 0xb5a13657, L:/172.17.144.1:50165 - R:/172.17.144.1:8091]
+```
+
+
+
+
+
+4. 查看seata控制台
+
+
+
+```sh
+SLF4J: A number (18) of logging calls during the initialization phase have been intercepted and are
+SLF4J: now being replayed. These are subject to the filtering rules of the underlying logging system.
+SLF4J: See also http://www.slf4j.org/codes.html#replay
+12:46:31.465  INFO --- [                     main] io.seata.config.FileConfiguration        : The file name of the operation is registry
+12:46:31.469  INFO --- [                     main] io.seata.config.FileConfiguration        : The configuration file used is H:\opensoft\seata-server-1.4.2\conf\registry.conf
+12:46:33.263  INFO --- [                     main] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+12:46:33.733  INFO --- [                     main] i.s.core.rpc.netty.NettyServerBootstrap  : Server started, listen port: 8091
+12:47:23.870  INFO --- [rverHandlerThread_1_1_500] i.s.c.r.processor.server.RegRmProcessor  : RM register success,message:RegisterRMRequest{resourceIds='jdbc:mysql://localhost:3306/seata_demo', applicationId='account-service', transactionServiceGroup='seata-tx-service-group'},channel:[id: 0x26758c4f, L:/172.17.144.1:8091 - R:/172.17.144.1:65513],client version:1.4.2
+12:48:22.893  INFO --- [ttyServerNIOWorker_1_2_32] i.s.c.r.processor.server.RegTmProcessor  : TM register success,message:RegisterTMRequest{applicationId='account-service', transactionServiceGroup='seata-tx-service-group'},channel:[id: 0x28194d70, L:/172.17.144.1:8091 - R:/172.17.144.1:49256],client version:1.4.2
+12:49:15.519  INFO --- [rverHandlerThread_1_2_500] i.s.c.r.processor.server.RegRmProcessor  : RM register success,message:RegisterRMRequest{resourceIds='jdbc:mysql://localhost:3306/seata_demo', applicationId='order-service', transactionServiceGroup='seata-tx-service-group'},channel:[id: 0xeb83197d, L:/172.17.144.1:8091 - R:/172.17.144.1:49591],client version:1.4.2
+12:49:26.823  INFO --- [rverHandlerThread_1_3_500] i.s.c.r.processor.server.RegRmProcessor  : RM register success,message:RegisterRMRequest{resourceIds='jdbc:mysql://localhost:3306/seata_demo', applicationId='storage-service', transactionServiceGroup='seata-tx-service-group'},channel:[id: 0x031d3145, L:/172.17.144.1:8091 - R:/172.17.144.1:49629],client version:1.4.2
+12:50:14.374  INFO --- [ttyServerNIOWorker_1_5_32] i.s.c.r.processor.server.RegTmProcessor  : TM register success,message:RegisterTMRequest{applicationId='order-service', transactionServiceGroup='seata-tx-service-group'},channel:[id: 0x7b29d1be, L:/172.17.144.1:8091 - R:/172.17.144.1:49852],client version:1.4.2
+12:50:25.967  INFO --- [ttyServerNIOWorker_1_6_32] i.s.c.r.processor.server.RegTmProcessor  : TM register success,message:RegisterTMRequest{applicationId='storage-service', transactionServiceGroup='seata-tx-service-group'},channel:[id: 0xf0972331, L:/172.17.144.1:8091 - R:/172.17.144.1:50165],client version:1.4.2
+```
+
+
+
+
 
