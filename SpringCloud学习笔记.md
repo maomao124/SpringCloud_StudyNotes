@@ -27780,3 +27780,438 @@ RM二阶段：
 
 
 
+1.修改配置文件
+
+
+
+修改application.yml文件（每个参与事务的微服务），开启XA模式
+
+
+
+```yaml
+seata:
+  data-source-proxy-mode: XA
+```
+
+
+
+
+
+2. 添加注解
+
+
+
+给发起全局事务的入口方法添加@GlobalTransactional注解
+
+
+
+```java
+package mao.orderservice.service.impl;
+
+import feign.FeignException;
+import io.seata.spring.annotation.GlobalTransactional;
+import lombok.extern.slf4j.Slf4j;
+import mao.orderservice.entity.Order;
+import mao.orderservice.feign.AccountFeignClient;
+import mao.orderservice.feign.StorageFeignClient;
+import mao.orderservice.mapper.OrderMapper;
+import mao.orderservice.service.OrderService;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import javax.annotation.Resource;
+
+/**
+ * Project name(项目名称)：spring_cloud_distributed_transaction_seata
+ * Package(包名): mao.orderservice.service.impl
+ * Class(类名): OrderServiceImpl
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/24
+ * Time(创建时间)： 20:49
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+@Service
+@Slf4j
+public class OrderServiceImpl implements OrderService
+{
+
+    @Resource
+    private AccountFeignClient accountFeignClient;
+    @Resource
+    private StorageFeignClient storageFeignClient;
+    @Resource
+    private OrderMapper orderMapper;
+
+    @Override
+    @GlobalTransactional
+    public Long create(Order order)
+    {
+        try
+        {
+            // 创建订单
+            orderMapper.insert(order);
+            // 扣用户余额
+            accountFeignClient.deduct(order.getUserId(), order.getMoney());
+            // 扣库存
+            storageFeignClient.deduct(order.getCommodityCode(), order.getCount());
+
+        }
+        catch (FeignException e)
+        {
+            log.error("下单失败，原因:{}", e.contentUTF8(), e);
+            throw new RuntimeException(e.contentUTF8(), e);
+        }
+        catch (Exception e)
+        {
+            log.error("下单失败");
+            throw new RuntimeException(e);
+        }
+        return order.getId();
+    }
+}
+```
+
+
+
+
+
+3. 重启服务
+
+
+
+![image-20220726140411565](img/image-20220726140411565.png)
+
+
+
+
+
+4. 访问页面
+
+
+
+http://localhost:8082/
+
+
+
+5. 查看数据库
+
+
+
+![image-20220726140608319](img/image-20220726140608319.png)
+
+
+
+![image-20220726140620090](img/image-20220726140620090.png)
+
+
+
+![image-20220726140632106](img/image-20220726140632106.png)
+
+
+
+
+
+
+
+6. 修改页面内容
+
+
+
+总数为9，金额为100
+
+![image-20220726140725236](img/image-20220726140725236.png)
+
+
+
+
+
+7. 发送ajax请求
+
+
+
+![image-20220726140845354](img/image-20220726140845354.png)
+
+
+
+
+
+8. 查看日志
+
+
+
+account
+
+```sh
+
+2022-07-26 14:02:56.469  INFO 9900 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-26 14:02:56.472  WARN 9900 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-26 14:02:56.472  INFO 9900 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-26 14:02:56.588  INFO 9900 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-26 14:02:56.818  INFO 9900 --- [           main] o.s.s.c.ThreadPoolTaskScheduler          : Initializing ExecutorService 'Nacos-Watch-Task-Scheduler'
+2022-07-26 14:02:57.222  INFO 9900 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8083 (http) with context path ''
+2022-07-26 14:02:57.239  INFO 9900 --- [           main] c.a.c.n.registry.NacosServiceRegistry    : nacos registry, DEFAULT_GROUP account-service 192.168.202.1:8083 register finished
+2022-07-26 14:02:57.391  INFO 9900 --- [           main] m.a.AccountServiceApplication            : Started AccountServiceApplication in 4.513 seconds (JVM running for 5.134)
+2022-07-26 14:03:54.980  INFO 9900 --- [eoutChecker_1_1] i.s.c.r.netty.NettyClientChannelManager  : will connect to 172.17.144.1:8091
+2022-07-26 14:03:54.983  INFO 9900 --- [eoutChecker_1_1] i.s.core.rpc.netty.NettyPoolableFactory  : NettyPool create channel to transactionRole:TMROLE,address:172.17.144.1:8091,msg:< RegisterTMRequest{applicationId='account-service', transactionServiceGroup='seata-tx-service-group'} >
+2022-07-26 14:03:54.992  INFO 9900 --- [eoutChecker_1_1] i.s.c.rpc.netty.TmNettyRemotingClient    : register TM success. client version:1.4.2, server version:1.4.2,channel:[id: 0x96c5218d, L:/172.17.144.1:56990 - R:/172.17.144.1:8091]
+2022-07-26 14:03:54.992  INFO 9900 --- [eoutChecker_1_1] i.s.core.rpc.netty.NettyPoolableFactory  : register success, cost 7 ms, version:1.4.2,role:TMROLE,channel:[id: 0x96c5218d, L:/172.17.144.1:56990 - R:/172.17.144.1:8091]
+2022-07-26 14:08:18.127  INFO 9900 --- [nio-8083-exec-2] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2022-07-26 14:08:18.127  INFO 9900 --- [nio-8083-exec-2] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2022-07-26 14:08:18.131  INFO 9900 --- [nio-8083-exec-2] o.s.web.servlet.DispatcherServlet        : Completed initialization in 4 ms
+2022-07-26 14:08:18.163  WARN 9900 --- [nio-8083-exec-2] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false, version : 1.2.8, lastPacketReceivedIdleMillis : 322353
+2022-07-26 14:08:18.195  INFO 9900 --- [nio-8083-exec-2] m.a.service.impl.AccountServiceImpl      : 开始扣款
+2022-07-26 14:08:18.217 DEBUG 9900 --- [nio-8083-exec-2] m.a.mapper.AccountMapper.deduct          : ==>  Preparing: update account_tbl set money = money - 100 where user_id = ?
+2022-07-26 14:08:18.231 DEBUG 9900 --- [nio-8083-exec-2] m.a.mapper.AccountMapper.deduct          : ==> Parameters: user202103032042012(String)
+2022-07-26 14:08:18.234 DEBUG 9900 --- [nio-8083-exec-2] m.a.mapper.AccountMapper.deduct          : <==    Updates: 1
+2022-07-26 14:08:18.234  INFO 9900 --- [nio-8083-exec-2] m.a.service.impl.AccountServiceImpl      : 扣款成功
+2022-07-26 14:08:18.561  INFO 9900 --- [h_RMROLE_1_1_32] i.s.c.r.p.c.RmBranchRollbackProcessor    : rm handle branch rollback process:xid=172.17.144.1:8091:9070537907950690305,branchId=9070537907950690309,branchType=XA,resourceId=jdbc:mysql://localhost:3306/seata_demo,applicationData=null
+2022-07-26 14:08:18.563  INFO 9900 --- [h_RMROLE_1_1_32] io.seata.rm.AbstractRMHandler            : Branch Rollbacking: 172.17.144.1:8091:9070537907950690305 9070537907950690309 jdbc:mysql://localhost:3306/seata_demo
+2022-07-26 14:08:18.565  INFO 9900 --- [h_RMROLE_1_1_32] i.s.rm.datasource.xa.ResourceManagerXA   : 172.17.144.1:8091:9070537907950690305-9070537907950690309 was rollbacked
+2022-07-26 14:08:18.566  INFO 9900 --- [h_RMROLE_1_1_32] io.seata.rm.AbstractRMHandler            : Branch Rollbacked result: PhaseTwo_Rollbacked
+```
+
+
+
+
+
+order
+
+```sh
+
+2022-07-26 14:03:00.948  INFO 17528 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-26 14:03:01.005  INFO 17528 --- [           main] o.s.b.a.w.s.WelcomePageHandlerMapping    : Adding welcome page: class path resource [static/index.html]
+2022-07-26 14:03:01.148  INFO 17528 --- [           main] o.s.s.c.ThreadPoolTaskScheduler          : Initializing ExecutorService 'Nacos-Watch-Task-Scheduler'
+2022-07-26 14:03:01.437  INFO 17528 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8082 (http) with context path ''
+2022-07-26 14:03:01.443  INFO 17528 --- [           main] c.a.c.n.registry.NacosServiceRegistry    : nacos registry, DEFAULT_GROUP order-service 192.168.202.1:8082 register finished
+2022-07-26 14:03:01.549  INFO 17528 --- [           main] m.orderservice.OrderServiceApplication   : Started OrderServiceApplication in 4.471 seconds (JVM running for 5.074)
+2022-07-26 14:03:59.220  INFO 17528 --- [eoutChecker_1_1] i.s.c.r.netty.NettyClientChannelManager  : will connect to 172.17.144.1:8091
+2022-07-26 14:03:59.221  INFO 17528 --- [eoutChecker_1_1] i.s.core.rpc.netty.NettyPoolableFactory  : NettyPool create channel to transactionRole:TMROLE,address:172.17.144.1:8091,msg:< RegisterTMRequest{applicationId='order-service', transactionServiceGroup='seata-tx-service-group'} >
+2022-07-26 14:03:59.229  INFO 17528 --- [eoutChecker_1_1] i.s.c.rpc.netty.TmNettyRemotingClient    : register TM success. client version:1.4.2, server version:1.4.2,channel:[id: 0x97e55e72, L:/172.17.144.1:57014 - R:/172.17.144.1:8091]
+2022-07-26 14:03:59.229  INFO 17528 --- [eoutChecker_1_1] i.s.core.rpc.netty.NettyPoolableFactory  : register success, cost 6 ms, version:1.4.2,role:TMROLE,channel:[id: 0x97e55e72, L:/172.17.144.1:57014 - R:/172.17.144.1:8091]
+2022-07-26 14:04:38.461  INFO 17528 --- [nio-8082-exec-7] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2022-07-26 14:04:38.461  INFO 17528 --- [nio-8082-exec-7] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2022-07-26 14:04:38.467  INFO 17528 --- [nio-8082-exec-7] o.s.web.servlet.DispatcherServlet        : Completed initialization in 6 ms
+2022-07-26 14:08:17.656  INFO 17528 --- [nio-8082-exec-8] io.seata.tm.TransactionManagerHolder     : TransactionManager Singleton io.seata.tm.DefaultTransactionManager@3b460ea1
+2022-07-26 14:08:17.776  INFO 17528 --- [nio-8082-exec-8] i.seata.tm.api.DefaultGlobalTransaction  : Begin new global transaction [172.17.144.1:8091:9070537907950690305]
+2022-07-26 14:08:17.810  WARN 17528 --- [nio-8082-exec-8] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false, version : 1.2.8, lastPacketReceivedIdleMillis : 317548
+2022-07-26 14:08:17.821 DEBUG 17528 --- [nio-8082-exec-8] m.o.mapper.OrderMapper.insert            : ==>  Preparing: INSERT INTO order_tbl ( user_id, commodity_code, count, money ) VALUES ( ?, ?, ?, ? )
+2022-07-26 14:08:17.838 DEBUG 17528 --- [nio-8082-exec-8] m.o.mapper.OrderMapper.insert            : ==> Parameters: user202103032042012(String), 100202003032041(String), 9(Integer), 100(Integer)
+2022-07-26 14:08:17.891 DEBUG 17528 --- [nio-8082-exec-8] m.o.mapper.OrderMapper.insert            : <==    Updates: 1
+2022-07-26 14:08:17.901 DEBUG 17528 --- [nio-8082-exec-8] m.orderservice.feign.AccountFeignClient  : [AccountFeignClient#deduct] ---> PUT http://account-service/account/user202103032042012/100 HTTP/1.1
+2022-07-26 14:08:17.981  INFO 17528 --- [nio-8082-exec-8] c.netflix.config.ChainedDynamicProperty  : Flipping property: account-service.ribbon.ActiveConnectionsLimit to use NEXT property: niws.loadbalancer.availabilityFilteringRule.activeConnectionsLimit = 2147483647
+2022-07-26 14:08:17.993  INFO 17528 --- [nio-8082-exec-8] c.netflix.loadbalancer.BaseLoadBalancer  : Client: account-service instantiated a LoadBalancer: DynamicServerListLoadBalancer:{NFLoadBalancer:name=account-service,current list of Servers=[],Load balancer stats=Zone stats: {},Server stats: []}ServerList:null
+2022-07-26 14:08:18.004  INFO 17528 --- [nio-8082-exec-8] c.n.l.DynamicServerListLoadBalancer      : Using serverListUpdater PollingServerListUpdater
+2022-07-26 14:08:18.022  INFO 17528 --- [nio-8082-exec-8] c.netflix.config.ChainedDynamicProperty  : Flipping property: account-service.ribbon.ActiveConnectionsLimit to use NEXT property: niws.loadbalancer.availabilityFilteringRule.activeConnectionsLimit = 2147483647
+2022-07-26 14:08:18.026  INFO 17528 --- [nio-8082-exec-8] c.n.l.DynamicServerListLoadBalancer      : DynamicServerListLoadBalancer for client account-service initialized: DynamicServerListLoadBalancer:{NFLoadBalancer:name=account-service,current list of Servers=[192.168.202.1:8083],Load balancer stats=Zone stats: {unknown=[Zone:unknown;	Instance count:1;	Active connections count: 0;	Circuit breaker tripped count: 0;	Active connections per server: 0.0;]
+},Server stats: [[Server:192.168.202.1:8083;	Zone:UNKNOWN;	Total Requests:0;	Successive connection failure:0;	Total blackout seconds:0;	Last connection made:Thu Jan 01 08:00:00 CST 1970;	First connection made: Thu Jan 01 08:00:00 CST 1970;	Active Connections:0;	total failure count in last (1000) msecs:0;	average resp time:0.0;	90 percentile resp time:0.0;	95 percentile resp time:0.0;	min resp time:0.0;	max resp time:0.0;	stddev resp time:0.0]
+]}ServerList:com.alibaba.cloud.nacos.ribbon.NacosServerList@1210ae2d
+2022-07-26 14:08:18.259 DEBUG 17528 --- [nio-8082-exec-8] m.orderservice.feign.AccountFeignClient  : [AccountFeignClient#deduct] <--- HTTP/1.1 204  (357ms)
+2022-07-26 14:08:18.260 DEBUG 17528 --- [nio-8082-exec-8] m.orderservice.feign.StorageFeignClient  : [StorageFeignClient#deduct] ---> PUT http://storage-service/storage/100202003032041/9 HTTP/1.1
+2022-07-26 14:08:18.280  INFO 17528 --- [nio-8082-exec-8] c.netflix.config.ChainedDynamicProperty  : Flipping property: storage-service.ribbon.ActiveConnectionsLimit to use NEXT property: niws.loadbalancer.availabilityFilteringRule.activeConnectionsLimit = 2147483647
+2022-07-26 14:08:18.283  INFO 17528 --- [nio-8082-exec-8] c.netflix.loadbalancer.BaseLoadBalancer  : Client: storage-service instantiated a LoadBalancer: DynamicServerListLoadBalancer:{NFLoadBalancer:name=storage-service,current list of Servers=[],Load balancer stats=Zone stats: {},Server stats: []}ServerList:null
+2022-07-26 14:08:18.290  INFO 17528 --- [nio-8082-exec-8] c.n.l.DynamicServerListLoadBalancer      : Using serverListUpdater PollingServerListUpdater
+2022-07-26 14:08:18.302  INFO 17528 --- [nio-8082-exec-8] c.netflix.config.ChainedDynamicProperty  : Flipping property: storage-service.ribbon.ActiveConnectionsLimit to use NEXT property: niws.loadbalancer.availabilityFilteringRule.activeConnectionsLimit = 2147483647
+2022-07-26 14:08:18.305  INFO 17528 --- [nio-8082-exec-8] c.n.l.DynamicServerListLoadBalancer      : DynamicServerListLoadBalancer for client storage-service initialized: DynamicServerListLoadBalancer:{NFLoadBalancer:name=storage-service,current list of Servers=[192.168.202.1:8081],Load balancer stats=Zone stats: {unknown=[Zone:unknown;	Instance count:1;	Active connections count: 0;	Circuit breaker tripped count: 0;	Active connections per server: 0.0;]
+},Server stats: [[Server:192.168.202.1:8081;	Zone:UNKNOWN;	Total Requests:0;	Successive connection failure:0;	Total blackout seconds:0;	Last connection made:Thu Jan 01 08:00:00 CST 1970;	First connection made: Thu Jan 01 08:00:00 CST 1970;	Active Connections:0;	total failure count in last (1000) msecs:0;	average resp time:0.0;	90 percentile resp time:0.0;	95 percentile resp time:0.0;	min resp time:0.0;	max resp time:0.0;	stddev resp time:0.0]
+]}ServerList:com.alibaba.cloud.nacos.ribbon.NacosServerList@67ef3bab
+2022-07-26 14:08:18.537 DEBUG 17528 --- [nio-8082-exec-8] m.orderservice.feign.StorageFeignClient  : [StorageFeignClient#deduct] <--- HTTP/1.1 500  (276ms)
+2022-07-26 14:08:18.542 ERROR 17528 --- [nio-8082-exec-8] m.o.service.impl.OrderServiceImpl        : 下单失败，原因:{"timestamp":"2022-07-26T06:08:18.519+00:00","status":500,"error":"Internal Server Error","message":"","path":"/storage/100202003032041/9"}
+
+feign.FeignException$InternalServerError: [500 ] during [PUT] to [http://storage-service/storage/100202003032041/9] [StorageFeignClient#deduct(String,Integer)]: [{"timestamp":"2022-07-26T06:08:18.519+00:00","status":500,"error":"Internal Server Error","message":"","path":"/storage/100202003032041/9"}]
+	at feign.FeignException.serverErrorStatus(FeignException.java:231) ~[feign-core-10.10.1.jar:na]
+	at feign.FeignException.errorStatus(FeignException.java:180) ~[feign-core-10.10.1.jar:na]
+	at feign.FeignException.errorStatus(FeignException.java:169) ~[feign-core-10.10.1.jar:na]
+...
+...
+...
+
+2022-07-26 14:08:18.575  INFO 17528 --- [h_RMROLE_1_1_32] i.s.c.r.p.c.RmBranchRollbackProcessor    : rm handle branch rollback process:xid=172.17.144.1:8091:9070537907950690305,branchId=9070537907950690307,branchType=XA,resourceId=jdbc:mysql://localhost:3306/seata_demo,applicationData=null
+2022-07-26 14:08:18.576  INFO 17528 --- [h_RMROLE_1_1_32] io.seata.rm.AbstractRMHandler            : Branch Rollbacking: 172.17.144.1:8091:9070537907950690305 9070537907950690307 jdbc:mysql://localhost:3306/seata_demo
+2022-07-26 14:08:18.579  INFO 17528 --- [h_RMROLE_1_1_32] i.s.rm.datasource.xa.ResourceManagerXA   : 172.17.144.1:8091:9070537907950690305-9070537907950690307 was rollbacked
+2022-07-26 14:08:18.579  INFO 17528 --- [h_RMROLE_1_1_32] io.seata.rm.AbstractRMHandler            : Branch Rollbacked result: PhaseTwo_Rollbacked
+2022-07-26 14:08:18.592  INFO 17528 --- [nio-8082-exec-8] i.seata.tm.api.DefaultGlobalTransaction  : Suspending current transaction, xid = 172.17.144.1:8091:9070537907950690305
+2022-07-26 14:08:18.593  INFO 17528 --- [nio-8082-exec-8] i.seata.tm.api.DefaultGlobalTransaction  : [172.17.144.1:8091:9070537907950690305] rollback status: Rollbacked
+2022-07-26 14:08:18.599 ERROR 17528 --- [nio-8082-exec-8] o.a.c.c.C.[.[.[/].[dispatcherServlet]    : Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is java.lang.RuntimeException: {"timestamp":"2022-07-26T06:08:18.519+00:00","status":500,"error":"Internal Server Error","message":"","path":"/storage/100202003032041/9"}] with root cause
+
+feign.FeignException$InternalServerError: [500 ] during [PUT] to [http://storage-service/storage/100202003032041/9] [StorageFeignClient#deduct(String,Integer)]: [{"timestamp":"2022-07-26T06:08:18.519+00:00","status":500,"error":"Internal Server Error","message":"","path":"/storage/100202003032041/9"}]
+	at feign.FeignException.serverErrorStatus(FeignException.java:231) ~[feign-core-10.10.1.jar:na]
+	at feign.FeignException.errorStatus(FeignException.java:180) ~[feign-core-10.10.1.jar:na]
+...
+...
+...
+
+2022-07-26 14:08:19.007  INFO 17528 --- [erListUpdater-0] c.netflix.config.ChainedDynamicProperty  : Flipping property: account-service.ribbon.ActiveConnectionsLimit to use NEXT property: niws.loadbalancer.availabilityFilteringRule.activeConnectionsLimit = 2147483647
+2022-07-26 14:08:19.291  INFO 17528 --- [erListUpdater-1] c.netflix.config.ChainedDynamicProperty  : Flipping property: storage-service.ribbon.ActiveConnectionsLimit to use NEXT property: niws.loadbalancer.availabilityFilteringRule.activeConnectionsLimit = 2147483647
+
+```
+
+
+
+storage
+
+```sh
+
+2022-07-26 14:03:02.373  INFO 1696 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-26 14:03:02.376  WARN 1696 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-26 14:03:02.376  INFO 1696 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-26 14:03:02.471  INFO 1696 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-26 14:03:02.653  INFO 1696 --- [           main] o.s.s.c.ThreadPoolTaskScheduler          : Initializing ExecutorService 'Nacos-Watch-Task-Scheduler'
+2022-07-26 14:03:02.959  INFO 1696 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8081 (http) with context path ''
+2022-07-26 14:03:02.964  INFO 1696 --- [           main] c.a.c.n.registry.NacosServiceRegistry    : nacos registry, DEFAULT_GROUP storage-service 192.168.202.1:8081 register finished
+2022-07-26 14:03:03.068  INFO 1696 --- [           main] m.s.StorageServiceApplication            : Started StorageServiceApplication in 3.669 seconds (JVM running for 4.251)
+2022-07-26 14:04:01.154  INFO 1696 --- [eoutChecker_1_1] i.s.c.r.netty.NettyClientChannelManager  : will connect to 172.17.144.1:8091
+2022-07-26 14:04:01.156  INFO 1696 --- [eoutChecker_1_1] i.s.core.rpc.netty.NettyPoolableFactory  : NettyPool create channel to transactionRole:TMROLE,address:172.17.144.1:8091,msg:< RegisterTMRequest{applicationId='storage-service', transactionServiceGroup='seata-tx-service-group'} >
+2022-07-26 14:04:01.168  INFO 1696 --- [eoutChecker_1_1] i.s.c.rpc.netty.TmNettyRemotingClient    : register TM success. client version:1.4.2, server version:1.4.2,channel:[id: 0x0ed1608e, L:/172.17.144.1:57024 - R:/172.17.144.1:8091]
+2022-07-26 14:04:01.168  INFO 1696 --- [eoutChecker_1_1] i.s.core.rpc.netty.NettyPoolableFactory  : register success, cost 10 ms, version:1.4.2,role:TMROLE,channel:[id: 0x0ed1608e, L:/172.17.144.1:57024 - R:/172.17.144.1:8091]
+2022-07-26 14:08:18.348  INFO 1696 --- [nio-8081-exec-8] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2022-07-26 14:08:18.348  INFO 1696 --- [nio-8081-exec-8] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2022-07-26 14:08:18.352  INFO 1696 --- [nio-8081-exec-8] o.s.web.servlet.DispatcherServlet        : Completed initialization in 4 ms
+2022-07-26 14:08:18.382  WARN 1696 --- [nio-8081-exec-8] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false, version : 1.2.8, lastPacketReceivedIdleMillis : 316596
+2022-07-26 14:08:18.414  INFO 1696 --- [nio-8081-exec-8] m.s.service.impl.StorageServiceImpl      : 开始扣减库存
+2022-07-26 14:08:18.427 DEBUG 1696 --- [nio-8081-exec-8] m.s.mapper.StorageMapper.deduct          : ==>  Preparing: update storage_tbl set `count` = `count` - ? where commodity_code = ?
+2022-07-26 14:08:18.441 DEBUG 1696 --- [nio-8081-exec-8] m.s.mapper.StorageMapper.deduct          : ==> Parameters: 9(Integer), 100202003032041(String)
+2022-07-26 14:08:18.501  INFO 1696 --- [nio-8081-exec-8] i.s.rm.datasource.xa.ConnectionProxyXA   : 172.17.144.1:8091:9070537907950690305-9070537907950690312 was rollbacked
+2022-07-26 14:08:18.510 ERROR 1696 --- [nio-8081-exec-8] o.a.c.c.C.[.[.[/].[dispatcherServlet]    : Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is java.lang.RuntimeException: 扣减库存失败！] with root cause
+
+com.mysql.cj.jdbc.exceptions.MysqlDataTruncation: Data truncation: BIGINT UNSIGNED value is out of range in '(`seata_demo`.`storage_tbl`.`count` - 9)'
+	at com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping.translateException(SQLExceptionsMapping.java:104) ~[mysql-connector-java-8.0.27.jar:8.0.27]
+	at com.mysql.cj.jdbc.ClientPreparedStatement.executeInternal(ClientPreparedStatement.java:953) ~[mysql-connector-java-8.0.27.jar:8.0.27]
+...
+...
+...
+```
+
+
+
+
+
+8. 查看数据库
+
+
+
+![image-20220726141553891](img/image-20220726141553891.png)
+
+
+
+![image-20220726141608760](img/image-20220726141608760.png)
+
+
+
+![image-20220726141620625](img/image-20220726141620625.png)
+
+
+
+
+
+回滚成功
+
+
+
+
+
+9. 修改页面内容
+
+总数为1，金额为10
+
+![image-20220726141804073](img/image-20220726141804073.png)
+
+
+
+10. 发起ajax请求
+
+
+
+
+
+11. 查看日志
+
+
+
+```sh
+2022-07-26 14:17:07.069  WARN 9900 --- [nio-8083-exec-8] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false, version : 1.2.8, lastPacketReceivedIdleMillis : 528504
+2022-07-26 14:17:07.079  INFO 9900 --- [nio-8083-exec-8] m.a.service.impl.AccountServiceImpl      : 开始扣款
+2022-07-26 14:17:07.079 DEBUG 9900 --- [nio-8083-exec-8] m.a.mapper.AccountMapper.deduct          : ==>  Preparing: update account_tbl set money = money - 10 where user_id = ?
+2022-07-26 14:17:07.079 DEBUG 9900 --- [nio-8083-exec-8] m.a.mapper.AccountMapper.deduct          : ==> Parameters: user202103032042012(String)
+2022-07-26 14:17:07.080 DEBUG 9900 --- [nio-8083-exec-8] m.a.mapper.AccountMapper.deduct          : <==    Updates: 1
+2022-07-26 14:17:07.081  INFO 9900 --- [nio-8083-exec-8] m.a.service.impl.AccountServiceImpl      : 扣款成功
+2022-07-26 14:17:07.118  INFO 9900 --- [h_RMROLE_1_2_32] i.s.c.r.p.c.RmBranchCommitProcessor      : rm client handle branch commit process:xid=172.17.144.1:8091:9070537907950690316,branchId=9070537907950690320,branchType=XA,resourceId=jdbc:mysql://localhost:3306/seata_demo,applicationData=null
+2022-07-26 14:17:07.119  INFO 9900 --- [h_RMROLE_1_2_32] io.seata.rm.AbstractRMHandler            : Branch committing: 172.17.144.1:8091:9070537907950690316 9070537907950690320 jdbc:mysql://localhost:3306/seata_demo null
+2022-07-26 14:17:07.120  INFO 9900 --- [h_RMROLE_1_2_32] i.s.rm.datasource.xa.ResourceManagerXA   : 172.17.144.1:8091:9070537907950690316-9070537907950690320 was committed.
+2022-07-26 14:17:07.120  INFO 9900 --- [h_RMROLE_1_2_32] io.seata.rm.AbstractRMHandler            : Branch commit result: PhaseTwo_Committed
+```
+
+
+
+
+
+```sh
+2022-07-26 14:17:07.053  INFO 17528 --- [nio-8082-exec-4] i.seata.tm.api.DefaultGlobalTransaction  : Begin new global transaction [172.17.144.1:8091:9070537907950690316]
+2022-07-26 14:17:07.054  WARN 17528 --- [nio-8082-exec-4] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false, version : 1.2.8, lastPacketReceivedIdleMillis : 528475
+2022-07-26 14:17:07.057 DEBUG 17528 --- [nio-8082-exec-4] m.o.mapper.OrderMapper.insert            : ==>  Preparing: INSERT INTO order_tbl ( user_id, commodity_code, count, money ) VALUES ( ?, ?, ?, ? )
+2022-07-26 14:17:07.057 DEBUG 17528 --- [nio-8082-exec-4] m.o.mapper.OrderMapper.insert            : ==> Parameters: user202103032042012(String), 100202003032041(String), 1(Integer), 10(Integer)
+2022-07-26 14:17:07.066 DEBUG 17528 --- [nio-8082-exec-4] m.o.mapper.OrderMapper.insert            : <==    Updates: 1
+2022-07-26 14:17:07.066 DEBUG 17528 --- [nio-8082-exec-4] m.orderservice.feign.AccountFeignClient  : [AccountFeignClient#deduct] ---> PUT http://account-service/account/user202103032042012/10 HTTP/1.1
+2022-07-26 14:17:07.083 DEBUG 17528 --- [nio-8082-exec-4] m.orderservice.feign.AccountFeignClient  : [AccountFeignClient#deduct] <--- HTTP/1.1 204  (17ms)
+2022-07-26 14:17:07.084 DEBUG 17528 --- [nio-8082-exec-4] m.orderservice.feign.StorageFeignClient  : [StorageFeignClient#deduct] ---> PUT http://storage-service/storage/100202003032041/1 HTTP/1.1
+2022-07-26 14:17:07.101 DEBUG 17528 --- [nio-8082-exec-4] m.orderservice.feign.StorageFeignClient  : [StorageFeignClient#deduct] <--- HTTP/1.1 204  (16ms)
+2022-07-26 14:17:07.111  INFO 17528 --- [h_RMROLE_1_2_32] i.s.c.r.p.c.RmBranchCommitProcessor      : rm client handle branch commit process:xid=172.17.144.1:8091:9070537907950690316,branchId=9070537907950690318,branchType=XA,resourceId=jdbc:mysql://localhost:3306/seata_demo,applicationData=null
+2022-07-26 14:17:07.111  INFO 17528 --- [h_RMROLE_1_2_32] io.seata.rm.AbstractRMHandler            : Branch committing: 172.17.144.1:8091:9070537907950690316 9070537907950690318 jdbc:mysql://localhost:3306/seata_demo null
+2022-07-26 14:17:07.113  INFO 17528 --- [h_RMROLE_1_2_32] i.s.rm.datasource.xa.ResourceManagerXA   : 172.17.144.1:8091:9070537907950690316-9070537907950690318 was committed.
+2022-07-26 14:17:07.113  INFO 17528 --- [h_RMROLE_1_2_32] io.seata.rm.AbstractRMHandler            : Branch commit result: PhaseTwo_Committed
+2022-07-26 14:17:07.137  INFO 17528 --- [nio-8082-exec-4] i.seata.tm.api.DefaultGlobalTransaction  : Suspending current transaction, xid = 172.17.144.1:8091:9070537907950690316
+2022-07-26 14:17:07.138  INFO 17528 --- [nio-8082-exec-4] i.seata.tm.api.DefaultGlobalTransaction  : [172.17.144.1:8091:9070537907950690316] commit status: Committed
+```
+
+
+
+
+
+```sh
+2022-07-26 14:17:07.086  WARN 1696 --- [nio-8081-exec-9] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false, version : 1.2.8, lastPacketReceivedIdleMillis : 528596
+2022-07-26 14:17:07.095  INFO 1696 --- [nio-8081-exec-9] m.s.service.impl.StorageServiceImpl      : 开始扣减库存
+2022-07-26 14:17:07.095 DEBUG 1696 --- [nio-8081-exec-9] m.s.mapper.StorageMapper.deduct          : ==>  Preparing: update storage_tbl set `count` = `count` - ? where commodity_code = ?
+2022-07-26 14:17:07.095 DEBUG 1696 --- [nio-8081-exec-9] m.s.mapper.StorageMapper.deduct          : ==> Parameters: 1(Integer), 100202003032041(String)
+2022-07-26 14:17:07.096 DEBUG 1696 --- [nio-8081-exec-9] m.s.mapper.StorageMapper.deduct          : <==    Updates: 1
+2022-07-26 14:17:07.096  INFO 1696 --- [nio-8081-exec-9] m.s.service.impl.StorageServiceImpl      : 扣减库存成功
+2022-07-26 14:17:07.126  INFO 1696 --- [h_RMROLE_1_1_32] i.s.c.r.p.c.RmBranchCommitProcessor      : rm client handle branch commit process:xid=172.17.144.1:8091:9070537907950690316,branchId=9070537907950690322,branchType=XA,resourceId=jdbc:mysql://localhost:3306/seata_demo,applicationData=null
+2022-07-26 14:17:07.127  INFO 1696 --- [h_RMROLE_1_1_32] io.seata.rm.AbstractRMHandler            : Branch committing: 172.17.144.1:8091:9070537907950690316 9070537907950690322 jdbc:mysql://localhost:3306/seata_demo null
+2022-07-26 14:17:07.129  INFO 1696 --- [h_RMROLE_1_1_32] i.s.rm.datasource.xa.ResourceManagerXA   : 172.17.144.1:8091:9070537907950690316-9070537907950690322 was committed.
+2022-07-26 14:17:07.129  INFO 1696 --- [h_RMROLE_1_1_32] io.seata.rm.AbstractRMHandler            : Branch commit result: PhaseTwo_Committed
+```
+
+
+
+
+
+12. 查看数据库
+
+
+
+![image-20220726142132921](img/image-20220726142132921.png)
+
+
+
+
+
+![image-20220726142148042](img/image-20220726142148042.png)
+
+
+
+![image-20220726142202560](img/image-20220726142202560.png)
+
+
+
+
+
+
+
+提交成功
+
+
+
+
+
