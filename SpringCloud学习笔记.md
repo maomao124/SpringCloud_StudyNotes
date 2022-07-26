@@ -27618,7 +27618,59 @@ storage-service：
 
 
 
-#### 问题二 找不到配置项
+#### 问题二 找不到配置
+
+
+
+项目启动后seata找不到集群配置service.vgroupMapping.seata-tx-service-group
+
+
+
+解决：
+
+因为配置类型是nacos，需要在nacos上建立一个配置，名称为service.vgroupMapping.seata-tx-service-group，配置内容为default
+
+
+
+![image-20220726132015033](img/image-20220726132015033.png)
+
+
+
+
+
+
+
+![image-20220726132042889](img/image-20220726132042889.png)
+
+
+
+
+
+
+
+#### 问题三 打包问题
+
+使用maven打包时出现问题
+
+
+
+解决：
+
+jdk版本太高，lombok版本太低，需要将版本更改成1.18.20版本
+
+如果是jdk8，并不会出现问题
+
+
+
+```xml
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.20</version>
+        </dependency>
+```
+
+
 
 
 
