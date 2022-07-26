@@ -25378,6 +25378,10 @@ http://localhost:8848/nacos/
 
 
 
+分组为SEATA_GROUP
+
+
+
 **填写配置内容**
 
 
@@ -25993,7 +25997,7 @@ SLF4J: See also http://www.slf4j.org/codes.html#replay
 
 ## 微服务集成Seata
 
-1. 导入依赖
+### 1. 导入依赖
 
 
 
@@ -26314,7 +26318,7 @@ storage-service：
 
 
 
-2. 更改配置
+### 2. 更改配置
 
 
 
@@ -26745,7 +26749,7 @@ seata:
 
 
 
-3. 启动
+### 3. 启动
 
 
 
@@ -26988,6 +26992,633 @@ SLF4J: See also http://www.slf4j.org/codes.html#replay
 ```
 
 
+
+
+
+
+
+
+
+### 遇到的问题
+
+#### 问题一 无法启动
+
+
+
+日志：
+
+```sh
+OpenJDK 64-Bit Server VM warning: Options -Xverify:none and -noverify were deprecated in JDK 13 and will likely be removed in a future release.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::        (v2.3.9.RELEASE)
+
+2022-07-25 22:48:18.472  INFO 7592 --- [           main] m.a.AccountServiceApplication            : No active profile set, falling back to default profiles: default
+2022-07-25 22:48:18.970  INFO 7592 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=bc328c64-c76a-38e8-af4b-94347371b21e
+2022-07-25 22:48:18.980  INFO 7592 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'io.seata.spring.boot.autoconfigure.SeataAutoConfiguration' of type [io.seata.spring.boot.autoconfigure.SeataAutoConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-25 22:48:19.003  INFO 7592 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'failureHandler' of type [io.seata.tm.api.DefaultFailureHandlerImpl] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-25 22:48:19.007  INFO 7592 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'springCloudAlibabaConfiguration' of type [io.seata.spring.boot.autoconfigure.properties.SpringCloudAlibabaConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-25 22:48:19.009  INFO 7592 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'seataProperties' of type [io.seata.spring.boot.autoconfigure.properties.SeataProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-25 22:48:19.010  INFO 7592 --- [           main] i.s.s.b.a.SeataAutoConfiguration         : Automatically configure Seata
+2022-07-25 22:48:19.013  INFO 7592 --- [           main] io.seata.config.FileConfiguration        : The file name of the operation is registry
+2022-07-25 22:48:19.045  INFO 7592 --- [           main] io.seata.config.ConfigurationFactory     : load Configuration:FileConfiguration$$EnhancerByCGLIB$$862af1eb
+2022-07-25 22:48:19.048  INFO 7592 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'configProperties' of type [io.seata.spring.boot.autoconfigure.properties.config.ConfigProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-25 22:48:19.054  INFO 7592 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'configNacosProperties' of type [io.seata.spring.boot.autoconfigure.properties.config.ConfigNacosProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-25 22:48:19.244  WARN 7592 --- [           main] ConfigServletWebServerApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'globalTransactionScanner' defined in class path resource [io/seata/spring/boot/autoconfigure/SeataAutoConfiguration.class]: Bean instantiation via factory method failed; nested exception is org.springframework.beans.BeanInstantiationException: Failed to instantiate [io.seata.spring.annotation.GlobalTransactionScanner]: Factory method 'globalTransactionScanner' threw exception; nested exception is java.lang.ExceptionInInitializerError
+2022-07-25 22:48:19.252  INFO 7592 --- [           main] ConditionEvaluationReportLoggingListener : 
+
+Error starting ApplicationContext. To display the conditions report re-run your application with 'debug' enabled.
+2022-07-25 22:48:19.263 ERROR 7592 --- [           main] o.s.boot.SpringApplication               : Application run failed
+
+org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'globalTransactionScanner' defined in class path resource [io/seata/spring/boot/autoconfigure/SeataAutoConfiguration.class]: Bean instantiation via factory method failed; nested exception is org.springframework.beans.BeanInstantiationException: Failed to instantiate [io.seata.spring.annotation.GlobalTransactionScanner]: Factory method 'globalTransactionScanner' threw exception; nested exception is java.lang.ExceptionInInitializerError
+	at org.springframework.beans.factory.support.ConstructorResolver.instantiate(ConstructorResolver.java:657) ~[spring-beans-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at org.springframework.beans.factory.support.ConstructorResolver.instantiateUsingFactoryMethod(ConstructorResolver.java:637) ~[spring-beans-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.instantiateUsingFactoryMethod(AbstractAutowireCapableBeanFactory.java:1341) ~[spring-beans-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBeanInstance(AbstractAutowireCapableBeanFactory.java:1181) ~[spring-beans-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:556) ~[spring-beans-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:516) ~[spring-beans-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:324) ~[spring-beans-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:234) ~[spring-beans-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:322) ~[spring-beans-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:207) ~[spring-beans-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at org.springframework.context.support.PostProcessorRegistrationDelegate.registerBeanPostProcessors(PostProcessorRegistrationDelegate.java:229) ~[spring-context-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at org.springframework.context.support.AbstractApplicationContext.registerBeanPostProcessors(AbstractApplicationContext.java:723) ~[spring-context-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:536) ~[spring-context-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.refresh(ServletWebServerApplicationContext.java:143) ~[spring-boot-2.3.9.RELEASE.jar:2.3.9.RELEASE]
+	at org.springframework.boot.SpringApplication.refresh(SpringApplication.java:758) ~[spring-boot-2.3.9.RELEASE.jar:2.3.9.RELEASE]
+	at org.springframework.boot.SpringApplication.refresh(SpringApplication.java:750) ~[spring-boot-2.3.9.RELEASE.jar:2.3.9.RELEASE]
+	at org.springframework.boot.SpringApplication.refreshContext(SpringApplication.java:405) ~[spring-boot-2.3.9.RELEASE.jar:2.3.9.RELEASE]
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:315) ~[spring-boot-2.3.9.RELEASE.jar:2.3.9.RELEASE]
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1237) ~[spring-boot-2.3.9.RELEASE.jar:2.3.9.RELEASE]
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1226) ~[spring-boot-2.3.9.RELEASE.jar:2.3.9.RELEASE]
+	at mao.accountservice.AccountServiceApplication.main(AccountServiceApplication.java:12) ~[classes/:na]
+Caused by: org.springframework.beans.BeanInstantiationException: Failed to instantiate [io.seata.spring.annotation.GlobalTransactionScanner]: Factory method 'globalTransactionScanner' threw exception; nested exception is java.lang.ExceptionInInitializerError
+	at org.springframework.beans.factory.support.SimpleInstantiationStrategy.instantiate(SimpleInstantiationStrategy.java:185) ~[spring-beans-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	at org.springframework.beans.factory.support.ConstructorResolver.instantiate(ConstructorResolver.java:652) ~[spring-beans-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	... 20 common frames omitted
+Caused by: java.lang.ExceptionInInitializerError: null
+	at net.sf.cglib.core.KeyFactory$Generator.generateClass(KeyFactory.java:166) ~[cglib-3.1.jar:na]
+	at net.sf.cglib.core.DefaultGeneratorStrategy.generate(DefaultGeneratorStrategy.java:25) ~[cglib-3.1.jar:na]
+	at net.sf.cglib.core.AbstractClassGenerator.create(AbstractClassGenerator.java:216) ~[cglib-3.1.jar:na]
+	at net.sf.cglib.core.KeyFactory$Generator.create(KeyFactory.java:144) ~[cglib-3.1.jar:na]
+	at net.sf.cglib.core.KeyFactory.create(KeyFactory.java:116) ~[cglib-3.1.jar:na]
+	at net.sf.cglib.core.KeyFactory.create(KeyFactory.java:108) ~[cglib-3.1.jar:na]
+	at net.sf.cglib.core.KeyFactory.create(KeyFactory.java:104) ~[cglib-3.1.jar:na]
+	at net.sf.cglib.proxy.Enhancer.<clinit>(Enhancer.java:69) ~[cglib-3.1.jar:na]
+	at io.seata.config.ConfigurationCache.proxy(ConfigurationCache.java:88) ~[seata-all-1.4.2.jar:1.4.2]
+	at io.seata.config.ConfigurationFactory.buildConfiguration(ConfigurationFactory.java:138) ~[seata-all-1.4.2.jar:1.4.2]
+	at io.seata.config.ConfigurationFactory.getInstance(ConfigurationFactory.java:94) ~[seata-all-1.4.2.jar:1.4.2]
+	at io.seata.spring.annotation.GlobalTransactionScanner.<init>(GlobalTransactionScanner.java:87) ~[seata-all-1.4.2.jar:1.4.2]
+	at io.seata.spring.annotation.GlobalTransactionScanner.<init>(GlobalTransactionScanner.java:143) ~[seata-all-1.4.2.jar:1.4.2]
+	at io.seata.spring.boot.autoconfigure.SeataAutoConfiguration.globalTransactionScanner(SeataAutoConfiguration.java:55) ~[seata-spring-boot-starter-1.4.2.jar:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[na:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:78) ~[na:na]
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:567) ~[na:na]
+	at org.springframework.beans.factory.support.SimpleInstantiationStrategy.instantiate(SimpleInstantiationStrategy.java:154) ~[spring-beans-5.2.13.RELEASE.jar:5.2.13.RELEASE]
+	... 21 common frames omitted
+Caused by: java.lang.reflect.InaccessibleObjectException: Unable to make protected final java.lang.Class java.lang.ClassLoader.defineClass(java.lang.String,byte[],int,int,java.security.ProtectionDomain) throws java.lang.ClassFormatError accessible: module java.base does not "opens java.lang" to unnamed module @647e447
+	at java.base/java.lang.reflect.AccessibleObject.checkCanSetAccessible(AccessibleObject.java:357) ~[na:na]
+	at java.base/java.lang.reflect.AccessibleObject.checkCanSetAccessible(AccessibleObject.java:297) ~[na:na]
+	at java.base/java.lang.reflect.Method.checkCanSetAccessible(Method.java:199) ~[na:na]
+	at java.base/java.lang.reflect.Method.setAccessible(Method.java:193) ~[na:na]
+	at net.sf.cglib.core.ReflectUtils$2.run(ReflectUtils.java:56) ~[cglib-3.1.jar:na]
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:312) ~[na:na]
+	at net.sf.cglib.core.ReflectUtils.<clinit>(ReflectUtils.java:46) ~[cglib-3.1.jar:na]
+	... 40 common frames omitted
+
+2022-07-25 22:48:19.264  WARN 7592 --- [       Thread-3] c.a.n.common.http.HttpClientBeanHolder   : [HttpClientBeanHolder] Start destroying common HttpClient
+2022-07-25 22:48:19.265  WARN 7592 --- [       Thread-3] c.a.n.common.http.HttpClientBeanHolder   : [HttpClientBeanHolder] Destruction of the end
+
+进程已结束，退出代码为 1
+
+```
+
+
+
+
+
+原因：
+
+jdk版本问题
+
+这是由于 JDK 8 中有关反射相关的功能自从 JDK 9 开始就已经被限制了
+
+
+
+**解决方案一：**
+
+为了兼容原先的版本，需要在运行项目时添加 --add-opens java.base/java.lang=ALL-UNNAMED 选项来开启这种默认不被允许的行为。
+
+
+
+在服务中，右键点击编辑所选配置
+
+![image-20220726130101975](img/image-20220726130101975.png)
+
+
+
+
+
+
+
+在虚拟机选项中填入--add-opens java.base/java.lang=ALL-UNNAMED
+
+![image-20220726130232568](img/image-20220726130232568.png)
+
+
+
+
+
+运行jar包时，可以创建一个bat文件运行
+
+
+
+比如：
+
+```sh
+java -jar --add-opens java.base/java.lang=ALL-UNNAMED account-service-0.0.1.jar
+pause
+```
+
+
+
+```sh
+PS H:\程序\大三暑假\spring_cloud_distributed_transaction_seata\account-service\target> ls
+
+
+    目录: H:\程序\大三暑假\spring_cloud_distributed_transaction_seata\account-service\target
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----         2022/7/26     12:35                classes
+d-----         2022/7/25     22:57                generated-sources
+d-----         2022/7/25     22:57                generated-test-sources
+d-----         2022/7/25     23:00                maven-archiver
+d-----         2022/7/25     22:58                maven-status
+d-----         2022/7/26     12:35                test-classes
+-a----         2022/7/25     23:00       77333309 account-service-0.0.1.jar
+-a----         2022/7/25     23:00           9020 account-service-0.0.1.jar.original
+-a----         2022/7/25     23:06          48609 account_server.log
+-a----         2022/7/25     23:05             86 运行jar包.bat
+
+
+PS H:\程序\大三暑假\spring_cloud_distributed_transaction_seata\account-service\target> cat .\运行jar包.bat
+java -jar --add-opens java.base/java.lang=ALL-UNNAMED account-service-0.0.1.jar
+pause
+PS H:\程序\大三暑假\spring_cloud_distributed_transaction_seata\account-service\target>
+```
+
+
+
+
+
+也可以运行命令：
+
+```sh
+java -jar --add-opens java.base/java.lang=ALL-UNNAMED account-service-0.0.1.jar
+```
+
+
+
+
+
+
+
+**解决方案二：**
+
+直接使用jdk8
+
+
+
+打开模块设置
+
+![image-20220726130924579](img/image-20220726130924579.png)
+
+
+
+点击添加jdk8
+
+![image-20220726131055016](img/image-20220726131055016.png)
+
+
+
+
+
+pom文件也需要更改
+
+
+
+父工程：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>2.3.9.RELEASE</version>
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+
+
+    <groupId>mao</groupId>
+    <artifactId>spring_cloud_distributed_transaction_seata</artifactId>
+    <version>0.0.1</version>
+    <name>spring_cloud_distributed_transaction_seata</name>
+    <description>spring_cloud_distributed_transaction_seata</description>
+    <packaging>pom</packaging>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <java.version>8</java.version>
+    </properties>
+
+
+    <modules>
+        <module>storage-service</module>
+        <module>account-service</module>
+        <module>order-service</module>
+    </modules>
+
+
+    <dependencyManagement>
+        <dependencies>
+
+            <!--spring-cloud项目依赖-->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>Hoxton.SR10</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!--spring-cloud-alilbaba管理依赖-->
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-alibaba-dependencies</artifactId>
+                <version>2.2.6.RELEASE</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!--mysql依赖 spring-boot-->
+            <dependency>
+                <groupId>mysql</groupId>
+                <artifactId>mysql-connector-java</artifactId>
+                <scope>runtime</scope>
+                <version>8.0.27</version>
+            </dependency>
+
+            <!--spring-boot mybatis-plus依赖-->
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-boot-starter</artifactId>
+                <version>3.5.1</version>
+            </dependency>
+
+            <!--spring-boot druid连接池依赖-->
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>druid-spring-boot-starter</artifactId>
+                <version>1.2.8</version>
+            </dependency>
+
+        </dependencies>
+    </dependencyManagement>
+
+
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.4</version>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.20</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+
+</project>
+```
+
+
+
+
+
+account-service：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+
+    <parent>
+        <groupId>mao</groupId>
+        <artifactId>spring_cloud_distributed_transaction_seata</artifactId>
+        <version>0.0.1</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>account-service</artifactId>
+    <name>account-service</name>
+    <description>account-service</description>
+
+    <properties>
+        <java.version>8</java.version>
+    </properties>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!--mysql依赖 spring-boot-->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+        </dependency>
+
+        <!--spring-boot mybatis-plus依赖-->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-boot-starter</artifactId>
+        </dependency>
+
+        <!--spring-boot druid连接池依赖-->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid-spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- nacos 客户端依赖 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+
+        <!--seata依赖-->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-seata</artifactId>
+            <exclusions>
+                <!--版本较低，1.3.0，因此排除-->
+                <exclusion>
+                    <artifactId>seata-spring-boot-starter</artifactId>
+                    <groupId>io.seata</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <!--seata starter 采用1.4.2版本-->
+        <dependency>
+            <groupId>io.seata</groupId>
+            <artifactId>seata-spring-boot-starter</artifactId>
+            <version>1.4.2</version>
+        </dependency>
+
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
+```
+
+
+
+
+
+order-service
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>mao</groupId>
+        <artifactId>spring_cloud_distributed_transaction_seata</artifactId>
+        <version>0.0.1</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>order-service</artifactId>
+    <name>order-service</name>
+    <description>order-service</description>
+
+
+    <properties>
+        <java.version>8</java.version>
+    </properties>
+
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!--mysql依赖 spring-boot-->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+        </dependency>
+
+        <!--spring-boot mybatis-plus依赖-->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-boot-starter</artifactId>
+        </dependency>
+
+        <!--spring-boot druid连接池依赖-->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid-spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- nacos 客户端依赖 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+
+        <!--feign 依赖-->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+
+        <!--httpClient的依赖 主要用于feign连接池-->
+        <dependency>
+            <groupId>io.github.openfeign</groupId>
+            <artifactId>feign-httpclient</artifactId>
+        </dependency>
+
+        <!--seata依赖-->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-seata</artifactId>
+            <exclusions>
+                <!--版本较低，1.3.0，因此排除-->
+                <exclusion>
+                    <artifactId>seata-spring-boot-starter</artifactId>
+                    <groupId>io.seata</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <!--seata starter 采用1.4.2版本-->
+        <dependency>
+            <groupId>io.seata</groupId>
+            <artifactId>seata-spring-boot-starter</artifactId>
+            <version>1.4.2</version>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
+```
+
+
+
+
+
+storage-service：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>mao</groupId>
+        <artifactId>spring_cloud_distributed_transaction_seata</artifactId>
+        <version>0.0.1</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>storage-service</artifactId>
+    <name>storage-service</name>
+    <description>storage-service</description>
+
+
+    <properties>
+        <java.version>8</java.version>
+    </properties>
+
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!--mysql依赖 spring-boot-->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+        </dependency>
+
+        <!--spring-boot mybatis-plus依赖-->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-boot-starter</artifactId>
+        </dependency>
+
+        <!--spring-boot druid连接池依赖-->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid-spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- nacos 客户端依赖 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+
+        <!--seata依赖-->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-seata</artifactId>
+            <exclusions>
+                <!--版本较低，1.3.0，因此排除-->
+                <exclusion>
+                    <artifactId>seata-spring-boot-starter</artifactId>
+                    <groupId>io.seata</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <!--seata starter 采用1.4.2版本-->
+        <dependency>
+            <groupId>io.seata</groupId>
+            <artifactId>seata-spring-boot-starter</artifactId>
+            <version>1.4.2</version>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
+```
+
+
+
+
+
+
+
+#### 问题二 找不到配置项
 
 
 
