@@ -27780,7 +27780,7 @@ RM二阶段：
 
 
 
-1.修改配置文件
+#### 1.修改配置文件
 
 
 
@@ -27797,7 +27797,7 @@ seata:
 
 
 
-2. 添加注解
+#### 2. 添加注解
 
 
 
@@ -27879,7 +27879,7 @@ public class OrderServiceImpl implements OrderService
 
 
 
-3. 重启服务
+#### 3. 重启服务
 
 
 
@@ -27889,7 +27889,7 @@ public class OrderServiceImpl implements OrderService
 
 
 
-4. 访问页面
+#### 4. 访问页面
 
 
 
@@ -27897,7 +27897,7 @@ http://localhost:8082/
 
 
 
-5. 查看数据库
+#### 5. 查看数据库
 
 
 
@@ -27917,7 +27917,7 @@ http://localhost:8082/
 
 
 
-6. 修改页面内容
+#### 6. 修改页面内容
 
 
 
@@ -27929,7 +27929,7 @@ http://localhost:8082/
 
 
 
-7. 发送ajax请求
+#### 7. 发送ajax请求
 
 
 
@@ -27939,7 +27939,7 @@ http://localhost:8082/
 
 
 
-8. 查看日志
+#### 8. 查看日志
 
 
 
@@ -28089,7 +28089,7 @@ com.mysql.cj.jdbc.exceptions.MysqlDataTruncation: Data truncation: BIGINT UNSIGN
 
 
 
-8. 查看数据库
+#### 9. 查看数据库
 
 
 
@@ -28113,7 +28113,7 @@ com.mysql.cj.jdbc.exceptions.MysqlDataTruncation: Data truncation: BIGINT UNSIGN
 
 
 
-9. 修改页面内容
+#### 10. 修改页面内容
 
 总数为1，金额为10
 
@@ -28121,13 +28121,13 @@ com.mysql.cj.jdbc.exceptions.MysqlDataTruncation: Data truncation: BIGINT UNSIGN
 
 
 
-10. 发起ajax请求
+#### 11. 发起ajax请求
 
 
 
 
 
-11. 查看日志
+#### 12. 查看日志
 
 
 
@@ -28187,7 +28187,7 @@ com.mysql.cj.jdbc.exceptions.MysqlDataTruncation: Data truncation: BIGINT UNSIGN
 
 
 
-12. 查看数据库
+#### 13. 查看数据库
 
 
 
@@ -28214,4 +28214,12 @@ com.mysql.cj.jdbc.exceptions.MysqlDataTruncation: Data truncation: BIGINT UNSIGN
 
 
 
+
+
+
+
+
+## AT模式
+
+### 原理
 
