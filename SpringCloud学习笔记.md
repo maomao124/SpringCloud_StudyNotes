@@ -28352,7 +28352,7 @@ AT模式的性能好是因为执行完SQL之后会直接提交事务，但由于
 
 
 
-1. 导入表结构
+#### 1. 导入表结构
 
 
 
@@ -28569,7 +28569,7 @@ mysql>
 
 
 
-2. 修改配置文件
+#### 2. 修改配置文件
 
 
 
@@ -28620,7 +28620,7 @@ seata:
 
 
 
-3. 重启服务
+#### 3. 重启服务
 
 
 
@@ -28802,7 +28802,7 @@ seata:
 
 
 
-4. 访问页面
+#### 4. 访问页面
 
 
 
@@ -28810,7 +28810,7 @@ http://localhost:8082/
 
 
 
-5. 修改页面内容
+#### 5. 修改页面内容
 
 
 
@@ -28820,7 +28820,7 @@ http://localhost:8082/
 
 
 
-6. 发起ajax请求
+#### 6. 发起ajax请求
 
 
 
@@ -28832,7 +28832,7 @@ http://localhost:8082/
 
 
 
-7. 查看日志
+#### 7. 查看日志
 
 
 
@@ -28944,7 +28944,7 @@ com.mysql.cj.jdbc.exceptions.MysqlDataTruncation: Data truncation: BIGINT UNSIGN
 
 
 
-8. 查看数据库
+#### 8. 查看数据库
 
 
 
@@ -28968,7 +28968,7 @@ com.mysql.cj.jdbc.exceptions.MysqlDataTruncation: Data truncation: BIGINT UNSIGN
 
 
 
-9. 更改页面内容
+#### 9. 更改页面内容
 
 
 
@@ -28978,7 +28978,7 @@ com.mysql.cj.jdbc.exceptions.MysqlDataTruncation: Data truncation: BIGINT UNSIGN
 
 
 
-10. 发起ajax请求
+#### 10. 发起ajax请求
 
 
 
@@ -28988,7 +28988,7 @@ com.mysql.cj.jdbc.exceptions.MysqlDataTruncation: Data truncation: BIGINT UNSIGN
 
 
 
-11. 查看日志
+#### 11. 查看日志
 
 
 
@@ -29049,7 +29049,7 @@ storage：
 
 
 
-12. 查看数据库
+#### 12. 查看数据库
 
 
 
@@ -29070,6 +29070,24 @@ storage：
 提交成功
 
 
+
+
+
+
+
+
+
+
+
+## TCC模式
+
+### 原理
+
+TCC模式与AT模式非常相似，每阶段都是独立事务，不同的是TCC通过人工编码来实现数据恢复。需要实现三个方法
+
+* Try：资源的检测和预留
+* Confirm：完成资源操作业务；要求 Try 成功 Confirm 一定要能成功
+* Cancel：预留资源释放，可以理解为try的反向操作
 
 
 
