@@ -28350,3 +28350,726 @@ AT模式的性能好是因为执行完SQL之后会直接提交事务，但由于
 
 ### 实现AT模式
 
+
+
+1. 导入表结构
+
+
+
+表lock_table需要导入到TC服务关联的数据库：
+
+```sql
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- ----------------------------
+-- Table structure for lock_table
+-- ----------------------------
+DROP TABLE IF EXISTS `lock_table`;
+CREATE TABLE `lock_table`  (
+  `row_key` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+  `xid` varchar(96) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+  `transaction_id` bigint(20) NULL DEFAULT NULL,
+  `branch_id` bigint(20) NOT NULL,
+  `resource_id` varchar(256) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+  `table_name` varchar(32) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+  `pk` varchar(36) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+  `gmt_create` datetime NULL DEFAULT NULL,
+  `gmt_modified` datetime NULL DEFAULT NULL,
+  PRIMARY KEY (`row_key`) USING BTREE,
+  INDEX `idx_branch_id`(`branch_id`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
+
+
+SET FOREIGN_KEY_CHECKS = 1;
+```
+
+
+
+
+
+表undo_log需要导入到微服务关联的数据库：
+
+```sql
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- ----------------------------
+-- Table structure for undo_log
+-- ----------------------------
+DROP TABLE IF EXISTS `undo_log`;
+CREATE TABLE `undo_log`  (
+  `branch_id` bigint(20) NOT NULL COMMENT 'branch transaction id',
+  `xid` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT 'global transaction id',
+  `context` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT 'undo_log context,such as serialization',
+  `rollback_info` longblob NOT NULL COMMENT 'rollback info',
+  `log_status` int(11) NOT NULL COMMENT '0:normal status,1:defense status',
+  `log_created` datetime(6) NOT NULL COMMENT 'create datetime',
+  `log_modified` datetime(6) NOT NULL COMMENT 'modify datetime',
+  UNIQUE INDEX `ux_undo_log`(`xid`, `branch_id`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = 'AT transaction mode undo table' ROW_FORMAT = Compact;
+
+SET FOREIGN_KEY_CHECKS = 1;
+```
+
+
+
+
+
+```sh
+C:\Users\mao>mysql -u root -p
+Enter password: ********
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 8
+Server version: 8.0.27 MySQL Community Server - GPL
+
+Copyright (c) 2000, 2021, Oracle and/or its affiliates.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| cloud_order        |
+| cloud_user         |
+| hotel              |
+| information_schema |
+| mysql              |
+| nacos              |
+| performance_schema |
+| sakila             |
+| seata              |
+| seata_demo         |
+| shop               |
+| student            |
+| student1           |
+| student_test       |
+| sys                |
+| test               |
+| tx                 |
+| world              |
++--------------------+
+18 rows in set (0.03 sec)
+
+mysql> use seata;
+Database changed
+mysql> show tables;
++-----------------+
+| Tables_in_seata |
++-----------------+
+| branch_table    |
+| global_table    |
++-----------------+
+2 rows in set (0.01 sec)
+
+mysql> SET NAMES utf8mb4;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> SET FOREIGN_KEY_CHECKS = 0;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql>
+mysql> -- ----------------------------
+mysql> -- Table structure for lock_table
+mysql> -- ----------------------------
+mysql> DROP TABLE IF EXISTS `lock_table`;
+Query OK, 0 rows affected, 1 warning (0.01 sec)
+
+mysql> CREATE TABLE `lock_table`  (
+    ->   `row_key` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+    ->   `xid` varchar(96) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+    ->   `transaction_id` bigint(20) NULL DEFAULT NULL,
+    ->   `branch_id` bigint(20) NOT NULL,
+    ->   `resource_id` varchar(256) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+    ->   `table_name` varchar(32) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+    ->   `pk` varchar(36) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+    ->   `gmt_create` datetime NULL DEFAULT NULL,
+    ->   `gmt_modified` datetime NULL DEFAULT NULL,
+    ->   PRIMARY KEY (`row_key`) USING BTREE,
+    ->   INDEX `idx_branch_id`(`branch_id`) USING BTREE
+    -> ) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
+Query OK, 0 rows affected, 14 warnings (0.04 sec)
+
+mysql>
+mysql>
+mysql> SET FOREIGN_KEY_CHECKS = 1;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> show tables;
++-----------------+
+| Tables_in_seata |
++-----------------+
+| branch_table    |
+| global_table    |
+| lock_table      |
++-----------------+
+3 rows in set (0.00 sec)
+
+mysql> use seata_demo;
+Database changed
+mysql> show tables;
++----------------------+
+| Tables_in_seata_demo |
++----------------------+
+| account_tbl          |
+| order_tbl            |
+| storage_tbl          |
++----------------------+
+3 rows in set (0.00 sec)
+
+mysql> SET NAMES utf8mb4;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> SET FOREIGN_KEY_CHECKS = 0;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql>
+mysql> -- ----------------------------
+mysql> -- Table structure for undo_log
+mysql> -- ----------------------------
+mysql> DROP TABLE IF EXISTS `undo_log`;
+Query OK, 0 rows affected, 1 warning (0.00 sec)
+
+mysql> CREATE TABLE `undo_log`  (
+    ->   `branch_id` bigint(20) NOT NULL COMMENT 'branch transaction id',
+    ->   `xid` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT 'global transaction id',
+    ->   `context` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT 'undo_log context,such as serialization',
+    ->   `rollback_info` longblob NOT NULL COMMENT 'rollback info',
+    ->   `log_status` int(11) NOT NULL COMMENT '0:normal status,1:defense status',
+    ->   `log_created` datetime(6) NOT NULL COMMENT 'create datetime',
+    ->   `log_modified` datetime(6) NOT NULL COMMENT 'modify datetime',
+    ->   UNIQUE INDEX `ux_undo_log`(`xid`, `branch_id`) USING BTREE
+    -> ) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = 'AT transaction mode undo table' ROW_FORMAT = Compact;
+Query OK, 0 rows affected, 8 warnings (0.02 sec)
+
+mysql>
+mysql> SET FOREIGN_KEY_CHECKS = 1;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> show tables;
++----------------------+
+| Tables_in_seata_demo |
++----------------------+
+| account_tbl          |
+| order_tbl            |
+| storage_tbl          |
+| undo_log             |
++----------------------+
+4 rows in set (0.00 sec)
+
+mysql>
+```
+
+
+
+
+
+2. 修改配置文件
+
+
+
+修改application.yml文件，将事务模式修改为AT模式，三个项目都需要修改
+
+
+
+```yaml
+
+seata:
+  # TC服务注册中心的配置，微服务根据这些信息去注册中心获取tc服务地址
+  registry:
+    # 类型，file, nacos, eureka, redis, zk, consul, etcd3, sofa
+    type: nacos
+    # 配置nacos信息，和registry.conf中的配置一致
+    nacos:
+      # nacos地址
+      server-addr: localhost:8848
+      # seata tc 服务注册到 nacos的服务名称，可以自定义
+      application: seata-server
+      # 命名空间
+      namespace: ""
+      # 用户名
+      username: mao
+      # 密码
+      password: 123456
+      # 分组
+      group: DEFAULT_GROUP
+      # 事务组，根据这个获取tc服务的cluster名称，将来可以通过集群名称做负载均衡，相同机房的优先
+  tx-service-group: seata-tx-service-group
+  service:
+    # 事务组与TC服务cluster的映射关系
+    vgroupMapping:
+      seata-tx-service-group: default
+
+  config:
+    type: nacos
+    nacos:
+     server-addr: 127.0.0.1:8848
+     username: mao
+     password: 123456
+     group: SEATA_GROUP
+
+  data-source-proxy-mode: AT
+```
+
+
+
+
+
+3. 重启服务
+
+
+
+![image-20220727132809854](img/image-20220727132809854.png)
+
+
+
+```sh
+2022-07-27 13:20:33.669  INFO 13216 --- [           main] m.a.AccountServiceApplication            : No active profile set, falling back to default profiles: default
+2022-07-27 13:20:34.435  INFO 13216 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=bc328c64-c76a-38e8-af4b-94347371b21e
+2022-07-27 13:20:34.448  INFO 13216 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'io.seata.spring.boot.autoconfigure.SeataAutoConfiguration' of type [io.seata.spring.boot.autoconfigure.SeataAutoConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-27 13:20:34.487  INFO 13216 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'failureHandler' of type [io.seata.tm.api.DefaultFailureHandlerImpl] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-27 13:20:34.493  INFO 13216 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'springCloudAlibabaConfiguration' of type [io.seata.spring.boot.autoconfigure.properties.SpringCloudAlibabaConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-27 13:20:34.496  INFO 13216 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'seataProperties' of type [io.seata.spring.boot.autoconfigure.properties.SeataProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-27 13:20:34.497  INFO 13216 --- [           main] i.s.s.b.a.SeataAutoConfiguration         : Automatically configure Seata
+2022-07-27 13:20:34.501  INFO 13216 --- [           main] io.seata.config.FileConfiguration        : The file name of the operation is registry
+2022-07-27 13:20:34.543  INFO 13216 --- [           main] io.seata.config.ConfigurationFactory     : load Configuration:FileConfiguration$$EnhancerByCGLIB$$862af1eb
+2022-07-27 13:20:34.546  INFO 13216 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'configProperties' of type [io.seata.spring.boot.autoconfigure.properties.config.ConfigProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-27 13:20:34.553  INFO 13216 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'configNacosProperties' of type [io.seata.spring.boot.autoconfigure.properties.config.ConfigNacosProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-27 13:20:34.844  INFO 13216 --- [           main] i.s.s.a.GlobalTransactionScanner         : Initializing Global Transaction Clients ... 
+2022-07-27 13:20:34.987  INFO 13216 --- [           main] i.s.core.rpc.netty.NettyClientBootstrap  : NettyClientBootstrap has started
+2022-07-27 13:20:34.988  INFO 13216 --- [           main] i.s.s.a.GlobalTransactionScanner         : Transaction Manager Client is initialized. applicationId[account-service] txServiceGroup[seata-tx-service-group]
+2022-07-27 13:20:35.002  INFO 13216 --- [           main] io.seata.rm.datasource.AsyncWorker       : Async Commit Buffer Limit: 10000
+2022-07-27 13:20:35.003  INFO 13216 --- [           main] i.s.rm.datasource.xa.ResourceManagerXA   : ResourceManagerXA init ...
+2022-07-27 13:20:35.008  INFO 13216 --- [           main] i.s.core.rpc.netty.NettyClientBootstrap  : NettyClientBootstrap has started
+2022-07-27 13:20:35.008  INFO 13216 --- [           main] i.s.s.a.GlobalTransactionScanner         : Resource Manager is initialized. applicationId[account-service] txServiceGroup[seata-tx-service-group]
+2022-07-27 13:20:35.008  INFO 13216 --- [           main] i.s.s.a.GlobalTransactionScanner         : Global Transaction Clients are initialized. 
+2022-07-27 13:20:35.010  INFO 13216 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'io.seata.spring.boot.autoconfigure.SeataDataSourceAutoConfiguration' of type [io.seata.spring.boot.autoconfigure.SeataDataSourceAutoConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-27 13:20:35.296  INFO 13216 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8083 (http)
+2022-07-27 13:20:35.306  INFO 13216 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-07-27 13:20:35.306  INFO 13216 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.43]
+2022-07-27 13:20:35.455  INFO 13216 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-07-27 13:20:35.456  INFO 13216 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1763 ms
+2022-07-27 13:20:35.529  INFO 13216 --- [           main] c.a.d.s.b.a.DruidDataSourceAutoConfigure : Init DruidDataSource
+2022-07-27 13:20:35.638  INFO 13216 --- [           main] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+2022-07-27 13:20:35.649  INFO 13216 --- [           main] .s.s.a.d.SeataAutoDataSourceProxyCreator : Auto proxy of [dataSource]
+2022-07-27 13:20:35.998  INFO 13216 --- [           main] i.s.c.r.netty.NettyClientChannelManager  : will connect to 172.31.160.1:8091
+2022-07-27 13:20:35.998  INFO 13216 --- [           main] i.s.c.rpc.netty.RmNettyRemotingClient    : RM will register :jdbc:mysql://localhost:3306/seata_demo
+2022-07-27 13:20:36.000  INFO 13216 --- [           main] i.s.core.rpc.netty.NettyPoolableFactory  : NettyPool create channel to transactionRole:RMROLE,address:172.31.160.1:8091,msg:< RegisterRMRequest{resourceIds='jdbc:mysql://localhost:3306/seata_demo', applicationId='account-service', transactionServiceGroup='seata-tx-service-group'} >
+2022-07-27 13:20:36.310  INFO 13216 --- [           main] i.s.c.rpc.netty.RmNettyRemotingClient    : register RM success. client version:1.4.2, server version:1.4.2,channel:[id: 0x3a545958, L:/172.31.160.1:50118 - R:/172.31.160.1:8091]
+2022-07-27 13:20:36.316  INFO 13216 --- [           main] i.s.core.rpc.netty.NettyPoolableFactory  : register success, cost 192 ms, version:1.4.2,role:RMROLE,channel:[id: 0x3a545958, L:/172.31.160.1:50118 - R:/172.31.160.1:8091]
+ _ _   |_  _ _|_. ___ _ |    _ 
+| | |\/|_)(_| | |_\  |_)||_|_\ 
+     /               |         
+                        3.5.1 
+2022-07-27 13:20:36.698  WARN 13216 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-27 13:20:36.698  INFO 13216 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-27 13:20:36.701  WARN 13216 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-27 13:20:36.702  INFO 13216 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-27 13:20:36.822  INFO 13216 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-27 13:20:37.071  INFO 13216 --- [           main] o.s.s.c.ThreadPoolTaskScheduler          : Initializing ExecutorService 'Nacos-Watch-Task-Scheduler'
+2022-07-27 13:20:37.483  INFO 13216 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8083 (http) with context path ''
+2022-07-27 13:20:37.500  INFO 13216 --- [           main] c.a.c.n.registry.NacosServiceRegistry    : nacos registry, DEFAULT_GROUP account-service 192.168.202.1:8083 register finished
+2022-07-27 13:20:37.625  INFO 13216 --- [           main] m.a.AccountServiceApplication            : Started AccountServiceApplication in 4.86 seconds (JVM running for 8.498)
+2022-07-27 13:21:34.979  INFO 13216 --- [eoutChecker_1_1] i.s.c.r.netty.NettyClientChannelManager  : will connect to 172.31.160.1:8091
+2022-07-27 13:21:34.980  INFO 13216 --- [eoutChecker_1_1] i.s.core.rpc.netty.NettyPoolableFactory  : NettyPool create channel to transactionRole:TMROLE,address:172.31.160.1:8091,msg:< RegisterTMRequest{applicationId='account-service', transactionServiceGroup='seata-tx-service-group'} >
+2022-07-27 13:21:34.991  INFO 13216 --- [eoutChecker_1_1] i.s.c.rpc.netty.TmNettyRemotingClient    : register TM success. client version:1.4.2, server version:1.4.2,channel:[id: 0x7ae5eec0, L:/172.31.160.1:50361 - R:/172.31.160.1:8091]
+2022-07-27 13:21:34.991  INFO 13216 --- [eoutChecker_1_1] i.s.core.rpc.netty.NettyPoolableFactory  : register success, cost 9 ms, version:1.4.2,role:TMROLE,channel:[id: 0x7ae5eec0, L:/172.31.160.1:50361 - R:/172.31.160.1:8091]
+```
+
+
+
+```sh
+2022-07-27 13:20:33.672  INFO 780 --- [           main] m.orderservice.OrderServiceApplication   : No active profile set, falling back to default profiles: default
+2022-07-27 13:20:34.442  INFO 780 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=49e36265-0346-35d4-84fb-39196acbeec2
+2022-07-27 13:20:34.454  INFO 780 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'io.seata.spring.boot.autoconfigure.SeataAutoConfiguration' of type [io.seata.spring.boot.autoconfigure.SeataAutoConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-27 13:20:34.487  INFO 780 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'failureHandler' of type [io.seata.tm.api.DefaultFailureHandlerImpl] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-27 13:20:34.492  INFO 780 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'springCloudAlibabaConfiguration' of type [io.seata.spring.boot.autoconfigure.properties.SpringCloudAlibabaConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-27 13:20:34.495  INFO 780 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'seataProperties' of type [io.seata.spring.boot.autoconfigure.properties.SeataProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-27 13:20:34.496  INFO 780 --- [           main] i.s.s.b.a.SeataAutoConfiguration         : Automatically configure Seata
+2022-07-27 13:20:34.501  INFO 780 --- [           main] io.seata.config.FileConfiguration        : The file name of the operation is registry
+2022-07-27 13:20:34.538  INFO 780 --- [           main] io.seata.config.ConfigurationFactory     : load Configuration:FileConfiguration$$EnhancerByCGLIB$$862af1eb
+2022-07-27 13:20:34.542  INFO 780 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'configProperties' of type [io.seata.spring.boot.autoconfigure.properties.config.ConfigProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-27 13:20:34.551  INFO 780 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'configNacosProperties' of type [io.seata.spring.boot.autoconfigure.properties.config.ConfigNacosProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-27 13:20:34.846  INFO 780 --- [           main] i.s.s.a.GlobalTransactionScanner         : Initializing Global Transaction Clients ... 
+2022-07-27 13:20:34.987  INFO 780 --- [           main] i.s.core.rpc.netty.NettyClientBootstrap  : NettyClientBootstrap has started
+2022-07-27 13:20:34.987  INFO 780 --- [           main] i.s.s.a.GlobalTransactionScanner         : Transaction Manager Client is initialized. applicationId[order-service] txServiceGroup[seata-tx-service-group]
+2022-07-27 13:20:35.002  INFO 780 --- [           main] io.seata.rm.datasource.AsyncWorker       : Async Commit Buffer Limit: 10000
+2022-07-27 13:20:35.003  INFO 780 --- [           main] i.s.rm.datasource.xa.ResourceManagerXA   : ResourceManagerXA init ...
+2022-07-27 13:20:35.007  INFO 780 --- [           main] i.s.core.rpc.netty.NettyClientBootstrap  : NettyClientBootstrap has started
+2022-07-27 13:20:35.008  INFO 780 --- [           main] i.s.s.a.GlobalTransactionScanner         : Resource Manager is initialized. applicationId[order-service] txServiceGroup[seata-tx-service-group]
+2022-07-27 13:20:35.008  INFO 780 --- [           main] i.s.s.a.GlobalTransactionScanner         : Global Transaction Clients are initialized. 
+2022-07-27 13:20:35.010  INFO 780 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'io.seata.spring.boot.autoconfigure.SeataDataSourceAutoConfiguration' of type [io.seata.spring.boot.autoconfigure.SeataDataSourceAutoConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-27 13:20:35.082  INFO 780 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'com.alibaba.cloud.seata.feign.SeataFeignClientAutoConfiguration$FeignBeanPostProcessorConfiguration' of type [com.alibaba.cloud.seata.feign.SeataFeignClientAutoConfiguration$FeignBeanPostProcessorConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-27 13:20:35.086  INFO 780 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'seataFeignObjectWrapper' of type [com.alibaba.cloud.seata.feign.SeataFeignObjectWrapper] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-27 13:20:35.295  INFO 780 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8082 (http)
+2022-07-27 13:20:35.306  INFO 780 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-07-27 13:20:35.306  INFO 780 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.43]
+2022-07-27 13:20:35.455  INFO 780 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-07-27 13:20:35.455  INFO 780 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1753 ms
+2022-07-27 13:20:35.830  INFO 780 --- [           main] c.a.d.s.b.a.DruidDataSourceAutoConfigure : Init DruidDataSource
+2022-07-27 13:20:35.925  INFO 780 --- [           main] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+2022-07-27 13:20:35.935  INFO 780 --- [           main] .s.s.a.d.SeataAutoDataSourceProxyCreator : Auto proxy of [dataSource]
+2022-07-27 13:20:36.287  INFO 780 --- [           main] i.s.c.r.netty.NettyClientChannelManager  : will connect to 172.31.160.1:8091
+2022-07-27 13:20:36.287  INFO 780 --- [           main] i.s.c.rpc.netty.RmNettyRemotingClient    : RM will register :jdbc:mysql://localhost:3306/seata_demo
+2022-07-27 13:20:36.290  INFO 780 --- [           main] i.s.core.rpc.netty.NettyPoolableFactory  : NettyPool create channel to transactionRole:RMROLE,address:172.31.160.1:8091,msg:< RegisterRMRequest{resourceIds='jdbc:mysql://localhost:3306/seata_demo', applicationId='order-service', transactionServiceGroup='seata-tx-service-group'} >
+2022-07-27 13:20:36.445  INFO 780 --- [           main] i.s.c.rpc.netty.RmNettyRemotingClient    : register RM success. client version:1.4.2, server version:1.4.2,channel:[id: 0x9741ebc0, L:/172.31.160.1:50122 - R:/172.31.160.1:8091]
+2022-07-27 13:20:36.452  INFO 780 --- [           main] i.s.core.rpc.netty.NettyPoolableFactory  : register success, cost 55 ms, version:1.4.2,role:RMROLE,channel:[id: 0x9741ebc0, L:/172.31.160.1:50122 - R:/172.31.160.1:8091]
+ _ _   |_  _ _|_. ___ _ |    _ 
+| | |\/|_)(_| | |_\  |_)||_|_\ 
+     /               |         
+                        3.5.1 
+2022-07-27 13:20:36.747  INFO 780 --- [           main] i.s.s.a.GlobalTransactionScanner         : Bean[mao.orderservice.service.impl.OrderServiceImpl] with name [orderServiceImpl] would use interceptor [io.seata.spring.annotation.GlobalTransactionalInterceptor]
+2022-07-27 13:20:36.785  WARN 780 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-27 13:20:36.785  INFO 780 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-27 13:20:36.788  WARN 780 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-27 13:20:36.788  INFO 780 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-27 13:20:36.883  INFO 780 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-27 13:20:36.941  INFO 780 --- [           main] o.s.b.a.w.s.WelcomePageHandlerMapping    : Adding welcome page: class path resource [static/index.html]
+2022-07-27 13:20:37.113  INFO 780 --- [           main] o.s.s.c.ThreadPoolTaskScheduler          : Initializing ExecutorService 'Nacos-Watch-Task-Scheduler'
+2022-07-27 13:20:37.477  INFO 780 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8082 (http) with context path ''
+2022-07-27 13:20:37.500  INFO 780 --- [           main] c.a.c.n.registry.NacosServiceRegistry    : nacos registry, DEFAULT_GROUP order-service 192.168.202.1:8082 register finished
+2022-07-27 13:20:37.625  INFO 780 --- [           main] m.orderservice.OrderServiceApplication   : Started OrderServiceApplication in 4.86 seconds (JVM running for 6.214)
+2022-07-27 13:21:34.979  INFO 780 --- [eoutChecker_1_1] i.s.c.r.netty.NettyClientChannelManager  : will connect to 172.31.160.1:8091
+2022-07-27 13:21:34.981  INFO 780 --- [eoutChecker_1_1] i.s.core.rpc.netty.NettyPoolableFactory  : NettyPool create channel to transactionRole:TMROLE,address:172.31.160.1:8091,msg:< RegisterTMRequest{applicationId='order-service', transactionServiceGroup='seata-tx-service-group'} >
+2022-07-27 13:21:34.990  INFO 780 --- [eoutChecker_1_1] i.s.c.rpc.netty.TmNettyRemotingClient    : register TM success. client version:1.4.2, server version:1.4.2,channel:[id: 0x1d4dfae2, L:/172.31.160.1:50362 - R:/172.31.160.1:8091]
+2022-07-27 13:21:34.991  INFO 780 --- [eoutChecker_1_1] i.s.core.rpc.netty.NettyPoolableFactory  : register success, cost 8 ms, version:1.4.2,role:TMROLE,channel:[id: 0x1d4dfae2, L:/172.31.160.1:50362 - R:/172.31.160.1:8091]
+2022-07-27 13:21:35.683  INFO 780 --- [h_RMROLE_1_1_32] i.s.c.r.p.client.RmUndoLogProcessor      : rm handle undo log process:UndoLogDeleteRequest{resourceId='jdbc:mysql://localhost:3306/seata_demo', saveDays=7, branchType=AT}
+```
+
+
+
+
+
+```sh
+2022-07-27 13:20:35.190  INFO 17528 --- [           main] m.s.StorageServiceApplication            : No active profile set, falling back to default profiles: default
+2022-07-27 13:20:35.803  INFO 17528 --- [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=915700d7-6bb2-3380-b35c-2d5799dffea2
+2022-07-27 13:20:35.812  INFO 17528 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'io.seata.spring.boot.autoconfigure.SeataAutoConfiguration' of type [io.seata.spring.boot.autoconfigure.SeataAutoConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-27 13:20:35.836  INFO 17528 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'failureHandler' of type [io.seata.tm.api.DefaultFailureHandlerImpl] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-27 13:20:35.841  INFO 17528 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'springCloudAlibabaConfiguration' of type [io.seata.spring.boot.autoconfigure.properties.SpringCloudAlibabaConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-27 13:20:35.844  INFO 17528 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'seataProperties' of type [io.seata.spring.boot.autoconfigure.properties.SeataProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-27 13:20:35.845  INFO 17528 --- [           main] i.s.s.b.a.SeataAutoConfiguration         : Automatically configure Seata
+2022-07-27 13:20:35.848  INFO 17528 --- [           main] io.seata.config.FileConfiguration        : The file name of the operation is registry
+2022-07-27 13:20:35.884  INFO 17528 --- [           main] io.seata.config.ConfigurationFactory     : load Configuration:FileConfiguration$$EnhancerByCGLIB$$862af1eb
+2022-07-27 13:20:35.887  INFO 17528 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'configProperties' of type [io.seata.spring.boot.autoconfigure.properties.config.ConfigProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-27 13:20:35.892  INFO 17528 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'configNacosProperties' of type [io.seata.spring.boot.autoconfigure.properties.config.ConfigNacosProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-27 13:20:36.129  INFO 17528 --- [           main] i.s.s.a.GlobalTransactionScanner         : Initializing Global Transaction Clients ... 
+2022-07-27 13:20:36.273  INFO 17528 --- [           main] i.s.core.rpc.netty.NettyClientBootstrap  : NettyClientBootstrap has started
+2022-07-27 13:20:36.274  INFO 17528 --- [           main] i.s.s.a.GlobalTransactionScanner         : Transaction Manager Client is initialized. applicationId[storage-service] txServiceGroup[seata-tx-service-group]
+2022-07-27 13:20:36.287  INFO 17528 --- [           main] io.seata.rm.datasource.AsyncWorker       : Async Commit Buffer Limit: 10000
+2022-07-27 13:20:36.288  INFO 17528 --- [           main] i.s.rm.datasource.xa.ResourceManagerXA   : ResourceManagerXA init ...
+2022-07-27 13:20:36.306  INFO 17528 --- [           main] i.s.core.rpc.netty.NettyClientBootstrap  : NettyClientBootstrap has started
+2022-07-27 13:20:36.306  INFO 17528 --- [           main] i.s.s.a.GlobalTransactionScanner         : Resource Manager is initialized. applicationId[storage-service] txServiceGroup[seata-tx-service-group]
+2022-07-27 13:20:36.306  INFO 17528 --- [           main] i.s.s.a.GlobalTransactionScanner         : Global Transaction Clients are initialized. 
+2022-07-27 13:20:36.308  INFO 17528 --- [           main] trationDelegate$BeanPostProcessorChecker : Bean 'io.seata.spring.boot.autoconfigure.SeataDataSourceAutoConfiguration' of type [io.seata.spring.boot.autoconfigure.SeataDataSourceAutoConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying)
+2022-07-27 13:20:36.554  INFO 17528 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8081 (http)
+2022-07-27 13:20:36.561  INFO 17528 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2022-07-27 13:20:36.561  INFO 17528 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.43]
+2022-07-27 13:20:36.681  INFO 17528 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2022-07-27 13:20:36.682  INFO 17528 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1470 ms
+2022-07-27 13:20:36.753  INFO 17528 --- [           main] c.a.d.s.b.a.DruidDataSourceAutoConfigure : Init DruidDataSource
+2022-07-27 13:20:36.860  INFO 17528 --- [           main] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+2022-07-27 13:20:36.872  INFO 17528 --- [           main] .s.s.a.d.SeataAutoDataSourceProxyCreator : Auto proxy of [dataSource]
+2022-07-27 13:20:37.237  INFO 17528 --- [           main] i.s.c.r.netty.NettyClientChannelManager  : will connect to 172.31.160.1:8091
+2022-07-27 13:20:37.238  INFO 17528 --- [           main] i.s.c.rpc.netty.RmNettyRemotingClient    : RM will register :jdbc:mysql://localhost:3306/seata_demo
+2022-07-27 13:20:37.240  INFO 17528 --- [           main] i.s.core.rpc.netty.NettyPoolableFactory  : NettyPool create channel to transactionRole:RMROLE,address:172.31.160.1:8091,msg:< RegisterRMRequest{resourceIds='jdbc:mysql://localhost:3306/seata_demo', applicationId='storage-service', transactionServiceGroup='seata-tx-service-group'} >
+2022-07-27 13:20:37.399  INFO 17528 --- [           main] i.s.c.rpc.netty.RmNettyRemotingClient    : register RM success. client version:1.4.2, server version:1.4.2,channel:[id: 0x09158c44, L:/172.31.160.1:50131 - R:/172.31.160.1:8091]
+2022-07-27 13:20:37.405  INFO 17528 --- [           main] i.s.core.rpc.netty.NettyPoolableFactory  : register success, cost 50 ms, version:1.4.2,role:RMROLE,channel:[id: 0x09158c44, L:/172.31.160.1:50131 - R:/172.31.160.1:8091]
+ _ _   |_  _ _|_. ___ _ |    _ 
+| | |\/|_)(_| | |_\  |_)||_|_\ 
+     /               |         
+                        3.5.1 
+2022-07-27 13:20:37.739  WARN 17528 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-27 13:20:37.739  INFO 17528 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-27 13:20:37.741  WARN 17528 --- [           main] c.n.c.sources.URLConfigurationSource     : No URLs will be polled as dynamic configuration sources.
+2022-07-27 13:20:37.741  INFO 17528 --- [           main] c.n.c.sources.URLConfigurationSource     : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+2022-07-27 13:20:37.843  INFO 17528 --- [           main] o.s.s.concurrent.ThreadPoolTaskExecutor  : Initializing ExecutorService 'applicationTaskExecutor'
+2022-07-27 13:20:38.022  INFO 17528 --- [           main] o.s.s.c.ThreadPoolTaskScheduler          : Initializing ExecutorService 'Nacos-Watch-Task-Scheduler'
+2022-07-27 13:20:38.383  INFO 17528 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8081 (http) with context path ''
+2022-07-27 13:20:38.391  INFO 17528 --- [           main] c.a.c.n.registry.NacosServiceRegistry    : nacos registry, DEFAULT_GROUP storage-service 192.168.202.1:8081 register finished
+2022-07-27 13:20:38.501  INFO 17528 --- [           main] m.s.StorageServiceApplication            : Started StorageServiceApplication in 4.205 seconds (JVM running for 4.88)
+2022-07-27 13:21:36.265  INFO 17528 --- [eoutChecker_1_1] i.s.c.r.netty.NettyClientChannelManager  : will connect to 172.31.160.1:8091
+2022-07-27 13:21:36.266  INFO 17528 --- [eoutChecker_1_1] i.s.core.rpc.netty.NettyPoolableFactory  : NettyPool create channel to transactionRole:TMROLE,address:172.31.160.1:8091,msg:< RegisterTMRequest{applicationId='storage-service', transactionServiceGroup='seata-tx-service-group'} >
+2022-07-27 13:21:36.275  INFO 17528 --- [eoutChecker_1_1] i.s.c.rpc.netty.TmNettyRemotingClient    : register TM success. client version:1.4.2, server version:1.4.2,channel:[id: 0xfbfbc6e0, L:/172.31.160.1:50374 - R:/172.31.160.1:8091]
+2022-07-27 13:21:36.275  INFO 17528 --- [eoutChecker_1_1] i.s.core.rpc.netty.NettyPoolableFactory  : register success, cost 7 ms, version:1.4.2,role:TMROLE,channel:[id: 0xfbfbc6e0, L:/172.31.160.1:50374 - R:/172.31.160.1:8091]
+```
+
+
+
+
+
+4. 访问页面
+
+
+
+http://localhost:8082/
+
+
+
+5. 修改页面内容
+
+
+
+![image-20220727133254274](img/image-20220727133254274.png)
+
+
+
+
+
+6. 发起ajax请求
+
+
+
+![image-20220727133402182](img/image-20220727133402182.png)
+
+
+
+
+
+
+
+7. 查看日志
+
+
+
+account：
+
+```sh
+2022-07-27 13:33:40.435  INFO 13216 --- [nio-8083-exec-9] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2022-07-27 13:33:40.436  INFO 13216 --- [nio-8083-exec-9] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2022-07-27 13:33:40.440  INFO 13216 --- [nio-8083-exec-9] o.s.web.servlet.DispatcherServlet        : Completed initialization in 4 ms
+2022-07-27 13:33:40.470  WARN 13216 --- [nio-8083-exec-9] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false, version : 1.2.8, lastPacketReceivedIdleMillis : 784678
+2022-07-27 13:33:40.484  INFO 13216 --- [nio-8083-exec-9] m.a.service.impl.AccountServiceImpl      : 开始扣款
+2022-07-27 13:33:40.503 DEBUG 13216 --- [nio-8083-exec-9] m.a.mapper.AccountMapper.deduct          : ==>  Preparing: update account_tbl set money = money - 10 where user_id = ?
+2022-07-27 13:33:40.550 DEBUG 13216 --- [nio-8083-exec-9] m.a.mapper.AccountMapper.deduct          : ==> Parameters: user202103032042012(String)
+2022-07-27 13:33:40.623 DEBUG 13216 --- [nio-8083-exec-9] m.a.mapper.AccountMapper.deduct          : <==    Updates: 1
+2022-07-27 13:33:40.623  INFO 13216 --- [nio-8083-exec-9] m.a.service.impl.AccountServiceImpl      : 扣款成功
+2022-07-27 13:33:41.056  INFO 13216 --- [h_RMROLE_1_1_32] i.s.c.r.p.c.RmBranchRollbackProcessor    : rm handle branch rollback process:xid=172.31.160.1:8091:8683228701762637825,branchId=8683228701762637829,branchType=AT,resourceId=jdbc:mysql://localhost:3306/seata_demo,applicationData=null
+2022-07-27 13:33:41.057  INFO 13216 --- [h_RMROLE_1_1_32] io.seata.rm.AbstractRMHandler            : Branch Rollbacking: 172.31.160.1:8091:8683228701762637825 8683228701762637829 jdbc:mysql://localhost:3306/seata_demo
+2022-07-27 13:33:41.084  INFO 13216 --- [h_RMROLE_1_1_32] i.s.r.d.undo.AbstractUndoLogManager      : xid 172.31.160.1:8091:8683228701762637825 branch 8683228701762637829, undo_log deleted with GlobalFinished
+2022-07-27 13:33:41.085  INFO 13216 --- [h_RMROLE_1_1_32] io.seata.rm.AbstractRMHandler            : Branch Rollbacked result: PhaseTwo_Rollbacked
+```
+
+
+
+
+
+order：
+
+```sh
+2022-07-27 13:31:16.851  INFO 780 --- [nio-8082-exec-5] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2022-07-27 13:31:16.851  INFO 780 --- [nio-8082-exec-5] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2022-07-27 13:31:16.857  INFO 780 --- [nio-8082-exec-5] o.s.web.servlet.DispatcherServlet        : Completed initialization in 6 ms
+2022-07-27 13:33:39.825  INFO 780 --- [nio-8082-exec-1] io.seata.tm.TransactionManagerHolder     : TransactionManager Singleton io.seata.tm.DefaultTransactionManager@21007d0a
+2022-07-27 13:33:39.931  INFO 780 --- [nio-8082-exec-1] i.seata.tm.api.DefaultGlobalTransaction  : Begin new global transaction [172.31.160.1:8091:8683228701762637825]
+2022-07-27 13:33:39.974  WARN 780 --- [nio-8082-exec-1] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false, version : 1.2.8, lastPacketReceivedIdleMillis : 724248
+2022-07-27 13:33:39.986 DEBUG 780 --- [nio-8082-exec-1] m.o.mapper.OrderMapper.insert            : ==>  Preparing: INSERT INTO order_tbl ( user_id, commodity_code, count, money ) VALUES ( ?, ?, ?, ? )
+2022-07-27 13:33:39.995 DEBUG 780 --- [nio-8082-exec-1] m.o.mapper.OrderMapper.insert            : ==> Parameters: user202103032042012(String), 100202003032041(String), 9(Integer), 10(Integer)
+2022-07-27 13:33:40.202 DEBUG 780 --- [nio-8082-exec-1] m.o.mapper.OrderMapper.insert            : <==    Updates: 1
+2022-07-27 13:33:40.206 DEBUG 780 --- [nio-8082-exec-1] m.orderservice.feign.AccountFeignClient  : [AccountFeignClient#deduct] ---> PUT http://account-service/account/user202103032042012/10 HTTP/1.1
+2022-07-27 13:33:40.285  INFO 780 --- [nio-8082-exec-1] c.netflix.config.ChainedDynamicProperty  : Flipping property: account-service.ribbon.ActiveConnectionsLimit to use NEXT property: niws.loadbalancer.availabilityFilteringRule.activeConnectionsLimit = 2147483647
+2022-07-27 13:33:40.297  INFO 780 --- [nio-8082-exec-1] c.netflix.loadbalancer.BaseLoadBalancer  : Client: account-service instantiated a LoadBalancer: DynamicServerListLoadBalancer:{NFLoadBalancer:name=account-service,current list of Servers=[],Load balancer stats=Zone stats: {},Server stats: []}ServerList:null
+2022-07-27 13:33:40.309  INFO 780 --- [nio-8082-exec-1] c.n.l.DynamicServerListLoadBalancer      : Using serverListUpdater PollingServerListUpdater
+2022-07-27 13:33:40.327  INFO 780 --- [nio-8082-exec-1] c.netflix.config.ChainedDynamicProperty  : Flipping property: account-service.ribbon.ActiveConnectionsLimit to use NEXT property: niws.loadbalancer.availabilityFilteringRule.activeConnectionsLimit = 2147483647
+2022-07-27 13:33:40.331  INFO 780 --- [nio-8082-exec-1] c.n.l.DynamicServerListLoadBalancer      : DynamicServerListLoadBalancer for client account-service initialized: DynamicServerListLoadBalancer:{NFLoadBalancer:name=account-service,current list of Servers=[192.168.202.1:8083],Load balancer stats=Zone stats: {unknown=[Zone:unknown;	Instance count:1;	Active connections count: 0;	Circuit breaker tripped count: 0;	Active connections per server: 0.0;]
+},Server stats: [[Server:192.168.202.1:8083;	Zone:UNKNOWN;	Total Requests:0;	Successive connection failure:0;	Total blackout seconds:0;	Last connection made:Thu Jan 01 08:00:00 CST 1970;	First connection made: Thu Jan 01 08:00:00 CST 1970;	Active Connections:0;	total failure count in last (1000) msecs:0;	average resp time:0.0;	90 percentile resp time:0.0;	95 percentile resp time:0.0;	min resp time:0.0;	max resp time:0.0;	stddev resp time:0.0]
+]}ServerList:com.alibaba.cloud.nacos.ribbon.NacosServerList@30bd5e51
+2022-07-27 13:33:40.695 DEBUG 780 --- [nio-8082-exec-1] m.orderservice.feign.AccountFeignClient  : [AccountFeignClient#deduct] <--- HTTP/1.1 204  (488ms)
+2022-07-27 13:33:40.697 DEBUG 780 --- [nio-8082-exec-1] m.orderservice.feign.StorageFeignClient  : [StorageFeignClient#deduct] ---> PUT http://storage-service/storage/100202003032041/9 HTTP/1.1
+2022-07-27 13:33:40.715  INFO 780 --- [nio-8082-exec-1] c.netflix.config.ChainedDynamicProperty  : Flipping property: storage-service.ribbon.ActiveConnectionsLimit to use NEXT property: niws.loadbalancer.availabilityFilteringRule.activeConnectionsLimit = 2147483647
+2022-07-27 13:33:40.718  INFO 780 --- [nio-8082-exec-1] c.netflix.loadbalancer.BaseLoadBalancer  : Client: storage-service instantiated a LoadBalancer: DynamicServerListLoadBalancer:{NFLoadBalancer:name=storage-service,current list of Servers=[],Load balancer stats=Zone stats: {},Server stats: []}ServerList:null
+2022-07-27 13:33:40.725  INFO 780 --- [nio-8082-exec-1] c.n.l.DynamicServerListLoadBalancer      : Using serverListUpdater PollingServerListUpdater
+2022-07-27 13:33:40.737  INFO 780 --- [nio-8082-exec-1] c.netflix.config.ChainedDynamicProperty  : Flipping property: storage-service.ribbon.ActiveConnectionsLimit to use NEXT property: niws.loadbalancer.availabilityFilteringRule.activeConnectionsLimit = 2147483647
+2022-07-27 13:33:40.740  INFO 780 --- [nio-8082-exec-1] c.n.l.DynamicServerListLoadBalancer      : DynamicServerListLoadBalancer for client storage-service initialized: DynamicServerListLoadBalancer:{NFLoadBalancer:name=storage-service,current list of Servers=[192.168.202.1:8081],Load balancer stats=Zone stats: {unknown=[Zone:unknown;	Instance count:1;	Active connections count: 0;	Circuit breaker tripped count: 0;	Active connections per server: 0.0;]
+},Server stats: [[Server:192.168.202.1:8081;	Zone:UNKNOWN;	Total Requests:0;	Successive connection failure:0;	Total blackout seconds:0;	Last connection made:Thu Jan 01 08:00:00 CST 1970;	First connection made: Thu Jan 01 08:00:00 CST 1970;	Active Connections:0;	total failure count in last (1000) msecs:0;	average resp time:0.0;	90 percentile resp time:0.0;	95 percentile resp time:0.0;	min resp time:0.0;	max resp time:0.0;	stddev resp time:0.0]
+]}ServerList:com.alibaba.cloud.nacos.ribbon.NacosServerList@497e9952
+2022-07-27 13:33:41.037 DEBUG 780 --- [nio-8082-exec-1] m.orderservice.feign.StorageFeignClient  : [StorageFeignClient#deduct] <--- HTTP/1.1 500  (340ms)
+2022-07-27 13:33:41.041 ERROR 780 --- [nio-8082-exec-1] m.o.service.impl.OrderServiceImpl        : 下单失败，原因:{"timestamp":"2022-07-27T05:33:41.020+00:00","status":500,"error":"Internal Server Error","message":"","path":"/storage/100202003032041/9"}
+
+feign.FeignException$InternalServerError: [500 ] during [PUT] to [http://storage-service/storage/100202003032041/9] [StorageFeignClient#deduct(String,Integer)]: [{"timestamp":"2022-07-27T05:33:41.020+00:00","status":500,"error":"Internal Server Error","message":"","path":"/storage/100202003032041/9"}]
+	at feign.FeignException.serverErrorStatus(FeignException.java:231) ~[feign-core-10.10.1.jar:na]
+	at feign.FeignException.errorStatus(FeignException.java:180) ~[feign-core-10.10.1.jar:na]
+...
+...
+...
+
+2022-07-27 13:33:41.094  INFO 780 --- [h_RMROLE_1_2_32] i.s.c.r.p.c.RmBranchRollbackProcessor    : rm handle branch rollback process:xid=172.31.160.1:8091:8683228701762637825,branchId=8683228701762637827,branchType=AT,resourceId=jdbc:mysql://localhost:3306/seata_demo,applicationData=null
+2022-07-27 13:33:41.095  INFO 780 --- [h_RMROLE_1_2_32] io.seata.rm.AbstractRMHandler            : Branch Rollbacking: 172.31.160.1:8091:8683228701762637825 8683228701762637827 jdbc:mysql://localhost:3306/seata_demo
+2022-07-27 13:33:41.121  INFO 780 --- [h_RMROLE_1_2_32] i.s.r.d.undo.AbstractUndoLogManager      : xid 172.31.160.1:8091:8683228701762637825 branch 8683228701762637827, undo_log deleted with GlobalFinished
+2022-07-27 13:33:41.122  INFO 780 --- [h_RMROLE_1_2_32] io.seata.rm.AbstractRMHandler            : Branch Rollbacked result: PhaseTwo_Rollbacked
+2022-07-27 13:33:41.135  INFO 780 --- [nio-8082-exec-1] i.seata.tm.api.DefaultGlobalTransaction  : Suspending current transaction, xid = 172.31.160.1:8091:8683228701762637825
+2022-07-27 13:33:41.135  INFO 780 --- [nio-8082-exec-1] i.seata.tm.api.DefaultGlobalTransaction  : [172.31.160.1:8091:8683228701762637825] rollback status: Rollbacked
+2022-07-27 13:33:41.140 ERROR 780 --- [nio-8082-exec-1] o.a.c.c.C.[.[.[/].[dispatcherServlet]    : Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is java.lang.RuntimeException: {"timestamp":"2022-07-27T05:33:41.020+00:00","status":500,"error":"Internal Server Error","message":"","path":"/storage/100202003032041/9"}] with root cause
+
+feign.FeignException$InternalServerError: [500 ] during [PUT] to [http://storage-service/storage/100202003032041/9] [StorageFeignClient#deduct(String,Integer)]: [{"timestamp":"2022-07-27T05:33:41.020+00:00","status":500,"error":"Internal Server Error","message":"","path":"/storage/100202003032041/9"}]
+	at feign.FeignException.serverErrorStatus(FeignException.java:231) ~[feign-core-10.10.1.jar:na]
+	at feign.FeignException.errorStatus(FeignException.java:180) ~[feign-core-10.10.1.jar:na]
+	at feign.FeignException.errorStatus(FeignException.java:169) ~[feign-core-10.10.1.jar:na]
+...
+...
+...
+
+2022-07-27 13:33:41.312  INFO 780 --- [erListUpdater-0] c.netflix.config.ChainedDynamicProperty  : Flipping property: account-service.ribbon.ActiveConnectionsLimit to use NEXT property: niws.loadbalancer.availabilityFilteringRule.activeConnectionsLimit = 2147483647
+2022-07-27 13:33:41.727  INFO 780 --- [erListUpdater-1] c.netflix.config.ChainedDynamicProperty  : Flipping property: storage-service.ribbon.ActiveConnectionsLimit to use NEXT property: niws.loadbalancer.availabilityFilteringRule.activeConnectionsLimit = 2147483647
+
+```
+
+
+
+storage：
+
+```sh
+2022-07-27 13:33:40.781  INFO 17528 --- [nio-8081-exec-8] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2022-07-27 13:33:40.781  INFO 17528 --- [nio-8081-exec-8] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2022-07-27 13:33:40.785  INFO 17528 --- [nio-8081-exec-8] o.s.web.servlet.DispatcherServlet        : Completed initialization in 4 ms
+2022-07-27 13:33:40.815  WARN 17528 --- [nio-8081-exec-8] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false, version : 1.2.8, lastPacketReceivedIdleMillis : 783789
+2022-07-27 13:33:40.830  INFO 17528 --- [nio-8081-exec-8] m.s.service.impl.StorageServiceImpl      : 开始扣减库存
+2022-07-27 13:33:40.843 DEBUG 17528 --- [nio-8081-exec-8] m.s.mapper.StorageMapper.deduct          : ==>  Preparing: update storage_tbl set `count` = `count` - ? where commodity_code = ?
+2022-07-27 13:33:40.885 DEBUG 17528 --- [nio-8081-exec-8] m.s.mapper.StorageMapper.deduct          : ==> Parameters: 9(Integer), 100202003032041(String)
+2022-07-27 13:33:41.008 ERROR 17528 --- [nio-8081-exec-8] o.a.c.c.C.[.[.[/].[dispatcherServlet]    : Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is java.lang.RuntimeException: 扣减库存失败！] with root cause
+
+com.mysql.cj.jdbc.exceptions.MysqlDataTruncation: Data truncation: BIGINT UNSIGNED value is out of range in '(`seata_demo`.`storage_tbl`.`count` - 9)'
+	at com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping.translateException(SQLExceptionsMapping.java:104) ~[mysql-connector-java-8.0.27.jar:8.0.27]
+	at com.mysql.cj.jdbc.ClientPreparedStatement.executeInternal(ClientPreparedStatement.java:953) ~[mysql-connector-java-8.0.27.jar:8.0.27]
+...
+...
+...
+```
+
+
+
+
+
+8. 查看数据库
+
+
+
+![image-20220727134209446](img/image-20220727134209446.png)
+
+
+
+![image-20220727134224294](img/image-20220727134224294.png)
+
+
+
+![image-20220727134238567](img/image-20220727134238567.png)
+
+
+
+
+
+回滚成功
+
+
+
+
+
+9. 更改页面内容
+
+
+
+![image-20220727134319383](img/image-20220727134319383.png)
+
+
+
+
+
+10. 发起ajax请求
+
+
+
+![image-20220727134346973](img/image-20220727134346973.png)
+
+
+
+
+
+11. 查看日志
+
+
+
+account：
+
+```sh
+2022-07-27 13:43:37.478  WARN 13216 --- [nio-8083-exec-3] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false, version : 1.2.8, lastPacketReceivedIdleMillis : 596394
+2022-07-27 13:43:37.481  INFO 13216 --- [nio-8083-exec-3] m.a.service.impl.AccountServiceImpl      : 开始扣款
+2022-07-27 13:43:37.482 DEBUG 13216 --- [nio-8083-exec-3] m.a.mapper.AccountMapper.deduct          : ==>  Preparing: update account_tbl set money = money - 10 where user_id = ?
+2022-07-27 13:43:37.482 DEBUG 13216 --- [nio-8083-exec-3] m.a.mapper.AccountMapper.deduct          : ==> Parameters: user202103032042012(String)
+2022-07-27 13:43:37.484 DEBUG 13216 --- [nio-8083-exec-3] m.a.mapper.AccountMapper.deduct          : <==    Updates: 1
+2022-07-27 13:43:37.484  INFO 13216 --- [nio-8083-exec-3] m.a.service.impl.AccountServiceImpl      : 扣款成功
+2022-07-27 13:43:37.688  INFO 13216 --- [h_RMROLE_1_2_32] i.s.c.r.p.c.RmBranchCommitProcessor      : rm client handle branch commit process:xid=172.31.160.1:8091:8683228701762637833,branchId=8683228701762637837,branchType=AT,resourceId=jdbc:mysql://localhost:3306/seata_demo,applicationData=null
+2022-07-27 13:43:37.688  INFO 13216 --- [h_RMROLE_1_2_32] io.seata.rm.AbstractRMHandler            : Branch committing: 172.31.160.1:8091:8683228701762637833 8683228701762637837 jdbc:mysql://localhost:3306/seata_demo null
+2022-07-27 13:43:37.689  INFO 13216 --- [h_RMROLE_1_2_32] io.seata.rm.AbstractRMHandler            : Branch commit result: PhaseTwo_Committed
+```
+
+
+
+order：
+
+```sh
+2022-07-27 13:43:37.456  INFO 780 --- [nio-8082-exec-5] i.seata.tm.api.DefaultGlobalTransaction  : Begin new global transaction [172.31.160.1:8091:8683228701762637833]
+2022-07-27 13:43:37.457  WARN 780 --- [nio-8082-exec-5] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false, version : 1.2.8, lastPacketReceivedIdleMillis : 596335
+2022-07-27 13:43:37.460 DEBUG 780 --- [nio-8082-exec-5] m.o.mapper.OrderMapper.insert            : ==>  Preparing: INSERT INTO order_tbl ( user_id, commodity_code, count, money ) VALUES ( ?, ?, ?, ? )
+2022-07-27 13:43:37.461 DEBUG 780 --- [nio-8082-exec-5] m.o.mapper.OrderMapper.insert            : ==> Parameters: user202103032042012(String), 100202003032041(String), 1(Integer), 10(Integer)
+2022-07-27 13:43:37.474 DEBUG 780 --- [nio-8082-exec-5] m.o.mapper.OrderMapper.insert            : <==    Updates: 1
+2022-07-27 13:43:37.475 DEBUG 780 --- [nio-8082-exec-5] m.orderservice.feign.AccountFeignClient  : [AccountFeignClient#deduct] ---> PUT http://account-service/account/user202103032042012/10 HTTP/1.1
+2022-07-27 13:43:37.497 DEBUG 780 --- [nio-8082-exec-5] m.orderservice.feign.AccountFeignClient  : [AccountFeignClient#deduct] <--- HTTP/1.1 204  (21ms)
+2022-07-27 13:43:37.497 DEBUG 780 --- [nio-8082-exec-5] m.orderservice.feign.StorageFeignClient  : [StorageFeignClient#deduct] ---> PUT http://storage-service/storage/100202003032041/1 HTTP/1.1
+2022-07-27 13:43:37.553 DEBUG 780 --- [nio-8082-exec-5] m.orderservice.feign.StorageFeignClient  : [StorageFeignClient#deduct] <--- HTTP/1.1 204  (55ms)
+2022-07-27 13:43:37.564  INFO 780 --- [nio-8082-exec-5] i.seata.tm.api.DefaultGlobalTransaction  : Suspending current transaction, xid = 172.31.160.1:8091:8683228701762637833
+2022-07-27 13:43:37.564  INFO 780 --- [nio-8082-exec-5] i.seata.tm.api.DefaultGlobalTransaction  : [172.31.160.1:8091:8683228701762637833] commit status: Committed
+2022-07-27 13:43:37.681  INFO 780 --- [h_RMROLE_1_3_32] i.s.c.r.p.c.RmBranchCommitProcessor      : rm client handle branch commit process:xid=172.31.160.1:8091:8683228701762637833,branchId=8683228701762637835,branchType=AT,resourceId=jdbc:mysql://localhost:3306/seata_demo,applicationData=null
+2022-07-27 13:43:37.683  INFO 780 --- [h_RMROLE_1_3_32] io.seata.rm.AbstractRMHandler            : Branch committing: 172.31.160.1:8091:8683228701762637833 8683228701762637835 jdbc:mysql://localhost:3306/seata_demo null
+2022-07-27 13:43:37.683  INFO 780 --- [h_RMROLE_1_3_32] io.seata.rm.AbstractRMHandler            : Branch commit result: PhaseTwo_Committed
+```
+
+
+
+
+
+storage：
+
+```sh
+2022-07-27 13:43:37.500  WARN 17528 --- [nio-8081-exec-3] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false, version : 1.2.8, lastPacketReceivedIdleMillis : 596502
+2022-07-27 13:43:37.503  INFO 17528 --- [nio-8081-exec-3] m.s.service.impl.StorageServiceImpl      : 开始扣减库存
+2022-07-27 13:43:37.504 DEBUG 17528 --- [nio-8081-exec-3] m.s.mapper.StorageMapper.deduct          : ==>  Preparing: update storage_tbl set `count` = `count` - ? where commodity_code = ?
+2022-07-27 13:43:37.504 DEBUG 17528 --- [nio-8081-exec-3] m.s.mapper.StorageMapper.deduct          : ==> Parameters: 1(Integer), 100202003032041(String)
+2022-07-27 13:43:37.509 DEBUG 17528 --- [nio-8081-exec-3] m.s.mapper.StorageMapper.deduct          : <==    Updates: 1
+2022-07-27 13:43:37.509  INFO 17528 --- [nio-8081-exec-3] m.s.service.impl.StorageServiceImpl      : 扣减库存成功
+2022-07-27 13:43:37.695  INFO 17528 --- [h_RMROLE_1_1_32] i.s.c.r.p.c.RmBranchCommitProcessor      : rm client handle branch commit process:xid=172.31.160.1:8091:8683228701762637833,branchId=8683228701762637839,branchType=AT,resourceId=jdbc:mysql://localhost:3306/seata_demo,applicationData=null
+2022-07-27 13:43:37.696  INFO 17528 --- [h_RMROLE_1_1_32] io.seata.rm.AbstractRMHandler            : Branch committing: 172.31.160.1:8091:8683228701762637833 8683228701762637839 jdbc:mysql://localhost:3306/seata_demo null
+2022-07-27 13:43:37.697  INFO 17528 --- [h_RMROLE_1_1_32] io.seata.rm.AbstractRMHandler            : Branch commit result: PhaseTwo_Committed
+```
+
+
+
+
+
+12. 查看数据库
+
+
+
+![image-20220727134619903](img/image-20220727134619903.png)
+
+
+
+![image-20220727134632987](img/image-20220727134632987.png)
+
+
+
+![image-20220727134645358](img/image-20220727134645358.png)
+
+
+
+
+
+提交成功
+
+
+
+
+
