@@ -30245,3 +30245,140 @@ com.mysql.cj.jdbc.exceptions.MysqlDataTruncation: Data truncation: BIGINT UNSIGN
 
 
 
+总数为2，金额为30
+
+
+
+![image-20220728150245538](img/image-20220728150245538.png)
+
+
+
+
+
+15. 发起ajax请求
+
+
+
+![image-20220728150335597](img/image-20220728150335597.png)
+
+
+
+
+
+16. 查看日志
+
+
+
+account
+
+```sh
+2022-07-28 15:03:25.285  WARN 19700 --- [nio-8083-exec-5] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false, version : 1.2.8, lastPacketReceivedIdleMillis : 408265
+2022-07-28 15:03:25.289 DEBUG 19700 --- [nio-8083-exec-5] m.a.service.impl.AccountTCCServiceImpl   : 开始执行prepare方法，用户id为user202103032042012，事务id为172.22.144.1:8091:360576963514531857
+2022-07-28 15:03:25.289 DEBUG 19700 --- [nio-8083-exec-5] m.a.service.impl.AccountTCCServiceImpl   : 开始查询冻结记录
+2022-07-28 15:03:25.289 DEBUG 19700 --- [nio-8083-exec-5] m.a.m.AccountFreezeMapper.selectById     : ==>  Preparing: SELECT xid,user_id,freeze_money,state FROM account_freeze_tbl WHERE xid=?
+2022-07-28 15:03:25.290 DEBUG 19700 --- [nio-8083-exec-5] m.a.m.AccountFreezeMapper.selectById     : ==> Parameters: 172.22.144.1:8091:360576963514531857(String)
+2022-07-28 15:03:25.290 DEBUG 19700 --- [nio-8083-exec-5] m.a.m.AccountFreezeMapper.selectById     : <==      Total: 0
+2022-07-28 15:03:25.291 DEBUG 19700 --- [nio-8083-exec-5] m.a.service.impl.AccountTCCServiceImpl   : 开始冻结金额，金额为30
+2022-07-28 15:03:25.291 DEBUG 19700 --- [nio-8083-exec-5] m.a.mapper.AccountFreezeMapper.insert    : ==>  Preparing: INSERT INTO account_freeze_tbl ( xid, user_id, freeze_money, state ) VALUES ( ?, ?, ?, ? )
+2022-07-28 15:03:25.291 DEBUG 19700 --- [nio-8083-exec-5] m.a.mapper.AccountFreezeMapper.insert    : ==> Parameters: 172.22.144.1:8091:360576963514531857(String), user202103032042012(String), 30(Integer), 0(Integer)
+2022-07-28 15:03:25.292 DEBUG 19700 --- [nio-8083-exec-5] m.a.mapper.AccountFreezeMapper.insert    : <==    Updates: 1
+2022-07-28 15:03:25.292 DEBUG 19700 --- [nio-8083-exec-5] m.a.service.impl.AccountTCCServiceImpl   : 开始扣除可用的余额
+2022-07-28 15:03:25.293 DEBUG 19700 --- [nio-8083-exec-5] m.a.mapper.AccountMapper.deduct          : ==>  Preparing: update account_tbl set money = money - 30 where user_id = ?
+2022-07-28 15:03:25.293 DEBUG 19700 --- [nio-8083-exec-5] m.a.mapper.AccountMapper.deduct          : ==> Parameters: user202103032042012(String)
+2022-07-28 15:03:25.294 DEBUG 19700 --- [nio-8083-exec-5] m.a.mapper.AccountMapper.deduct          : <==    Updates: 1
+2022-07-28 15:03:25.370  INFO 19700 --- [h_RMROLE_1_2_32] i.s.c.r.p.c.RmBranchCommitProcessor      : rm client handle branch commit process:xid=172.22.144.1:8091:360576963514531857,branchId=360576963514531861,branchType=TCC,resourceId=prepare,applicationData={"actionContext":{"action-start-time":1658991805279,"money":30,"sys::prepare":"prepare","sys::rollback":"cancel","sys::commit":"confirm","host-name":"172.22.144.1","userId":"user202103032042012","actionName":"prepare"}}
+2022-07-28 15:03:25.370  INFO 19700 --- [h_RMROLE_1_2_32] io.seata.rm.AbstractRMHandler            : Branch committing: 172.22.144.1:8091:360576963514531857 360576963514531861 prepare {"actionContext":{"action-start-time":1658991805279,"money":30,"sys::prepare":"prepare","sys::rollback":"cancel","sys::commit":"confirm","host-name":"172.22.144.1","userId":"user202103032042012","actionName":"prepare"}}
+2022-07-28 15:03:25.371 DEBUG 19700 --- [h_RMROLE_1_2_32] m.a.service.impl.AccountTCCServiceImpl   : 开始执行confirm方法，xid为172.22.144.1:8091:360576963514531857
+2022-07-28 15:03:25.371 DEBUG 19700 --- [h_RMROLE_1_2_32] m.a.service.impl.AccountTCCServiceImpl   : 开始删除冻结记录
+2022-07-28 15:03:25.371 DEBUG 19700 --- [h_RMROLE_1_2_32] m.a.m.AccountFreezeMapper.deleteById     : ==>  Preparing: DELETE FROM account_freeze_tbl WHERE xid=?
+2022-07-28 15:03:25.371 DEBUG 19700 --- [h_RMROLE_1_2_32] m.a.m.AccountFreezeMapper.deleteById     : ==> Parameters: 172.22.144.1:8091:360576963514531857(String)
+2022-07-28 15:03:25.374 DEBUG 19700 --- [h_RMROLE_1_2_32] m.a.m.AccountFreezeMapper.deleteById     : <==    Updates: 1
+2022-07-28 15:03:25.374  INFO 19700 --- [h_RMROLE_1_2_32] io.seata.rm.AbstractResourceManager      : TCC resource commit result : true, xid: 172.22.144.1:8091:360576963514531857, branchId: 360576963514531861, resourceId: prepare
+2022-07-28 15:03:25.374  INFO 19700 --- [h_RMROLE_1_2_32] io.seata.rm.AbstractRMHandler            : Branch commit result: PhaseTwo_Committed
+```
+
+
+
+
+
+order
+
+```sh
+2022-07-28 15:03:25.253  INFO 1696 --- [nio-8082-exec-8] i.seata.tm.api.DefaultGlobalTransaction  : Begin new global transaction [172.22.144.1:8091:360576963514531857]
+2022-07-28 15:03:25.255  WARN 1696 --- [nio-8082-exec-8] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false, version : 1.2.8, lastPacketReceivedIdleMillis : 408197
+2022-07-28 15:03:25.258 DEBUG 1696 --- [nio-8082-exec-8] m.o.mapper.OrderMapper.insert            : ==>  Preparing: INSERT INTO order_tbl ( user_id, commodity_code, count, money ) VALUES ( ?, ?, ?, ? )
+2022-07-28 15:03:25.259 DEBUG 1696 --- [nio-8082-exec-8] m.o.mapper.OrderMapper.insert            : ==> Parameters: user202103032042012(String), 100202003032041(String), 2(Integer), 30(Integer)
+2022-07-28 15:03:25.275 DEBUG 1696 --- [nio-8082-exec-8] m.o.mapper.OrderMapper.insert            : <==    Updates: 1
+2022-07-28 15:03:25.277 DEBUG 1696 --- [nio-8082-exec-8] m.orderservice.feign.AccountFeignClient  : [AccountFeignClient#deduct] ---> PUT http://account-service/account/user202103032042012/30 HTTP/1.1
+2022-07-28 15:03:25.297 DEBUG 1696 --- [nio-8082-exec-8] m.orderservice.feign.AccountFeignClient  : [AccountFeignClient#deduct] <--- HTTP/1.1 204  (19ms)
+2022-07-28 15:03:25.297 DEBUG 1696 --- [nio-8082-exec-8] m.orderservice.feign.StorageFeignClient  : [StorageFeignClient#deduct] ---> PUT http://storage-service/storage/100202003032041/2 HTTP/1.1
+2022-07-28 15:03:25.357 DEBUG 1696 --- [nio-8082-exec-8] m.orderservice.feign.StorageFeignClient  : [StorageFeignClient#deduct] <--- HTTP/1.1 204  (59ms)
+2022-07-28 15:03:25.382  INFO 1696 --- [nio-8082-exec-8] i.seata.tm.api.DefaultGlobalTransaction  : Suspending current transaction, xid = 172.22.144.1:8091:360576963514531857
+2022-07-28 15:03:25.382  INFO 1696 --- [nio-8082-exec-8] i.seata.tm.api.DefaultGlobalTransaction  : [172.22.144.1:8091:360576963514531857] commit status: Committed
+2022-07-28 15:03:25.553  INFO 1696 --- [h_RMROLE_1_2_32] i.s.c.r.p.c.RmBranchCommitProcessor      : rm client handle branch commit process:xid=172.22.144.1:8091:360576963514531857,branchId=360576963514531859,branchType=AT,resourceId=jdbc:mysql://localhost:3306/seata_demo,applicationData=null
+2022-07-28 15:03:25.554  INFO 1696 --- [h_RMROLE_1_2_32] io.seata.rm.AbstractRMHandler            : Branch committing: 172.22.144.1:8091:360576963514531857 360576963514531859 jdbc:mysql://localhost:3306/seata_demo null
+2022-07-28 15:03:25.554  INFO 1696 --- [h_RMROLE_1_2_32] io.seata.rm.AbstractRMHandler            : Branch commit result: PhaseTwo_Committed
+```
+
+
+
+
+
+storage
+
+```sh
+2022-07-28 15:03:25.300  WARN 9148 --- [nio-8081-exec-3] c.a.druid.pool.DruidAbstractDataSource   : discard long time none received connection. , jdbcUrl : jdbc:mysql://localhost:3306/seata_demo?useUnicode=true&characterEncoding=utf8&allowMultiQueries=true&useSSL=false, version : 1.2.8, lastPacketReceivedIdleMillis : 408350
+2022-07-28 15:03:25.304  INFO 9148 --- [nio-8081-exec-3] m.s.service.impl.StorageServiceImpl      : 开始扣减库存
+2022-07-28 15:03:25.304 DEBUG 9148 --- [nio-8081-exec-3] m.s.mapper.StorageMapper.deduct          : ==>  Preparing: update storage_tbl set `count` = `count` - ? where commodity_code = ?
+2022-07-28 15:03:25.305 DEBUG 9148 --- [nio-8081-exec-3] m.s.mapper.StorageMapper.deduct          : ==> Parameters: 2(Integer), 100202003032041(String)
+2022-07-28 15:03:25.310 DEBUG 9148 --- [nio-8081-exec-3] m.s.mapper.StorageMapper.deduct          : <==    Updates: 1
+2022-07-28 15:03:25.310  INFO 9148 --- [nio-8081-exec-3] m.s.service.impl.StorageServiceImpl      : 扣减库存成功
+2022-07-28 15:03:25.560  INFO 9148 --- [h_RMROLE_1_1_32] i.s.c.r.p.c.RmBranchCommitProcessor      : rm client handle branch commit process:xid=172.22.144.1:8091:360576963514531857,branchId=360576963514531863,branchType=AT,resourceId=jdbc:mysql://localhost:3306/seata_demo,applicationData=null
+2022-07-28 15:03:25.561  INFO 9148 --- [h_RMROLE_1_1_32] io.seata.rm.AbstractRMHandler            : Branch committing: 172.22.144.1:8091:360576963514531857 360576963514531863 jdbc:mysql://localhost:3306/seata_demo null
+2022-07-28 15:03:25.562  INFO 9148 --- [h_RMROLE_1_1_32] io.seata.rm.AbstractRMHandler            : Branch commit result: PhaseTwo_Committed
+```
+
+
+
+
+
+
+
+17. 查看数据库
+
+
+
+![image-20220728150847601](img/image-20220728150847601.png)
+
+
+
+
+
+![image-20220728150900183](img/image-20220728150900183.png)
+
+
+
+
+
+![image-20220728150912956](img/image-20220728150912956.png)
+
+
+
+![image-20220728150927287](img/image-20220728150927287.png)
+
+
+
+
+
+
+
+事务提交成功
+
+
+
+
+
+
+
+## Saga模式
+
