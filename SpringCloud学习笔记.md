@@ -29091,3 +29091,127 @@ TCC模式与AT模式非常相似，每阶段都是独立事务，不同的是TCC
 
 
 
+
+
+一个扣减用户余额的业务。假设账户A原来余额是100，需要余额扣减30元
+
+* 阶段一（ Try ）：检查余额是否充足，如果充足则冻结金额增加30元，可用余额扣除30
+* 阶段二：假如要提交（Confirm），则冻结金额扣减30
+* 阶段二：如果要回滚（Cancel），则冻结金额扣减30，可用余额增加30
+
+
+
+
+
+![image-20220727202207129](img/image-20220727202207129.png)
+
+
+
+
+
+TCC的优点：
+
+* 一阶段完成直接提交事务，释放数据库资源，性能好
+* 相比AT模型，无需生成快照，无需使用全局锁，性能最强
+* 不依赖数据库事务，而是依赖补偿操作，可以用于非事务型数据库
+
+TCC的缺点：
+
+* 有代码侵入，需要人为编写try、Confirm和Cancel接口，太麻烦
+* 软状态，事务是最终一致
+* 需要考虑Confirm和Cancel的失败情况，做好幂等处理
+
+
+
+
+
+
+
+### 空回滚和业务悬挂
+
+**空回滚：**
+
+当某分支事务的try阶段阻塞时，可能导致全局事务超时而触发二阶段的cancel操作。在未执行try操作时先执行了cancel操作，这时cancel不能做回滚，就是空回滚
+
+
+
+**业务悬挂：**
+
+对于已经空回滚的业务，如果以后继续执行try，就永远不可能confirm或cancel，这就是业务悬挂。应当阻止执行空回滚后的try操作，避免悬挂
+
+
+
+![image-20220727202726978](img/image-20220727202726978.png)
+
+
+
+
+
+
+
+### 业务分析
+
+为了实现空回滚、防止业务悬挂，以及幂等性要求。我们必须在数据库记录冻结金额的同时，记录当前事务id和执行状态
+
+
+
+表：
+
+```sql
+CREATE TABLE `account_freeze_tbl` (
+  `xid` varchar(128) NOT NULL,
+  `user_id` varchar(255) DEFAULT NULL COMMENT '用户id',
+  `freeze_money` int(11) unsigned DEFAULT '0' COMMENT '冻结金额',
+  `state` int(1) DEFAULT NULL COMMENT '事务状态，0:try，1:confirm，2:cancel',
+  PRIMARY KEY (`xid`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=COMPACT;
+```
+
+
+
+
+
+**Try业务：**
+
+* 记录冻结金额和事务状态到account_freeze表
+* 扣减account表可用金额
+
+
+
+**Confirm业务：**
+
+* 根据xid删除account_freeze表的冻结记录
+
+
+
+**Cancel业务：**
+
+* 修改account_freeze表，冻结金额为0，state为2
+* 修改account表，恢复可用金额
+
+
+
+**如何判断是否空回滚：**
+
+* cancel业务中，根据xid查询account_freeze，如果为null则说明try还没做，需要空回滚
+
+
+
+**如何避免业务悬挂：**
+
+* try业务中，根据xid查询account_freeze ，如果已经存在则证明Cancel已经执行，拒绝执行try业务
+
+
+
+
+
+TCC的Try、Confirm、Cancel方法都需要在接口中基于注解来声明，语法如下：
+
+
+
+```java
+
+```
+
+
+
