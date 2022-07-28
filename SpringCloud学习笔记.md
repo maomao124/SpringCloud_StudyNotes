@@ -30388,3 +30388,531 @@ storage
 
 ## Saga模式
 
+
+
+Saga模式是SEATA提供的长事务解决方案。也分为两个阶段：
+
+* 一阶段：直接提交本地事务
+* 二阶段：成功则什么都不做；失败则通过编写补偿业务来回滚
+
+
+
+Saga模式优点：
+
+* 事务参与者可以基于事件驱动实现异步调用，吞吐高
+* 一阶段直接提交事务，无锁，性能好
+* 不用编写TCC中的三个阶段，实现简单
+
+
+
+缺点：
+
+* 软状态持续时间不确定，时效性差
+* 没有锁，没有事务隔离，会有脏写
+
+
+
+
+
+![image-20220728195325111](img/image-20220728195325111.png)
+
+
+
+
+
+
+
+
+
+## 四种模式对比
+
+
+
+|              |             **XA**             |                    **AT**                    |                         **TCC**                          |                           **SAGA**                           |
+| :----------: | :----------------------------: | :------------------------------------------: | :------------------------------------------------------: | :----------------------------------------------------------: |
+|  **一致性**  |             强一致             |                    弱一致                    |                          弱一致                          |                           最终一致                           |
+|  **隔离性**  |            完全隔离            |                基于全局锁隔离                |                     基于资源预留隔离                     |                            无隔离                            |
+| **代码侵入** |               无               |                      无                      |                    有，要编写三个接口                    |                  有，要编写状态机和补偿业务                  |
+|   **性能**   |               差               |                      好                      |                          非常好                          |                            非常好                            |
+|   **场景**   | 对一致性、隔离性有高要求的业务 | 基于关系型数据库的大多数分布式事务场景都可以 | 对性能要求较高的事务。  ；有非关系型数据库要参与的事务。 | 业务流程长、业务流程多  ；参与者包含其它公司或遗留系统服务，无法提供  TCC  模式要求的三个接口 |
+
+
+
+
+
+
+
+
+
+
+
+## TC服务的高可用和异地容灾
+
+
+
+计划启动两台seata的tc服务节点：
+
+| 节点名称 | ip地址    | 端口号 | 集群名称 |
+| -------- | --------- | ------ | -------- |
+| seata1   | 127.0.0.1 | 8092   | SH       |
+| seata2   | 127.0.0.1 | 8093   | HZ       |
+
+
+
+
+
+
+
+1. 创建目录
+
+
+
+创建一个名字为seata-server-cluster的目录
+
+
+
+
+
+```sh
+PS H:\opensoft> ls
+
+
+    目录: H:\opensoft
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----          2022/5/5     18:34                apache-jmeter-5.4.3
+d-----          2022/6/2     13:25                cerebro-0.9.4
+d-----         2022/5/26     20:37                elasticsearch-analysis-ik-8.2.0
+d-----          2022/6/1     23:19                elasticsearch-cluster
+d-----          2022/5/3     10:55                kibana-8.1.3
+d-----         2022/5/30     23:02                logstash-8.1.3
+d-----         2022/7/20     12:25                mycat
+d-----         2022/6/15     12:23                mycat-1.6
+d-----         2022/7/19     15:35                nacos
+d-----         2022/7/16     14:30                naocs-cluster
+d-----         2022/7/16     21:38                nginx-1.21.6
+d-----          2022/5/6     23:16                pvzpak-master.git
+d-----         2021/4/25     16:01                seata-server-1.4.2
+d-----         2022/7/28     20:06                seata-server-cluster
+d-----         2022/7/23     16:36                Sentinel
+
+
+PS H:\opensoft>
+```
+
+
+
+
+
+2. 复制seata目录到seata-server-cluster
+
+复制之前使用的seata-server-1.4.2目录，粘贴到seata-server-cluster目录里，粘贴两份，名字分别为seata1、seata2
+
+
+
+```sh
+PS H:\opensoft> cd .\seata-server-cluster\
+PS H:\opensoft\seata-server-cluster> ls
+
+
+    目录: H:\opensoft\seata-server-cluster
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----         2022/7/28     20:10                seata1
+d-----         2022/7/28     20:10                seata2
+
+
+PS H:\opensoft\seata-server-cluster> cd .\seata1\
+PS H:\opensoft\seata-server-cluster\seata1> ls
+
+
+    目录: H:\opensoft\seata-server-cluster\seata1
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----         2022/7/28     20:10                bin
+d-----         2022/7/28     20:10                conf
+d-----         2022/7/28     20:10                lib
+d-----         2022/7/28     20:10                logs
+-a----         2019/5/13     16:49          11365 LICENSE
+
+
+PS H:\opensoft\seata-server-cluster\seata1> cd  ..
+PS H:\opensoft\seata-server-cluster> cd .\seata2\
+PS H:\opensoft\seata-server-cluster\seata2> ls
+
+
+    目录: H:\opensoft\seata-server-cluster\seata2
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----         2022/7/28     20:10                bin
+d-----         2022/7/28     20:10                conf
+d-----         2022/7/28     20:10                lib
+d-----         2022/7/28     20:10                logs
+-a----         2019/5/13     16:49          11365 LICENSE
+
+
+PS H:\opensoft\seata-server-cluster\seata2>
+```
+
+
+
+
+
+3. 更改配置
+
+
+
+分别更改conf目录下的配置文件registry.conf，更改集群名称
+
+
+
+seata1：
+
+```properties
+registry 
+{
+  # tc服务的注册中心类，这里选择nacos，也可以是eureka、zookeeper等
+  type = "nacos"
+
+  nacos 
+  {
+    # seata tc 服务注册到 nacos的服务名称，可以自定义
+    application = "seata-server"
+    # nacos地址
+    serverAddr = "127.0.0.1:8848"
+    # 分组
+    group = "DEFAULT_GROUP"
+    # 命名空间
+    namespace = ""
+    # 集群的地方，也就是机房的地方，将来可以通过集群名称做负载均衡，相同机房的优先
+    cluster = "SH"
+    # 用户名
+    username = "mao"
+    # 密码
+    password = "123456"
+  }
+  
+  eureka 
+  {
+    serviceUrl = "http://localhost:8761/eureka"
+    application = "default"
+    weight = "1"
+  }
+  redis 
+  {
+    serverAddr = "localhost:6379"
+    db = 0
+    password = ""
+    cluster = "default"
+    timeout = 0
+  }
+  zk 
+  {
+    cluster = "default"
+    serverAddr = "127.0.0.1:2181"
+    sessionTimeout = 6000
+    connectTimeout = 2000
+    username = ""
+    password = ""
+  }
+  consul 
+  {
+    cluster = "default"
+    serverAddr = "127.0.0.1:8500"
+    aclToken = ""
+  }
+  etcd3 
+  {
+    cluster = "default"
+    serverAddr = "http://localhost:2379"
+  }
+  sofa 
+  {
+    serverAddr = "127.0.0.1:9603"
+    application = "default"
+    region = "DEFAULT_ZONE"
+    datacenter = "DefaultDataCenter"
+    cluster = "default"
+    group = "SEATA_GROUP"
+    addressWaitTime = "3000"
+  }
+  file 
+  {
+    name = "file.conf"
+  }
+}
+
+
+
+config 
+{
+  # 读取tc服务端的配置文件的方式，这里是从nacos配置中心读取，这样如果tc是集群，可以共享配置
+  type = "nacos"
+  # 配置nacos地址等信息
+  nacos 
+  {
+    # nacos地址
+    serverAddr = "127.0.0.1:8848"
+    # 命名空间
+    namespace = ""
+    # 分组
+    group = "SEATA_GROUP"
+    # 用户名
+    username = "mao"
+    # 密码
+    password = "123456"
+    # dataId ，配置文件名称
+    dataId = "seataServer.properties"
+  }
+  
+  consul 
+  {
+    serverAddr = "127.0.0.1:8500"
+    aclToken = ""
+  }
+  apollo 
+  {
+    appId = "seata-server"
+    ## apolloConfigService will cover apolloMeta
+    apolloMeta = "http://192.168.1.204:8801"
+    apolloConfigService = "http://192.168.1.204:8080"
+    namespace = "application"
+    apolloAccesskeySecret = ""
+    cluster = "seata"
+  }
+  zk 
+  {
+    serverAddr = "127.0.0.1:2181"
+    sessionTimeout = 6000
+    connectTimeout = 2000
+    username = ""
+    password = ""
+    nodePath = "/seata/seata.properties"
+  }
+  etcd3 
+  {
+    serverAddr = "http://localhost:2379"
+  }
+  file 
+  {
+    name = "file.conf"
+  }
+}
+```
+
+
+
+
+
+seata2：
+
+```properties
+registry 
+{
+  # tc服务的注册中心类，这里选择nacos，也可以是eureka、zookeeper等
+  type = "nacos"
+
+  nacos 
+  {
+    # seata tc 服务注册到 nacos的服务名称，可以自定义
+    application = "seata-server"
+    # nacos地址
+    serverAddr = "127.0.0.1:8848"
+    # 分组
+    group = "DEFAULT_GROUP"
+    # 命名空间
+    namespace = ""
+    # 集群的地方，也就是机房的地方，将来可以通过集群名称做负载均衡，相同机房的优先
+    cluster = "HZ"
+    # 用户名
+    username = "mao"
+    # 密码
+    password = "123456"
+  }
+  
+  eureka 
+  {
+    serviceUrl = "http://localhost:8761/eureka"
+    application = "default"
+    weight = "1"
+  }
+  redis 
+  {
+    serverAddr = "localhost:6379"
+    db = 0
+    password = ""
+    cluster = "default"
+    timeout = 0
+  }
+  zk 
+  {
+    cluster = "default"
+    serverAddr = "127.0.0.1:2181"
+    sessionTimeout = 6000
+    connectTimeout = 2000
+    username = ""
+    password = ""
+  }
+  consul 
+  {
+    cluster = "default"
+    serverAddr = "127.0.0.1:8500"
+    aclToken = ""
+  }
+  etcd3 
+  {
+    cluster = "default"
+    serverAddr = "http://localhost:2379"
+  }
+  sofa 
+  {
+    serverAddr = "127.0.0.1:9603"
+    application = "default"
+    region = "DEFAULT_ZONE"
+    datacenter = "DefaultDataCenter"
+    cluster = "default"
+    group = "SEATA_GROUP"
+    addressWaitTime = "3000"
+  }
+  file 
+  {
+    name = "file.conf"
+  }
+}
+
+
+
+config 
+{
+  # 读取tc服务端的配置文件的方式，这里是从nacos配置中心读取，这样如果tc是集群，可以共享配置
+  type = "nacos"
+  # 配置nacos地址等信息
+  nacos 
+  {
+    # nacos地址
+    serverAddr = "127.0.0.1:8848"
+    # 命名空间
+    namespace = ""
+    # 分组
+    group = "SEATA_GROUP"
+    # 用户名
+    username = "mao"
+    # 密码
+    password = "123456"
+    # dataId ，配置文件名称
+    dataId = "seataServer.properties"
+  }
+  
+  consul 
+  {
+    serverAddr = "127.0.0.1:8500"
+    aclToken = ""
+  }
+  apollo 
+  {
+    appId = "seata-server"
+    ## apolloConfigService will cover apolloMeta
+    apolloMeta = "http://192.168.1.204:8801"
+    apolloConfigService = "http://192.168.1.204:8080"
+    namespace = "application"
+    apolloAccesskeySecret = ""
+    cluster = "seata"
+  }
+  zk 
+  {
+    serverAddr = "127.0.0.1:2181"
+    sessionTimeout = 6000
+    connectTimeout = 2000
+    username = ""
+    password = ""
+    nodePath = "/seata/seata.properties"
+  }
+  etcd3 
+  {
+    serverAddr = "http://localhost:2379"
+  }
+  file 
+  {
+    name = "file.conf"
+  }
+}
+```
+
+
+
+
+
+
+
+4. 编写一键启动脚本
+
+
+
+在seata-server-cluster目录下，创建一个文件，文件名为**一键运行.bat**
+
+
+
+```sh
+PS H:\opensoft\seata-server-cluster> ls
+
+
+    目录: H:\opensoft\seata-server-cluster
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----         2022/7/28     20:10                seata1
+d-----         2022/7/28     20:10                seata2
+-a----         2022/7/28     20:19            125 一键运行.bat
+
+
+PS H:\opensoft\seata-server-cluster>
+```
+
+
+
+内容：
+
+```sh
+cd seata1/bin
+start "seata1" seata-server.bat -p 8092
+cd ./../../
+cd seata2/bin
+start "seata2" seata-server.bat -p 8093
+```
+
+
+
+```sh
+PS H:\opensoft\seata-server-cluster> cat .\一键运行.bat
+cd seata1/bin
+start "seata1" seata-server.bat -p 8092
+cd ./../../
+cd seata2/bin
+start "seata2" seata-server.bat -p 8093
+PS H:\opensoft\seata-server-cluster>
+```
+
+
+
+
+
+也可以独立运行，使用进入bin目录下，使用命令：
+
+```sh
+seata-server.bat -p 端口号
+```
+
+
+
+
+
+5. 启动tc服务
