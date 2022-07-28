@@ -29210,8 +29210,606 @@ TCC的Try、Confirm、Cancel方法都需要在接口中基于注解来声明，�
 
 
 ```java
+@LocalTCC
+public interface TCCService
+{
+    /**
+     * Try逻辑 @TwoPhaseBusinessAction中的name属性要与当前方法名一致，用于指定Try逻辑对应的方法
+     *
+     * @param param 参数
+     */
+    @TwoPhaseBusinessAction(name = "prepare", commitMethod = "confirm", rollbackMethod = "cancel")
+    void prepare(@BusinessActionContextParameter(paramName = "param") String param);
+
+    /**
+     * 二阶段confirm确认方法、可以另命名，但要保证与commitMethod一致
+     *
+     * @param context BusinessActionContext 上下文,可以传递try方法的参数
+     * @return 执行是否成功
+     */
+    boolean confirm(BusinessActionContext context);
+
+    /**
+     * 二阶段回滚方法，名称要保证与rollbackMethod一致
+     *
+     * @param context BusinessActionContext 上下文,可以传递try方法的参数
+     * @return 执行是否成功
+     */
+    boolean cancel(BusinessActionContext context);
+}
+```
+
+
+
+
+
+
+
+### 实现TCC模式
+
+
+
+1. 导入数据表
+
+
+
+```sh
+CREATE TABLE `account_freeze_tbl` (
+  `xid` varchar(128) NOT NULL,
+  `user_id` varchar(255) DEFAULT NULL COMMENT '用户id',
+  `freeze_money` int(11) unsigned DEFAULT '0' COMMENT '冻结金额',
+  `state` int(1) DEFAULT NULL COMMENT '事务状态，0:try，1:confirm，2:cancel',
+  PRIMARY KEY (`xid`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=COMPACT;
+```
+
+
+
+```sh
+C:\Users\mao>mysql -u root -p
+Enter password: ********
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 8
+Server version: 8.0.27 MySQL Community Server - GPL
+
+Copyright (c) 2000, 2021, Oracle and/or its affiliates.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> use seata_demo;
+Database changed
+mysql>
+mysql> show tables;
++----------------------+
+| Tables_in_seata_demo |
++----------------------+
+| account_tbl          |
+| order_tbl            |
+| storage_tbl          |
+| undo_log             |
++----------------------+
+4 rows in set (0.02 sec)
+
+mysql> CREATE TABLE `account_freeze_tbl` (
+    ->   `xid` varchar(128) NOT NULL,
+    ->   `user_id` varchar(255) DEFAULT NULL COMMENT '用户id',
+    ->   `freeze_money` int(11) unsigned DEFAULT '0' COMMENT '冻结金额',
+    ->   `state` int(1) DEFAULT NULL COMMENT '事务状态，0:try，1:confirm，2:cancel',
+    ->   PRIMARY KEY (`xid`) USING BTREE
+    -> ) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=COMPACT;
+Query OK, 0 rows affected, 3 warnings (0.03 sec)
+
+mysql> show tables;
++----------------------+
+| Tables_in_seata_demo |
++----------------------+
+| account_freeze_tbl   |
+| account_tbl          |
+| order_tbl            |
+| storage_tbl          |
+| undo_log             |
++----------------------+
+5 rows in set (0.00 sec)
+
+mysql>
+```
+
+
+
+
+
+2. 编写实体类AccountFreeze
+
+
+
+```java
+package mao.accountservice.entity;
+
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+
+/**
+ * Project name(项目名称)：spring_cloud_distributed_transaction_seata
+ * Package(包名): mao.accountservice.entity
+ * Class(类名): AccountFreeze
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/24
+ * Time(创建时间)： 20:29
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+@TableName("account_freeze_tbl")
+public class AccountFreeze
+{
+    @TableId(type = IdType.INPUT)
+    private String xid;
+    private String userId;
+    private Integer freezeMoney;
+    private Integer state;
+
+    /**
+     * The type State.
+     */
+    public static abstract class State
+    {
+        /**
+         * The constant TRY.
+         */
+        public final static int TRY = 0;
+        /**
+         * The constant CONFIRM.
+         */
+        public final static int CONFIRM = 1;
+        /**
+         * The constant CANCEL.
+         */
+        public final static int CANCEL = 2;
+    }
+
+    /**
+     * Instantiates a new Account freeze.
+     */
+    public AccountFreeze()
+    {
+
+    }
+
+    /**
+     * Instantiates a new Account freeze.
+     *
+     * @param xid         the xid
+     * @param userId      the user id
+     * @param freezeMoney the freeze money
+     * @param state       the state
+     */
+    public AccountFreeze(String xid, String userId, Integer freezeMoney, Integer state)
+    {
+        this.xid = xid;
+        this.userId = userId;
+        this.freezeMoney = freezeMoney;
+        this.state = state;
+    }
+
+    /**
+     * Gets xid.
+     *
+     * @return the xid
+     */
+    public String getXid()
+    {
+        return xid;
+    }
+
+    /**
+     * Sets xid.
+     *
+     * @param xid the xid
+     */
+    public void setXid(String xid)
+    {
+        this.xid = xid;
+    }
+
+    /**
+     * Gets user id.
+     *
+     * @return the user id
+     */
+    public String getUserId()
+    {
+        return userId;
+    }
+
+    /**
+     * Sets user id.
+     *
+     * @param userId the user id
+     */
+    public void setUserId(String userId)
+    {
+        this.userId = userId;
+    }
+
+    /**
+     * Gets freeze money.
+     *
+     * @return the freeze money
+     */
+    public Integer getFreezeMoney()
+    {
+        return freezeMoney;
+    }
+
+    /**
+     * Sets freeze money.
+     *
+     * @param freezeMoney the freeze money
+     */
+    public void setFreezeMoney(Integer freezeMoney)
+    {
+        this.freezeMoney = freezeMoney;
+    }
+
+    /**
+     * Gets state.
+     *
+     * @return the state
+     */
+    public Integer getState()
+    {
+        return state;
+    }
+
+    /**
+     * Sets state.
+     *
+     * @param state the state
+     */
+    public void setState(Integer state)
+    {
+        this.state = state;
+    }
+
+    @Override
+    @SuppressWarnings("all")
+    public String toString()
+    {
+        final StringBuilder stringbuilder = new StringBuilder();
+        stringbuilder.append("xid：").append(xid).append('\n');
+        stringbuilder.append("userId：").append(userId).append('\n');
+        stringbuilder.append("freezeMoney：").append(freezeMoney).append('\n');
+        stringbuilder.append("state：").append(state).append('\n');
+        return stringbuilder.toString();
+    }
+}
 
 ```
+
+
+
+
+
+3. 编写mapper接口AccountFreezeMapper
+
+
+
+```java
+package mao.accountservice.mapper;
+
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import mao.accountservice.entity.AccountFreeze;
+import org.apache.ibatis.annotations.Mapper;
+
+/**
+ * Project name(项目名称)：spring_cloud_distributed_transaction_seata
+ * Package(包名): mao.accountservice.mapper
+ * Interface(接口名): AccountFreezeMapper
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/28
+ * Time(创建时间)： 13:06
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+@Mapper
+public interface AccountFreezeMapper extends BaseMapper<AccountFreeze>
+{
+
+}
+```
+
+
+
+4. 编写业务接口AccountTCCService
+
+
+
+```java
+package mao.accountservice.service;
+
+import io.seata.rm.tcc.api.BusinessActionContext;
+import io.seata.rm.tcc.api.BusinessActionContextParameter;
+import io.seata.rm.tcc.api.LocalTCC;
+import io.seata.rm.tcc.api.TwoPhaseBusinessAction;
+
+/**
+ * Project name(项目名称)：spring_cloud_distributed_transaction_seata
+ * Package(包名): mao.accountservice.service
+ * Interface(接口名): AccountTCCService
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/28
+ * Time(创建时间)： 13:23
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+@LocalTCC
+public interface AccountTCCService
+{
+    /**
+     * Try逻辑 @TwoPhaseBusinessAction中的name属性要与当前方法名一致，用于指定Try逻辑对应的方法
+     *
+     * @param userId 用户的id
+     * @param money  要扣减的金额
+     */
+    @TwoPhaseBusinessAction(name = "prepare", commitMethod = "confirm", rollbackMethod = "cancel")
+    void prepare(@BusinessActionContextParameter(paramName = "userId") String userId,
+                 @BusinessActionContextParameter(paramName = "money") int money);
+
+    /**
+     * 二阶段confirm确认方法、可以另命名，但要保证与commitMethod一致
+     *
+     * @param context BusinessActionContext 上下文,可以传递try方法的参数
+     * @return 执行是否成功
+     */
+    boolean confirm(BusinessActionContext context);
+
+    /**
+     * 二阶段回滚方法，名称要保证与rollbackMethod一致
+     *
+     * @param context BusinessActionContext 上下文,可以传递try方法的参数
+     * @return 执行是否成功
+     */
+    boolean cancel(BusinessActionContext context);
+}
+
+```
+
+
+
+
+
+5. 编写实现类
+
+
+
+```java
+package mao.accountservice.service.impl;
+
+import io.seata.core.context.RootContext;
+import io.seata.rm.tcc.api.BusinessActionContext;
+import lombok.extern.slf4j.Slf4j;
+import mao.accountservice.entity.AccountFreeze;
+import mao.accountservice.mapper.AccountFreezeMapper;
+import mao.accountservice.mapper.AccountMapper;
+import mao.accountservice.service.AccountTCCService;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import javax.annotation.Resource;
+
+/**
+ * Project name(项目名称)：spring_cloud_distributed_transaction_seata
+ * Package(包名): mao.accountservice.service.impl
+ * Class(类名): AccountTCCServiceImpl
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/28
+ * Time(创建时间)： 13:27
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+@Slf4j
+@Service
+public class AccountTCCServiceImpl implements AccountTCCService
+{
+
+    @Resource
+    private AccountMapper accountMapper;
+
+    @Resource
+    private AccountFreezeMapper accountFreezeMapper;
+
+
+    @Override
+    @Transactional
+    public void prepare(String userId, int money)
+    {
+        //try方法，资源的检测和预留
+
+        //获得事务的xid
+        String xid = RootContext.getXID();
+        //打印日志
+        log.debug("开始执行prepare方法，用户id为" + userId + "，事务id为" + xid);
+
+        //查询冻结记录，解决业务悬挂问题
+        log.debug("开始查询冻结记录");
+        AccountFreeze accountFreeze1 = accountFreezeMapper.selectById(xid);
+        if ((accountFreeze1 != null) && (accountFreeze1.getState() == AccountFreeze.State.CANCEL))
+        {
+            //如果已经存在则证明Cancel已经执行，拒绝执行try业务
+            log.warn("出现业务悬挂！，事务id为" + xid);
+            return;
+        }
+
+        //构建一个实体类对象
+        AccountFreeze accountFreeze = new AccountFreeze();
+        //设置xid
+        accountFreeze.setXid(xid);
+        //设置用户的id
+        accountFreeze.setUserId(userId);
+        //设置冻结的金额
+        accountFreeze.setFreezeMoney(money);
+        //设置事务状态
+        accountFreeze.setState(AccountFreeze.State.TRY);
+        //记录冻结金额和事务状态到account_freeze表
+        log.debug("开始冻结金额，金额为" + money);
+        accountFreezeMapper.insert(accountFreeze);
+        //扣除可用的余额
+        log.debug("开始扣除可用的余额");
+        accountMapper.deduct(userId, money);
+
+
+    }
+
+    @Override
+    public boolean confirm(BusinessActionContext context)
+    {
+        //confirm方法，完成资源操作业务
+
+        //获得xid
+        String xid = context.getXid();
+        log.debug("开始执行confirm方法，xid为" + xid);
+        //根据xid删除account_freeze表的冻结记录
+        log.debug("开始删除冻结记录");
+        int delete = accountFreezeMapper.deleteById(xid);
+        return delete == 1;
+    }
+
+    @Override
+    @Transactional
+    public boolean cancel(BusinessActionContext context)
+    {
+        //cancel，预留资源释放，try的反向操作
+
+        //获得xid
+        String xid = context.getXid();
+        log.debug("开始执行cancel方法，xid为" + xid);
+
+
+        //查询冻结记录
+        log.debug("开始查询冻结记录");
+        AccountFreeze accountFreeze = accountFreezeMapper.selectById(xid);
+        //判断是否出现空回滚
+        if (accountFreeze == null || accountFreeze.getXid() == null)
+        {
+            //出现空回滚，需要将冻结记录写入到表中，设置状态为cancel
+            log.warn("出现空回滚！ 事务id为" + xid);
+            //获得userId
+            String userId = (String) context.getActionContext("userId");
+            //构建一个实体类对象
+            accountFreeze = new AccountFreeze();
+            //设置xid
+            accountFreeze.setXid(xid);
+            //设置用户的id
+            accountFreeze.setUserId(userId);
+            //设置冻结的金额
+            accountFreeze.setFreezeMoney(0);
+            //设置事务状态
+            accountFreeze.setState(AccountFreeze.State.CANCEL);
+            log.debug("创建冻结记录，并将冻结金额设置为0");
+            accountFreezeMapper.insert(accountFreeze);
+            return true;
+        }
+
+        //判断幂等，也就是判断状态是否为cancel
+        if (accountFreeze.getState() == AccountFreeze.State.CANCEL)
+        {
+            log.debug("出现幂等问题！ 事务id为" + xid);
+            //已经执行过一次或者多次
+            return true;
+        }
+
+        //设置金额
+        accountFreeze.setFreezeMoney(0);
+        //设置状态
+        accountFreeze.setState(AccountFreeze.State.CANCEL);
+        log.debug("开始将冻结金额设置为0");
+        int update = accountFreezeMapper.updateById(accountFreeze);
+        //恢复可用余额
+        log.debug("开始恢复可用余额");
+        accountMapper.refund(accountFreeze.getUserId(), accountFreeze.getFreezeMoney());
+        return update == 1;
+    }
+}
+```
+
+
+
+
+
+6. 修改AccountController类
+
+
+
+```java
+package mao.accountservice.controller;
+
+import mao.accountservice.service.AccountService;
+import mao.accountservice.service.AccountTCCService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import javax.annotation.Resource;
+
+/**
+ * Project name(项目名称)：spring_cloud_distributed_transaction_seata
+ * Package(包名): mao.accountservice.controller
+ * Class(类名): AccountController
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2022/7/24
+ * Time(创建时间)： 20:41
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+@RestController
+@RequestMapping("account")
+public class AccountController
+{
+    @Resource
+    private AccountService accountService;
+
+    @Resource
+    private AccountTCCService accountTCCService;
+
+    /**
+     * 扣钱
+     *
+     * @param userId 要扣钱的用户id
+     * @param money  扣的钱的数量
+     * @return ResponseEntity
+     */
+    @PutMapping("/{userId}/{money}")
+    public ResponseEntity<Void> deduct(@PathVariable("userId") String userId, @PathVariable("money") Integer money)
+    {
+        //accountService.deduct(userId, money);
+        accountTCCService.prepare(userId, money);
+        return ResponseEntity.noContent().build();
+    }
+}
+```
+
+
 
 
 
