@@ -29249,7 +29249,7 @@ public interface TCCService
 
 
 
-1. 导入数据表
+####  1. 导入数据表
 
 
 
@@ -29322,7 +29322,7 @@ mysql>
 
 
 
-2. 编写实体类AccountFreeze
+####  2. 编写实体类AccountFreeze
 
 
 
@@ -29497,9 +29497,11 @@ public class AccountFreeze
 
 
 
-3. 编写mapper接口AccountFreezeMapper
+####  3. 编写mapper接口
 
 
+
+名称为AccountFreezeMapper
 
 ```java
 package mao.accountservice.mapper;
@@ -29530,9 +29532,11 @@ public interface AccountFreezeMapper extends BaseMapper<AccountFreeze>
 
 
 
-4. 编写业务接口AccountTCCService
+####  4. 编写业务接口
 
 
+
+名称为AccountTCCService
 
 ```java
 package mao.accountservice.service;
@@ -29591,7 +29595,7 @@ public interface AccountTCCService
 
 
 
-5. 编写实现类
+####  5. 编写实现类
 
 
 
@@ -29752,7 +29756,7 @@ public class AccountTCCServiceImpl implements AccountTCCService
 
 
 
-6. 修改AccountController类
+####  6. 修改AccountController类
 
 
 
@@ -29813,7 +29817,7 @@ public class AccountController
 
 
 
-7. 启动服务
+####  7. 启动服务
 
 
 
@@ -30025,7 +30029,7 @@ seata-server
 
 
 
-8. 访问网页
+####  8. 访问网页
 
 
 
@@ -30035,7 +30039,7 @@ http://localhost:8082/
 
 
 
-9. 查看数据库
+####  9. 查看数据库
 
 
 
@@ -30043,7 +30047,7 @@ http://localhost:8082/
 
 
 
-10. 修改页面内容
+####  10. 修改页面内容
 
 
 
@@ -30057,7 +30061,7 @@ http://localhost:8082/
 
 
 
-11. 发起ajax请求
+####  11. 发起ajax请求
 
 
 
@@ -30071,7 +30075,7 @@ http://localhost:8082/
 
 
 
-12. 查看日志
+####  12. 查看日志
 
 
 
@@ -30205,7 +30209,7 @@ com.mysql.cj.jdbc.exceptions.MysqlDataTruncation: Data truncation: BIGINT UNSIGN
 
 
 
-13. 查看数据库
+####  13. 查看数据库
 
 
 
@@ -30241,7 +30245,7 @@ com.mysql.cj.jdbc.exceptions.MysqlDataTruncation: Data truncation: BIGINT UNSIGN
 
 
 
-14. 修改页面内容
+####  14. 修改页面内容
 
 
 
@@ -30255,7 +30259,7 @@ com.mysql.cj.jdbc.exceptions.MysqlDataTruncation: Data truncation: BIGINT UNSIGN
 
 
 
-15. 发起ajax请求
+####  15. 发起ajax请求
 
 
 
@@ -30265,7 +30269,7 @@ com.mysql.cj.jdbc.exceptions.MysqlDataTruncation: Data truncation: BIGINT UNSIGN
 
 
 
-16. 查看日志
+####  16. 查看日志
 
 
 
@@ -30344,7 +30348,7 @@ storage
 
 
 
-17. 查看数据库
+####  17. 查看数据库
 
 
 
@@ -30373,6 +30377,8 @@ storage
 
 
 事务提交成功
+
+
 
 
 
