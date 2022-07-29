@@ -30463,7 +30463,7 @@ Saga模式优点：
 
 
 
-1. 创建目录
+### 1. 创建目录
 
 
 
@@ -30506,7 +30506,7 @@ PS H:\opensoft>
 
 
 
-2. 复制seata目录到seata-server-cluster
+### 2. 复制seata目录到seata-server-cluster
 
 复制之前使用的seata-server-1.4.2目录，粘贴到seata-server-cluster目录里，粘贴两份，名字分别为seata1、seata2
 
@@ -30566,7 +30566,7 @@ PS H:\opensoft\seata-server-cluster\seata2>
 
 
 
-3. 更改配置
+### 3. 更改配置
 
 
 
@@ -30852,7 +30852,7 @@ config
 
 
 
-4. 编写一键启动脚本
+### 4. 编写一键启动脚本
 
 
 
@@ -30915,4 +30915,380 @@ seata-server.bat -p 端口号
 
 
 
-5. 启动tc服务
+### 5. 启动tc服务
+
+
+
+seata1：
+
+```sh
+20:29:49,216 |-INFO in ch.qos.logback.classic.LoggerContext[default] - Could NOT find resource [logback-test.xml]
+20:29:49,217 |-INFO in ch.qos.logback.classic.LoggerContext[default] - Could NOT find resource [logback.groovy]
+20:29:49,217 |-INFO in ch.qos.logback.classic.LoggerContext[default] - Found resource [logback.xml] at [file:/H:/opensoft/seata-server-cluster/seata1/conf/logback.xml]
+20:29:49,218 |-WARN in ch.qos.logback.classic.LoggerContext[default] - Resource [logback.xml] occurs multiple times on the classpath.
+20:29:49,219 |-WARN in ch.qos.logback.classic.LoggerContext[default] - Resource [logback.xml] occurs at [file:/H:/opensoft/seata-server-cluster/seata1/conf/logback.xml]
+20:29:49,219 |-WARN in ch.qos.logback.classic.LoggerContext[default] - Resource [logback.xml] occurs at [jar:file:/H:/opensoft/seata-server-cluster/seata1/lib/seata-server-1.4.2.jar!/logback.xml]
+20:29:49,309 |-INFO in ch.qos.logback.classic.joran.action.ConfigurationAction - debug attribute not set
+20:29:49,315 |-INFO in ch.qos.logback.classic.joran.action.ConfigurationAction - Will scan for changes in [file:/H:/opensoft/seata-server-cluster/seata1/conf/logback.xml]
+20:29:49,315 |-INFO in ch.qos.logback.classic.joran.action.ConfigurationAction - Setting ReconfigureOnChangeTask scanning period to 1 minutes
+20:29:49,318 |-INFO in ch.qos.logback.classic.joran.action.LoggerContextListenerAction - Adding LoggerContextListener of type [io.seata.server.logging.listener.SystemPropertyLoggerContextListener] to the object stack
+20:29:49,318 |-INFO in ch.qos.logback.classic.joran.action.LoggerContextListenerAction - Starting LoggerContextListener
+20:29:49,319 |-INFO in ch.qos.logback.core.joran.action.ConversionRuleAction - registering conversion word clr with class [io.seata.server.logging.logback.ColorConverter]
+20:29:49,319 |-INFO in ch.qos.logback.core.joran.action.ConversionRuleAction - registering conversion word wex with class [io.seata.server.logging.logback.WhitespaceThrowableProxyConverter]
+20:29:49,319 |-INFO in ch.qos.logback.core.joran.action.ConversionRuleAction - registering conversion word wEx with class [io.seata.server.logging.logback.ExtendedWhitespaceThrowableProxyConverter]
+20:29:49,321 |-INFO in ch.qos.logback.core.joran.util.ConfigurationWatchListUtil@5383967b - Adding [file:/H:/opensoft/seata-server-cluster/seata1/conf/logback/console-appender.xml] to configuration watch list.
+20:29:49,324 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - About to instantiate appender of type [ch.qos.logback.core.ConsoleAppender]
+20:29:49,327 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - Naming appender as [CONSOLE]
+20:29:49,333 |-INFO in ch.qos.logback.core.joran.action.NestedComplexPropertyIA - Assuming default type [ch.qos.logback.classic.encoder.PatternLayoutEncoder] for [encoder] property
+20:29:49,417 |-INFO in ch.qos.logback.core.joran.util.ConfigurationWatchListUtil@5383967b - Adding [file:/H:/opensoft/seata-server-cluster/seata1/conf/logback/file-appender.xml] to configuration watch list.
+20:29:49,420 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - About to instantiate appender of type [ch.qos.logback.core.rolling.RollingFileAppender]
+20:29:49,423 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - Naming appender as [FILE_ALL]
+20:29:49,430 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@717386707 - Archive files will be limited to [2048 MB] each.
+20:29:49,433 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@717386707 - Will use gz compression
+20:29:49,434 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@717386707 - Will use the pattern C:/Users/mao/logs/seata/history/seata-server.8092.all.%d{yyyy-MM-dd}.%i.log for the active file
+20:29:49,437 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@71423665 - The date pattern is 'yyyy-MM-dd' from file name pattern 'C:/Users/mao/logs/seata/history/seata-server.8092.all.%d{yyyy-MM-dd}.%i.log.gz'.
+20:29:49,437 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@71423665 - Roll-over at midnight.
+20:29:49,441 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@71423665 - Setting initial period to Thu Jul 28 20:21:19 CST 2022
+20:29:49,444 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@717386707 - Cleaning on start up
+20:29:49,445 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - first clean up after appender initialization
+20:29:49,445 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - Multiple periods, i.e. 32 periods, seem to have elapsed. This is expected at application start.
+20:29:49,445 |-INFO in ch.qos.logback.core.joran.action.NestedComplexPropertyIA - Assuming default type [ch.qos.logback.classic.encoder.PatternLayoutEncoder] for [encoder] property
+20:29:49,448 |-INFO in ch.qos.logback.core.rolling.RollingFileAppender[FILE_ALL] - Active log file name: C:\Users\mao/logs/seata/seata-server.8092.all.log
+20:29:49,448 |-INFO in ch.qos.logback.core.rolling.RollingFileAppender[FILE_ALL] - File property is set to [C:\Users\mao/logs/seata/seata-server.8092.all.log]
+20:29:49,450 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - About to instantiate appender of type [ch.qos.logback.core.rolling.RollingFileAppender]
+20:29:49,450 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - Naming appender as [FILE_WARN]
+20:29:49,454 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@540642172 - Archive files will be limited to [2048 MB] each.
+20:29:49,454 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@540642172 - Will use gz compression
+20:29:49,455 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@540642172 - Will use the pattern C:/Users/mao/logs/seata/history/seata-server.8092.warn.%d{yyyy-MM-dd}.%i.log for the active file
+20:29:49,456 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@6fc6f14e - The date pattern is 'yyyy-MM-dd' from file name pattern 'C:/Users/mao/logs/seata/history/seata-server.8092.warn.%d{yyyy-MM-dd}.%i.log.gz'.
+20:29:49,456 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@6fc6f14e - Roll-over at midnight.
+20:29:49,457 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@6fc6f14e - Setting initial period to Thu Jul 28 20:21:16 CST 2022
+20:29:49,458 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@540642172 - Cleaning on start up
+20:29:49,458 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - first clean up after appender initialization
+20:29:49,458 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - Multiple periods, i.e. 32 periods, seem to have elapsed. This is expected at application start.
+20:29:49,458 |-INFO in ch.qos.logback.core.joran.action.NestedComplexPropertyIA - Assuming default type [ch.qos.logback.classic.encoder.PatternLayoutEncoder] for [encoder] property
+20:29:49,459 |-INFO in ch.qos.logback.core.rolling.RollingFileAppender[FILE_WARN] - Active log file name: C:\Users\mao/logs/seata/seata-server.8092.warn.log
+20:29:49,459 |-INFO in ch.qos.logback.core.rolling.RollingFileAppender[FILE_WARN] - File property is set to [C:\Users\mao/logs/seata/seata-server.8092.warn.log]
+20:29:49,460 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - About to instantiate appender of type [ch.qos.logback.core.rolling.RollingFileAppender]
+20:29:49,460 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - Naming appender as [FILE_ERROR]
+20:29:49,462 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1445157774 - Archive files will be limited to [2048 MB] each.
+20:29:49,463 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1445157774 - Will use gz compression
+20:29:49,463 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1445157774 - Will use the pattern C:/Users/mao/logs/seata/history/seata-server.8092.error.%d{yyyy-MM-dd}.%i.log for the active file
+20:29:49,464 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@3632be31 - The date pattern is 'yyyy-MM-dd' from file name pattern 'C:/Users/mao/logs/seata/history/seata-server.8092.error.%d{yyyy-MM-dd}.%i.log.gz'.
+20:29:49,464 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@3632be31 - Roll-over at midnight.
+20:29:49,465 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@3632be31 - Setting initial period to Thu Jul 28 20:21:16 CST 2022
+20:29:49,466 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1445157774 - Cleaning on start up
+20:29:49,466 |-INFO in ch.qos.logback.core.joran.action.NestedComplexPropertyIA - Assuming default type [ch.qos.logback.classic.encoder.PatternLayoutEncoder] for [encoder] property
+20:29:49,466 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - first clean up after appender initialization
+20:29:49,467 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - Multiple periods, i.e. 32 periods, seem to have elapsed. This is expected at application start.
+20:29:49,468 |-INFO in ch.qos.logback.core.rolling.RollingFileAppender[FILE_ERROR] - Active log file name: C:\Users\mao/logs/seata/seata-server.8092.error.log
+20:29:49,468 |-INFO in ch.qos.logback.core.rolling.RollingFileAppender[FILE_ERROR] - File property is set to [C:\Users\mao/logs/seata/seata-server.8092.error.log]
+20:29:49,469 |-INFO in ch.qos.logback.classic.joran.action.RootLoggerAction - Setting level of ROOT logger to INFO
+20:29:49,469 |-INFO in ch.qos.logback.core.joran.action.AppenderRefAction - Attaching appender named [CONSOLE] to Logger[ROOT]
+20:29:49,470 |-INFO in ch.qos.logback.core.joran.action.AppenderRefAction - Attaching appender named [FILE_ALL] to Logger[ROOT]
+20:29:49,470 |-INFO in ch.qos.logback.core.joran.action.AppenderRefAction - Attaching appender named [FILE_WARN] to Logger[ROOT]
+20:29:49,470 |-INFO in ch.qos.logback.core.joran.action.AppenderRefAction - Attaching appender named [FILE_ERROR] to Logger[ROOT]
+20:29:49,470 |-INFO in ch.qos.logback.classic.joran.action.ConfigurationAction - End of configuration.
+20:29:49,471 |-INFO in ch.qos.logback.classic.joran.JoranConfigurator@5abca1e0 - Registering current configuration as safe fallback point
+
+SLF4J: A number (18) of logging calls during the initialization phase have been intercepted and are
+SLF4J: now being replayed. These are subject to the filtering rules of the underlying logging system.
+SLF4J: See also http://www.slf4j.org/codes.html#replay
+20:29:49.582  INFO --- [                     main] io.seata.config.FileConfiguration        : The file name of the operation is registry
+20:29:49.588  INFO --- [                     main] io.seata.config.FileConfiguration        : The configuration file used is H:\opensoft\seata-server-cluster\seata1\conf\registry.conf
+20:29:52.153  INFO --- [                     main] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+20:29:52.759  INFO --- [                     main] i.s.core.rpc.netty.NettyServerBootstrap  : Server started, listen port: 8092
+```
+
+
+
+seata2：
+
+```sh
+20:29:49,199 |-INFO in ch.qos.logback.classic.LoggerContext[default] - Could NOT find resource [logback-test.xml]
+20:29:49,200 |-INFO in ch.qos.logback.classic.LoggerContext[default] - Could NOT find resource [logback.groovy]
+20:29:49,200 |-INFO in ch.qos.logback.classic.LoggerContext[default] - Found resource [logback.xml] at [file:/H:/opensoft/seata-server-cluster/seata2/conf/logback.xml]
+20:29:49,201 |-WARN in ch.qos.logback.classic.LoggerContext[default] - Resource [logback.xml] occurs multiple times on the classpath.
+20:29:49,201 |-WARN in ch.qos.logback.classic.LoggerContext[default] - Resource [logback.xml] occurs at [file:/H:/opensoft/seata-server-cluster/seata2/conf/logback.xml]
+20:29:49,201 |-WARN in ch.qos.logback.classic.LoggerContext[default] - Resource [logback.xml] occurs at [jar:file:/H:/opensoft/seata-server-cluster/seata2/lib/seata-server-1.4.2.jar!/logback.xml]
+20:29:49,287 |-INFO in ch.qos.logback.classic.joran.action.ConfigurationAction - debug attribute not set
+20:29:49,294 |-INFO in ch.qos.logback.classic.joran.action.ConfigurationAction - Will scan for changes in [file:/H:/opensoft/seata-server-cluster/seata2/conf/logback.xml]
+20:29:49,294 |-INFO in ch.qos.logback.classic.joran.action.ConfigurationAction - Setting ReconfigureOnChangeTask scanning period to 1 minutes
+20:29:49,297 |-INFO in ch.qos.logback.classic.joran.action.LoggerContextListenerAction - Adding LoggerContextListener of type [io.seata.server.logging.listener.SystemPropertyLoggerContextListener] to the object stack
+20:29:49,297 |-INFO in ch.qos.logback.classic.joran.action.LoggerContextListenerAction - Starting LoggerContextListener
+20:29:49,297 |-INFO in ch.qos.logback.core.joran.action.ConversionRuleAction - registering conversion word clr with class [io.seata.server.logging.logback.ColorConverter]
+20:29:49,297 |-INFO in ch.qos.logback.core.joran.action.ConversionRuleAction - registering conversion word wex with class [io.seata.server.logging.logback.WhitespaceThrowableProxyConverter]
+20:29:49,297 |-INFO in ch.qos.logback.core.joran.action.ConversionRuleAction - registering conversion word wEx with class [io.seata.server.logging.logback.ExtendedWhitespaceThrowableProxyConverter]
+20:29:49,300 |-INFO in ch.qos.logback.core.joran.util.ConfigurationWatchListUtil@5383967b - Adding [file:/H:/opensoft/seata-server-cluster/seata2/conf/logback/console-appender.xml] to configuration watch list.
+20:29:49,303 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - About to instantiate appender of type [ch.qos.logback.core.ConsoleAppender]
+20:29:49,307 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - Naming appender as [CONSOLE]
+20:29:49,315 |-INFO in ch.qos.logback.core.joran.action.NestedComplexPropertyIA - Assuming default type [ch.qos.logback.classic.encoder.PatternLayoutEncoder] for [encoder] property
+20:29:49,402 |-INFO in ch.qos.logback.core.joran.util.ConfigurationWatchListUtil@5383967b - Adding [file:/H:/opensoft/seata-server-cluster/seata2/conf/logback/file-appender.xml] to configuration watch list.
+20:29:49,405 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - About to instantiate appender of type [ch.qos.logback.core.rolling.RollingFileAppender]
+20:29:49,408 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - Naming appender as [FILE_ALL]
+20:29:49,417 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@717386707 - Archive files will be limited to [2048 MB] each.
+20:29:49,420 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@717386707 - Will use gz compression
+20:29:49,421 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@717386707 - Will use the pattern C:/Users/mao/logs/seata/history/seata-server.8093.all.%d{yyyy-MM-dd}.%i.log for the active file
+20:29:49,424 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@71423665 - The date pattern is 'yyyy-MM-dd' from file name pattern 'C:/Users/mao/logs/seata/history/seata-server.8093.all.%d{yyyy-MM-dd}.%i.log.gz'.
+20:29:49,424 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@71423665 - Roll-over at midnight.
+20:29:49,427 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@71423665 - Setting initial period to Thu Jul 28 20:21:19 CST 2022
+20:29:49,430 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@717386707 - Cleaning on start up
+20:29:49,430 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - first clean up after appender initialization
+20:29:49,431 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - Multiple periods, i.e. 32 periods, seem to have elapsed. This is expected at application start.
+20:29:49,431 |-INFO in ch.qos.logback.core.joran.action.NestedComplexPropertyIA - Assuming default type [ch.qos.logback.classic.encoder.PatternLayoutEncoder] for [encoder] property
+20:29:49,433 |-INFO in ch.qos.logback.core.rolling.RollingFileAppender[FILE_ALL] - Active log file name: C:\Users\mao/logs/seata/seata-server.8093.all.log
+20:29:49,433 |-INFO in ch.qos.logback.core.rolling.RollingFileAppender[FILE_ALL] - File property is set to [C:\Users\mao/logs/seata/seata-server.8093.all.log]
+20:29:49,434 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - About to instantiate appender of type [ch.qos.logback.core.rolling.RollingFileAppender]
+20:29:49,434 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - Naming appender as [FILE_WARN]
+20:29:49,437 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@540642172 - Archive files will be limited to [2048 MB] each.
+20:29:49,437 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@540642172 - Will use gz compression
+20:29:49,438 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@540642172 - Will use the pattern C:/Users/mao/logs/seata/history/seata-server.8093.warn.%d{yyyy-MM-dd}.%i.log for the active file
+20:29:49,438 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@6fc6f14e - The date pattern is 'yyyy-MM-dd' from file name pattern 'C:/Users/mao/logs/seata/history/seata-server.8093.warn.%d{yyyy-MM-dd}.%i.log.gz'.
+20:29:49,438 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@6fc6f14e - Roll-over at midnight.
+20:29:49,439 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@6fc6f14e - Setting initial period to Thu Jul 28 20:21:16 CST 2022
+20:29:49,440 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@540642172 - Cleaning on start up
+20:29:49,440 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - first clean up after appender initialization
+20:29:49,440 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - Multiple periods, i.e. 32 periods, seem to have elapsed. This is expected at application start.
+20:29:49,440 |-INFO in ch.qos.logback.core.joran.action.NestedComplexPropertyIA - Assuming default type [ch.qos.logback.classic.encoder.PatternLayoutEncoder] for [encoder] property
+20:29:49,441 |-INFO in ch.qos.logback.core.rolling.RollingFileAppender[FILE_WARN] - Active log file name: C:\Users\mao/logs/seata/seata-server.8093.warn.log
+20:29:49,441 |-INFO in ch.qos.logback.core.rolling.RollingFileAppender[FILE_WARN] - File property is set to [C:\Users\mao/logs/seata/seata-server.8093.warn.log]
+20:29:49,442 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - About to instantiate appender of type [ch.qos.logback.core.rolling.RollingFileAppender]
+20:29:49,442 |-INFO in ch.qos.logback.core.joran.action.AppenderAction - Naming appender as [FILE_ERROR]
+20:29:49,444 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1445157774 - Archive files will be limited to [2048 MB] each.
+20:29:49,444 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1445157774 - Will use gz compression
+20:29:49,444 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1445157774 - Will use the pattern C:/Users/mao/logs/seata/history/seata-server.8093.error.%d{yyyy-MM-dd}.%i.log for the active file
+20:29:49,445 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@3632be31 - The date pattern is 'yyyy-MM-dd' from file name pattern 'C:/Users/mao/logs/seata/history/seata-server.8093.error.%d{yyyy-MM-dd}.%i.log.gz'.
+20:29:49,445 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@3632be31 - Roll-over at midnight.
+20:29:49,446 |-INFO in ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP@3632be31 - Setting initial period to Thu Jul 28 20:21:16 CST 2022
+20:29:49,446 |-INFO in c.q.l.core.rolling.SizeAndTimeBasedRollingPolicy@1445157774 - Cleaning on start up
+20:29:49,446 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - first clean up after appender initialization
+20:29:49,446 |-INFO in c.q.l.core.rolling.helper.TimeBasedArchiveRemover - Multiple periods, i.e. 32 periods, seem to have elapsed. This is expected at application start.
+20:29:49,447 |-INFO in ch.qos.logback.core.joran.action.NestedComplexPropertyIA - Assuming default type [ch.qos.logback.classic.encoder.PatternLayoutEncoder] for [encoder] property
+20:29:49,448 |-INFO in ch.qos.logback.core.rolling.RollingFileAppender[FILE_ERROR] - Active log file name: C:\Users\mao/logs/seata/seata-server.8093.error.log
+20:29:49,448 |-INFO in ch.qos.logback.core.rolling.RollingFileAppender[FILE_ERROR] - File property is set to [C:\Users\mao/logs/seata/seata-server.8093.error.log]
+20:29:49,448 |-INFO in ch.qos.logback.classic.joran.action.RootLoggerAction - Setting level of ROOT logger to INFO
+20:29:49,449 |-INFO in ch.qos.logback.core.joran.action.AppenderRefAction - Attaching appender named [CONSOLE] to Logger[ROOT]
+20:29:49,449 |-INFO in ch.qos.logback.core.joran.action.AppenderRefAction - Attaching appender named [FILE_ALL] to Logger[ROOT]
+20:29:49,450 |-INFO in ch.qos.logback.core.joran.action.AppenderRefAction - Attaching appender named [FILE_WARN] to Logger[ROOT]
+20:29:49,450 |-INFO in ch.qos.logback.core.joran.action.AppenderRefAction - Attaching appender named [FILE_ERROR] to Logger[ROOT]
+20:29:49,450 |-INFO in ch.qos.logback.classic.joran.action.ConfigurationAction - End of configuration.
+20:29:49,451 |-INFO in ch.qos.logback.classic.joran.JoranConfigurator@5abca1e0 - Registering current configuration as safe fallback point
+
+SLF4J: A number (18) of logging calls during the initialization phase have been intercepted and are
+SLF4J: now being replayed. These are subject to the filtering rules of the underlying logging system.
+SLF4J: See also http://www.slf4j.org/codes.html#replay
+20:29:49.570  INFO --- [                     main] io.seata.config.FileConfiguration        : The file name of the operation is registry
+20:29:49.575  INFO --- [                     main] io.seata.config.FileConfiguration        : The configuration file used is H:\opensoft\seata-server-cluster\seata2\conf\registry.conf
+20:29:52.111  INFO --- [                     main] com.alibaba.druid.pool.DruidDataSource   : {dataSource-1} inited
+20:29:52.712  INFO --- [                     main] i.s.core.rpc.netty.NettyServerBootstrap  : Server started, listen port: 8093
+```
+
+
+
+
+
+
+
+### 6. 进入nacos控制台
+
+
+
+![image-20220728203257673](img/image-20220728203257673.png)
+
+
+
+### 7. 查看详情
+
+
+
+![image-20220728203354573](img/image-20220728203354573.png)
+
+
+
+
+
+在nacos中成功注册
+
+
+
+### 8. 新建配置
+
+
+
+我们需要将tx-service-group与cluster的映射关系都配置到nacos配置中心。
+
+
+
+在nacos的配置管理中点击新建配置
+
+
+
+![image-20220728203759210](img/image-20220728203759210.png)
+
+
+
+
+
+![image-20220728203850899](img/image-20220728203850899.png)
+
+
+
+
+
+
+
+### 9. 填充表单
+
+
+
+data ID：client.properties
+
+group：SEATA_GROUP
+
+![image-20220728204141192](img/image-20220728204141192.png)
+
+
+
+
+
+配置内容：
+
+```properties
+# 事务组映射关系
+service.vgroupMapping.seata-demo=SH
+
+service.enableDegrade=false
+service.disableGlobalTransaction=false
+# 与TC服务的通信配置
+transport.type=TCP
+transport.server=NIO
+transport.heartbeat=true
+transport.enableClientBatchSendRequest=false
+transport.threadFactory.bossThreadPrefix=NettyBoss
+transport.threadFactory.workerThreadPrefix=NettyServerNIOWorker
+transport.threadFactory.serverExecutorThreadPrefix=NettyServerBizHandler
+transport.threadFactory.shareBossWorker=false
+transport.threadFactory.clientSelectorThreadPrefix=NettyClientSelector
+transport.threadFactory.clientSelectorThreadSize=1
+transport.threadFactory.clientWorkerThreadPrefix=NettyClientWorkerThread
+transport.threadFactory.bossThreadSize=1
+transport.threadFactory.workerThreadSize=default
+transport.shutdown.wait=3
+# RM配置
+client.rm.asyncCommitBufferLimit=10000
+client.rm.lock.retryInterval=10
+client.rm.lock.retryTimes=30
+client.rm.lock.retryPolicyBranchRollbackOnConflict=true
+client.rm.reportRetryCount=5
+client.rm.tableMetaCheckEnable=false
+client.rm.tableMetaCheckerInterval=60000
+client.rm.sqlParserType=druid
+client.rm.reportSuccessEnable=false
+client.rm.sagaBranchRegisterEnable=false
+# TM配置
+client.tm.commitRetryCount=5
+client.tm.rollbackRetryCount=5
+client.tm.defaultGlobalTransactionTimeout=60000
+client.tm.degradeCheck=false
+client.tm.degradeCheckAllowTimes=10
+client.tm.degradeCheckPeriod=2000
+
+# undo日志配置
+client.undo.dataValidation=true
+client.undo.logSerialization=jackson
+client.undo.onlyCareUpdateColumns=true
+client.undo.logTable=undo_log
+client.undo.compress.enable=true
+client.undo.compress.type=zip
+client.undo.compress.threshold=64k
+client.log.exceptionRate=100
+```
+
+
+
+
+
+### 10. 发布配置
+
+
+
+![image-20220728204313162](img/image-20220728204313162.png)
+
+
+
+
+
+![image-20220728204330890](img/image-20220728204330890.png)
+
+
+
+
+
+### 11. 微服务读取nacos配置
+
+
+
+需要修改每一个微服务的application.yml文件，让微服务读取nacos中的client.properties文件
+
+
+
+```yaml
+seata:
+  config:
+    type: nacos
+    nacos:
+      server-addr: 127.0.0.1:8848
+      username: nacos
+      password: nacos
+      group: SEATA_GROUP
+      data-id: client.properties
+```
+
+
+
+重启微服务，现在微服务到底是连接tc的SH集群，还是tc的HZ集群，都统一由nacos的client.properties来决定
+
+
+
+
+
+
+
+
+
+## 项目地址
+
+
+
+https://github.com/maomao124/spring_cloud_distributed_transaction_seata.git
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# 分布式缓存
+
+
+
