@@ -31290,5 +31290,161 @@ https://github.com/maomao124/spring_cloud_distributed_transaction_seata.git
 
 # 分布式缓存
 
+## 学习笔记
+
+
+
+https://github.com/maomao124/redisStudyNotes.git
+
+
+
+## 项目地址
+
+
+
+https://github.com/maomao124?language=&page=1&q=redis&sort=&tab=repositories
+
+https://github.com/maomao124?language=&page=2&q=redis&sort=&tab=repositories
+
+
+
+
+
+![image-20220729133936944](img/image-20220729133936944.png)
+
+
+
+![image-20220729134025721](img/image-20220729134025721.png)
+
+
+
+
+
+
+
+
+
+
+
+# 服务异步通讯
+
+
+
+面试常问，怎样保证消息不丢失
+
+
+
+## 消息可靠性问题
+
+消息从生产者发送到exchange，再到queue，再到消费者，有哪些导致消息丢失的可能性？
+
+* 发送时丢失
+  * 生产者发送的消息未送达exchange
+  * 消息到达exchange后未到达queue
+* MQ宕机，queue将消息丢失
+* consumer接收到消息后未消费就宕机
+
+
+
+
+
+## 生产者确认机制
+
+RabbitMQ提供了publisher confirm机制来避免消息发送到MQ过程中丢失。消息发送到MQ以后，会返回一个结果给发送者，表示消息是否处理成功。
+
+结果有两种请求：
+
+* publisher-confirm，发送者确认
+  * 消息成功投递到交换机，返回ack
+  * 消息未投递到交换机，返回nack
+* publisher-return，发送者回执
+  * 消息投递到交换机了，但是没有路由到队列。返回ACK，及路由失败原因
+
+
+
+
+
+## 消息持久化
+
+MQ默认是内存存储消息，开启持久化功能可以确保缓存在MQ中的消息不丢失
+
+* 交换机持久化
+* 队列持久化
+* 消息持久化，SpringAMQP中的的消息默认是持久的，可以通过MessageProperties中的DeliveryMode来指定
+
+
+
+
+
+## 消费者确认
+
+RabbitMQ支持消费者确认机制，即：消费者处理消息后可以向MQ发送ack回执，MQ收到ack回执后才会删除该消息
+
+SpringAMQP允许配置三种确认模式
+
+* manual：手动ack，需要在业务代码结束后，调用api发送ack
+* auto：自动ack，由spring监测listener代码是否出现异常，没有异常则返回ack；抛出异常则返回nack
+* none：关闭ack，MQ假定消费者获取消息后会成功处理，因此消息投递后立即被删除
+
+
+
+
+
+## 消费者失败重试
+
+当消费者出现异常后，消息会不断requeue（重新入队）到队列，再重新发送给消费者，然后再次异常，再次requeue，无限循环，导致mq的消息处理飙升，带来不必要的压力
+
+我们可以利用Spring的retry机制，在消费者出现异常时利用本地重试，而不是无限制的requeue到mq队列
+
+
+
+
+
+## 消费者失败消息处理策略
+
+在开启重试模式后，重试次数耗尽，如果消息依然失败，则需要有MessageRecoverer接口来处理，它包含三种不同的实现：
+
+* RejectAndDontRequeueRecoverer：重试耗尽后，直接reject，丢弃消息。默认就是这种方式
+* ImmediateRequeueMessageRecoverer：重试耗尽后，返回nack，消息重新入队
+* RepublishMessageRecoverer：重试耗尽后，将失败消息投递到指定的交换机
+
+
+
+
+
+## 死信交换机
+
+当一个队列中的消息满足下列情况之一时，可以成为死信（dead letter）
+
+* 消费者使用basic.reject或 basic.nack声明消费失败，并且消息的requeue参数设置为false
+* 消息是一个过期消息，超时无人消费
+* 要投递的队列消息堆积满了，最早的消息可能成为死信
+
+
+
+如果该队列配置了dead-letter-exchange属性，指定了一个交换机，那么队列中的死信就会投递到这个交换机中，而这个交换机称为死信交换机（Dead Letter Exchange，简称DLX）
+
+
+
+
+
+## 延迟队列
+
+利用TTL结合死信交换机，我们实现了消息发出后，消费者延迟收到消息的效果。这种消息模式就称为延迟队列（Delay Queue）模式。
+
+延迟队列的使用场景包括：
+
+* 延迟发送短信
+* 用户下单，如果用户在15 分钟内未支付，则自动取消
+* 预约工作会议，20分钟后自动通知所有参会人员
+
+
+
+
+
+## 惰性队列
+
+
+
 
 
